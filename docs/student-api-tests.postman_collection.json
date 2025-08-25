@@ -1,0 +1,951 @@
+{
+  "info": {
+    "name": "Student API Tests - Complete Collection",
+    "description": "Comprehensive test collection for all student-accessible endpoints with real database IDs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "2.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{studentToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3005/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "studentToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentId",
+      "value": "6",
+      "type": "string"
+    },
+    {
+      "key": "universityId",
+      "value": "4",
+      "type": "string"
+    },
+    {
+      "key": "specialtyId",
+      "value": "5",
+      "type": "string"
+    },
+    {
+      "key": "studyPackId",
+      "value": "5",
+      "type": "string"
+    },
+    {
+      "key": "uniteId",
+      "value": "14",
+      "type": "string"
+    },
+    {
+      "key": "moduleId",
+      "value": "12",
+      "type": "string"
+    },
+    {
+      "key": "courseId",
+      "value": "10",
+      "type": "string"
+    },
+    {
+      "key": "quizId",
+      "value": "8",
+      "type": "string"
+    },
+    {
+      "key": "examId",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "questionId",
+      "value": "54",
+      "type": "string"
+    },
+    {
+      "key": "answerId",
+      "value": "189",
+      "type": "string"
+    },
+    {
+      "key": "sessionId",
+      "value": "35",
+      "type": "string"
+    },
+    {
+      "key": "quizSourceId",
+      "value": "9",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Student Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.accessToken) {",
+                  "        pm.collectionVariables.set('studentToken', response.data.accessToken);",
+                  "        console.log('Student token set successfully');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.accessToken) {",
+                  "        pm.collectionVariables.set('adminToken', response.data.accessToken);",
+                  "        console.log('Admin token set successfully');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@medcin.dz\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Content Access (Public)",
+      "item": [
+        {
+          "name": "Get Universities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/universities",
+              "host": ["{{baseUrl}}"],
+              "path": ["universities"]
+            }
+          }
+        },
+        {
+          "name": "Get Specialties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/specialties",
+              "host": ["{{baseUrl}}"],
+              "path": ["specialties"]
+            }
+          }
+        },
+        {
+          "name": "Get Study Packs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/study-packs",
+              "host": ["{{baseUrl}}"],
+              "path": ["study-packs"]
+            }
+          }
+        },
+        {
+          "name": "Get Study Pack by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/study-packs/{{studyPackId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["study-packs", "{{studyPackId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      
+      "name": "Student Progress & Analytics",
+      "item": [
+        {
+          "name": "Get Progress Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/progress/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "progress", "overview"]
+            }
+          }
+        },
+        {
+          "name": "Update Course Progress",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"layer\": 2,\n  \"completed\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/courses/{{courseId}}/progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "courses", "{{courseId}}", "progress"]
+            }
+          }
+        },
+        {
+          "name": "Get Quiz History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/quiz-history?type=PRACTICE&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "quiz-history"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "PRACTICE"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Session Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/session-results?answerType=all&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "session-results"],
+              "query": [
+                {
+                  "key": "answerType",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Available Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/available-sessions?sessionType=PRACTICE",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "available-sessions"],
+              "query": [
+                {
+                  "key": "sessionType",
+                  "value": "PRACTICE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dashboard Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/dashboard/performance",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "dashboard", "performance"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quiz Management",
+      "item": [
+        {
+          "name": "Get Quiz Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/quizzes/quiz-filters",
+              "host": ["{{baseUrl}}"],
+              "path": ["quizzes", "quiz-filters"]
+            }
+          }
+        },
+        {
+          "name": "Create Quiz Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.sessionId) {",
+                  "        pm.collectionVariables.set('newSessionId', response.data.sessionId);",
+                  "        console.log('New session ID set:', response.data.sessionId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Practice Quiz Session - Anatomy\",\n  \"quizType\": \"PRACTICE\",\n  \"settings\": {\n    \"questionCount\": 10\n  },\n  \"filters\": {\n    \"yearLevels\": [\"ONE\"],\n    \"courseIds\": [{{courseId}}],\n    \"questionTypes\": [\"SINGLE_CHOICE\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/quizzes/quiz-sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["quizzes", "quiz-sessions"]
+            }
+          }
+        },
+        {
+          "name": "Get User Quiz Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/quiz-sessions?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "quiz-sessions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Quiz Session Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/quiz-sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "quiz-sessions", "{{sessionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Submit Quiz Answers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"questionId\": {{questionId}},\n      \"selectedAnswerId\": {{answerId}}\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/quiz-sessions/{{sessionId}}/submit-answer",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "quiz-sessions", "{{sessionId}}", "submit-answer"]
+            }
+          }
+        },
+        {
+          "name": "Update Quiz Answer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"selectedAnswerId\": {{answerId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/quiz-sessions/{{sessionId}}/questions/{{questionId}}/answer",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "quiz-sessions", "{{sessionId}}", "questions", "{{questionId}}", "answer"]
+            }
+          }
+        },
+        {
+          "name": "Create Retake Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"originalSessionId\": {{sessionId}},\n  \"retakeType\": \"INCORRECT_ONLY\",\n  \"title\": \"Retake - Incorrect Questions Only\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/quiz-sessions/retake",
+              "host": ["{{baseUrl}}"],
+              "path": ["quiz-sessions", "retake"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exam Management",
+      "item": [
+        {
+          "name": "Get Available Exams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/exams/available",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "available"]
+            }
+          }
+        },
+        {
+          "name": "Get Exam Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{examId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{examId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Exam Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/exams/{{examId}}/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "{{examId}}", "questions"]
+            }
+          }
+        },
+        {
+          "name": "Get Exams by Module and Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/exams/by-module/{{moduleId}}/2024",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "by-module", "{{moduleId}}", "2024"]
+            }
+          }
+        },
+        {
+          "name": "Create Exam Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": {{examId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/exam-sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "exam-sessions"]
+            }
+          }
+        },
+        {
+          "name": "Create Exam Session from Multiple Modules",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleIds\": [{{moduleId}}],\n  \"questionCount\": 20,\n  \"title\": \"Multi-Module Exam Session\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/exams/exam-sessions/from-modules",
+              "host": ["{{baseUrl}}"],
+              "path": ["exams", "exam-sessions", "from-modules"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student Features",
+      "item": [
+        {
+          "name": "Get User Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "subscriptions"]
+            }
+          }
+        },
+        {
+          "name": "Get Course Resources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/courses/{{courseId}}/resources",
+              "host": ["{{baseUrl}}"],
+              "path": ["courses", "{{courseId}}", "resources"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Student Notes System",
+      "item": [
+        {
+          "name": "Get Student Notes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "notes"]
+            }
+          }
+        },
+        {
+          "name": "Get Notes for Question",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/questions/{{questionId}}/notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "questions", "{{questionId}}", "notes"]
+            }
+          }
+        },
+        {
+          "name": "Create Student Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"noteText\": \"This is an important concept to remember for the exam\",\n  \"questionId\": {{questionId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "notes"]
+            }
+          }
+        },
+        {
+          "name": "Update Student Note",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"noteText\": \"Updated note text with additional information\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/notes/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "notes", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Student Note",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/notes/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "notes", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Labeling System",
+      "item": [
+        {
+          "name": "Get Student Labels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/labels",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "labels"]
+            }
+          }
+        },
+        {
+          "name": "Create Student Label",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Important Topics\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/labels",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "labels"]
+            }
+          }
+        },
+        {
+          "name": "Update Student Label",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"High Priority Topics\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/labels/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "labels", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Student Label",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/labels/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "labels", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Quiz to Label",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/quizzes/{{quizId}}/labels/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "quizzes", "{{quizId}}", "labels", "1"]
+            }
+          }
+        },
+        {
+          "name": "Add Quiz Session to Label",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/quiz-sessions/{{sessionId}}/labels/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "quiz-sessions", "{{sessionId}}", "labels", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Todo & Task Management",
+      "item": [
+        {
+          "name": "Get Todos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/todos?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "todos"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Review Anatomy Chapter 5\",\n  \"description\": \"Focus on cardiovascular system\",\n  \"type\": \"STUDY\",\n  \"priority\": \"HIGH\",\n  \"courseId\": {{courseId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/todos",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "todos"]
+            }
+          }
+        },
+        {
+          "name": "Update Todo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Review Anatomy Chapter 5 - Updated\",\n  \"description\": \"Focus on cardiovascular and respiratory systems\",\n  \"priority\": \"MEDIUM\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/todos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "todos", "1"]
+            }
+          }
+        },
+        {
+          "name": "Complete Todo",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/todos/1/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "todos", "1", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Delete Todo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/todos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "todos", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Question Reporting System",
+      "item": [
+        {
+          "name": "Create Question Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportType\": \"INCORRECT_ANSWER\",\n  \"description\": \"The correct answer seems to be wrong based on my textbook reference\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/students/questions/{{questionId}}/report",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "questions", "{{questionId}}", "report"]
+            }
+          }
+        },
+        {
+          "name": "Get User Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "reports"]
+            }
+          }
+        },
+        {
+          "name": "Get Report by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/students/reports/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["students", "reports", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+	"info": {
+		"_postman_id": "4b2d41d4-a138-4fcf-89e0-237a249b53a0",
+		"name": "Medcortex api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37428806"
+	},
+	"item": [
+		{
+			"name": "Todo",
+			"item": [
+				{
+					"name": "Student Get Subscription  Copy",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2RhdGEiOnsiaWQiOjIsImVtYWlsIjoic3R1ZGVudDFAdW5pdmVyc2l0eS5keiIsImZ1bGxOYW1lIjoiQWhtZWQgQmVuIEFsaSIsInJvbGUiOiJTVFVERU5UIiwidW5pdmVyc2l0eUlkIjoxLCJzcGVjaWFsdHlJZCI6MSwiY3VycmVudFllYXIiOiJPTkUiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpc0FjdGl2ZSI6dHJ1ZX0sInN1YnNjcmlwdGlvbnMiOlt7ImlkIjoyLCJzdHVkeV9wYWNrX2lkIjoxLCJwYWNrX25hbWUiOiJGaXJzdCBZZWFyIE1lZGljaW5lIiwicGFja190eXBlIjoieWVhciIsInllYXJfbnVtYmVyIjoiT05FIiwiZW5kX2RhdGUiOiIyMDI2LTA3LTI2VDEzOjM0OjA2LjczM1oiLCJkYXlzX3JlbWFpbmluZyI6MzUwfV0sInBheW1lbnRfc3RhdHVzIjoiYWN0aXZlIiwiaGFzX2FjdGl2ZV9zdWJzY3JpcHRpb24iOnRydWUsImFjY2Vzc2libGVfc3R1ZHlfcGFja3MiOlsxXSwiaWF0IjoxNzU0ODM1NzgwLCJleHAiOjE3NTYxMzE3ODB9.nkzr_hCbvL0amDiBpG7NJqHWZqBTkqosI5RL36KaZRs",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://94ab829b7d64.ngrok-free.app/api/v1/students/todos",
+							"protocol": "https",
+							"host": [
+								"94ab829b7d64",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"students",
+								"todos"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "subscription",
+			"item": [
+				{
+					"name": "Student Get Subscription ",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2RhdGEiOnsiaWQiOjIsImVtYWlsIjoic3R1ZGVudDFAdW5pdmVyc2l0eS5keiIsImZ1bGxOYW1lIjoiQWhtZWQgQmVuIEFsaSIsInJvbGUiOiJTVFVERU5UIiwidW5pdmVyc2l0eUlkIjoxLCJzcGVjaWFsdHlJZCI6MSwiY3VycmVudFllYXIiOiJPTkUiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpc0FjdGl2ZSI6dHJ1ZX0sInN1YnNjcmlwdGlvbnMiOlt7ImlkIjoyLCJzdHVkeV9wYWNrX2lkIjoxLCJwYWNrX25hbWUiOiJGaXJzdCBZZWFyIE1lZGljaW5lIiwicGFja190eXBlIjoieWVhciIsInllYXJfbnVtYmVyIjoiT05FIiwiZW5kX2RhdGUiOiIyMDI2LTA3LTI2VDEzOjM0OjA2LjczM1oiLCJkYXlzX3JlbWFpbmluZyI6MzUwfV0sInBheW1lbnRfc3RhdHVzIjoiYWN0aXZlIiwiaGFzX2FjdGl2ZV9zdWJzY3JpcHRpb24iOnRydWUsImFjY2Vzc2libGVfc3R1ZHlfcGFja3MiOlsxXSwiaWF0IjoxNzU0ODM1NzgwLCJleHAiOjE3NTYxMzE3ODB9.nkzr_hCbvL0amDiBpG7NJqHWZqBTkqosI5RL36KaZRs",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://94ab829b7d64.ngrok-free.app/api/v1/students/subscriptions",
+							"protocol": "https",
+							"host": [
+								"94ab829b7d64",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"students",
+								"subscriptions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Practice",
+			"item": [
+				{
+					"name": "Get user's quiz sessions",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2RhdGEiOnsiaWQiOjIsImVtYWlsIjoic3R1ZGVudDFAdW5pdmVyc2l0eS5keiIsImZ1bGxOYW1lIjoiQWhtZWQgQmVuIEFsaSIsInJvbGUiOiJTVFVERU5UIiwidW5pdmVyc2l0eUlkIjoxLCJzcGVjaWFsdHlJZCI6MSwiY3VycmVudFllYXIiOiJPTkUiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpc0FjdGl2ZSI6dHJ1ZX0sInN1YnNjcmlwdGlvbnMiOlt7ImlkIjoyLCJzdHVkeV9wYWNrX2lkIjoxLCJwYWNrX25hbWUiOiJGaXJzdCBZZWFyIE1lZGljaW5lIiwicGFja190eXBlIjoieWVhciIsInllYXJfbnVtYmVyIjoiT05FIiwiZW5kX2RhdGUiOiIyMDI2LTA3LTI2VDEzOjM0OjA2LjczM1oiLCJkYXlzX3JlbWFpbmluZyI6MzUwfV0sInBheW1lbnRfc3RhdHVzIjoiYWN0aXZlIiwiaGFzX2FjdGl2ZV9zdWJzY3JpcHRpb24iOnRydWUsImFjY2Vzc2libGVfc3R1ZHlfcGFja3MiOlsxXSwiaWF0IjoxNzU0ODM1NzgwLCJleHAiOjE3NTYxMzE3ODB9.nkzr_hCbvL0amDiBpG7NJqHWZqBTkqosI5RL36KaZRs",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://94ab829b7d64.ngrok-free.app/api/v1/students/quiz-sessions",
+							"protocol": "https",
+							"host": [
+								"94ab829b7d64",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"students",
+								"quiz-sessions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Quiz filter options",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2RhdGEiOnsiaWQiOjIsImVtYWlsIjoic3R1ZGVudDFAdW5pdmVyc2l0eS5keiIsImZ1bGxOYW1lIjoiQWhtZWQgQmVuIEFsaSIsInJvbGUiOiJTVFVERU5UIiwidW5pdmVyc2l0eUlkIjoxLCJzcGVjaWFsdHlJZCI6MSwiY3VycmVudFllYXIiOiJPTkUiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpc0FjdGl2ZSI6dHJ1ZX0sInN1YnNjcmlwdGlvbnMiOlt7ImlkIjoyLCJzdHVkeV9wYWNrX2lkIjoxLCJwYWNrX25hbWUiOiJGaXJzdCBZZWFyIE1lZGljaW5lIiwicGFja190eXBlIjoieWVhciIsInllYXJfbnVtYmVyIjoiT05FIiwiZW5kX2RhdGUiOiIyMDI2LTA3LTI2VDEzOjM0OjA2LjczM1oiLCJkYXlzX3JlbWFpbmluZyI6MzUwfV0sInBheW1lbnRfc3RhdHVzIjoiYWN0aXZlIiwiaGFzX2FjdGl2ZV9zdWJzY3JpcHRpb24iOnRydWUsImFjY2Vzc2libGVfc3R1ZHlfcGFja3MiOlsxXSwiaWF0IjoxNzU0ODM1NzgwLCJleHAiOjE3NTYxMzE3ODB9.nkzr_hCbvL0amDiBpG7NJqHWZqBTkqosI5RL36KaZRs",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://94ab829b7d64.ngrok-free.app/api/v1/quizzes/quiz-filters",
+							"protocol": "https",
+							"host": [
+								"94ab829b7d64",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"quizzes",
+								"quiz-filters"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user's quiz session details",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2RhdGEiOnsiaWQiOjIsImVtYWlsIjoic3R1ZGVudDFAdW5pdmVyc2l0eS5keiIsImZ1bGxOYW1lIjoiQWhtZWQgQmVuIEFsaSIsInJvbGUiOiJTVFVERU5UIiwidW5pdmVyc2l0eUlkIjoxLCJzcGVjaWFsdHlJZCI6MSwiY3VycmVudFllYXIiOiJPTkUiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpc0FjdGl2ZSI6dHJ1ZX0sInN1YnNjcmlwdGlvbnMiOlt7ImlkIjoyLCJzdHVkeV9wYWNrX2lkIjoxLCJwYWNrX25hbWUiOiJGaXJzdCBZZWFyIE1lZGljaW5lIiwicGFja190eXBlIjoieWVhciIsInllYXJfbnVtYmVyIjoiT05FIiwiZW5kX2RhdGUiOiIyMDI2LTA3LTI2VDEzOjM0OjA2LjczM1oiLCJkYXlzX3JlbWFpbmluZyI6MzUwfV0sInBheW1lbnRfc3RhdHVzIjoiYWN0aXZlIiwiaGFzX2FjdGl2ZV9zdWJzY3JpcHRpb24iOnRydWUsImFjY2Vzc2libGVfc3R1ZHlfcGFja3MiOlsxXSwiaWF0IjoxNzU0ODM1NzgwLCJleHAiOjE3NTYxMzE3ODB9.nkzr_hCbvL0amDiBpG7NJqHWZqBTkqosI5RL36KaZRs",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "https://94ab829b7d64.ngrok-free.app/api/v1/students/quiz-sessions/",
+							"protocol": "https",
+							"host": [
+								"94ab829b7d64",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"students",
+								"quiz-sessions",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create new quiz session",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2RhdGEiOnsiaWQiOjIsImVtYWlsIjoic3R1ZGVudDFAdW5pdmVyc2l0eS5keiIsImZ1bGxOYW1lIjoiQWhtZWQgQmVuIEFsaSIsInJvbGUiOiJTVFVERU5UIiwidW5pdmVyc2l0eUlkIjoxLCJzcGVjaWFsdHlJZCI6MSwiY3VycmVudFllYXIiOiJPTkUiLCJlbWFpbFZlcmlmaWVkIjp0cnVlLCJpc0FjdGl2ZSI6dHJ1ZX0sInN1YnNjcmlwdGlvbnMiOlt7ImlkIjoyLCJzdHVkeV9wYWNrX2lkIjoxLCJwYWNrX25hbWUiOiJGaXJzdCBZZWFyIE1lZGljaW5lIiwicGFja190eXBlIjoieWVhciIsInllYXJfbnVtYmVyIjoiT05FIiwiZW5kX2RhdGUiOiIyMDI2LTA3LTI2VDEzOjM0OjA2LjczM1oiLCJkYXlzX3JlbWFpbmluZyI6MzUwfV0sInBheW1lbnRfc3RhdHVzIjoiYWN0aXZlIiwiaGFzX2FjdGl2ZV9zdWJzY3JpcHRpb24iOnRydWUsImFjY2Vzc2libGVfc3R1ZHlfcGFja3MiOlsxXSwiaWF0IjoxNzU0ODM1NzgwLCJleHAiOjE3NTYxMzE3ODB9.nkzr_hCbvL0amDiBpG7NJqHWZqBTkqosI5RL36KaZRs",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"\";\n  \"quizType\": \"QuizType\";\n  settings: {\n    questionCount: number;\n  };\n  filters: QuizSessionFilters;      }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://94ab829b7d64.ngrok-free.app/api/v1//quizzes/quiz-sessions",
+							"protocol": "https",
+							"host": [
+								"94ab829b7d64",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"v1",
+								"",
+								"quizzes",
+								"quiz-sessions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

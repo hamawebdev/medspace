@@ -1,0 +1,136 @@
+# Content Management & Question API Updates
+
+## Content Management CRUD Operations
+
+### UPDATE Endpoints
+
+#### Update Unite
+PUT /api/v1/admin/content/unites/:id
+{
+  "name": "Updated Unite Name",
+  "description": "Updated description",
+  "studyPackId": 1,
+  "logoUrl": "https://example.com/logo.png"
+}
+
+#### Update Module
+PUT /api/v1/admin/content/modules/:id
+{
+  "name": "Updated Module Name",
+  "description": "Updated description",
+  "uniteId": 1
+}
+
+#### Update Course
+PUT /api/v1/admin/content/courses/:id
+{
+  "name": "Updated Course Name",
+  "description": "Updated description",
+  "moduleId": 1
+}
+
+#### Update Course Resource
+PUT /api/v1/admin/content/resources/:id
+{
+  "title": "Updated Resource Title",
+  "description": "Updated description",
+  "type": "VIDEO",
+  "externalUrl": "https://example.com/video.mp4",
+  "courseId": 1
+}
+
+### DELETE Endpoints
+
+#### Delete Unite
+DELETE /api/v1/admin/content/unites/:id
+
+#### Delete Module
+DELETE /api/v1/admin/content/modules/:id
+
+#### Delete Course
+DELETE /api/v1/admin/content/courses/:id
+
+#### Delete Course Resource
+DELETE /api/v1/admin/content/resources/:id
+
+### Response Format
+{
+  "success": true,
+  "data": {
+    "message": "Entity updated/deleted successfully"
+  }
+}
+
+### Deletion Protection
+- Unite: Cannot delete if contains modules
+- Module: Cannot delete if contains courses
+- Course: Cannot delete if contains resources or questions
+- Resource: Can always be deleted
+
+## Question Explanation API
+
+### Update Question Explanation with Images
+PUT /api/v1/admin/questions/:id/explanation
+
+Request:
+{
+  "explanation": "Detailed explanation text with supporting information",
+  "images": [
+    {
+      "imagePath": "/explanations/diagram.jpg",
+      "altText": "Anatomical diagram"
+    },
+    {
+      "imagePath": "/explanations/chart.png",
+      "altText": "Process chart"
+    }
+  ]
+}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "questionId": 28,
+    "explanation": "Detailed explanation text...",
+    "imagesCount": 2
+  }
+}
+
+### Features
+- ✅ Update explanation text only (images optional)
+- ✅ Add multiple explanatory images
+- ✅ Validates question exists before update
+- ✅ Returns updated explanation and image count
+
+## Permissions
+
+| Operation | Admin | Employee |
+|-----------|-------|----------|
+| Update/Delete Unite | ✅ | ❌ |
+| Update/Delete Module | ✅ | ❌ |
+| Update/Delete Course | ✅ | ✅ |
+| Update/Delete Resource | ✅ | ✅ |
+| Update Question Explanation | ✅ | ✅ |
+
+## Error Responses
+
+404 - Not Found:
+{
+  "success": false,
+  "error": {
+    "message": "Entity with ID 123 not found",
+    "statusCode": 404
+  }
+}
+
+400 - Deletion Protection:
+{
+  "success": false,
+  "error": {
+    "message": "Cannot delete unite. It contains 3 modules. Please delete all modules first.",
+    "statusCode": 400
+  }
+}
+
+All endpoints now support complete CRUD operations with proper validation and hierarchical deletion protection.

@@ -1,0 +1,17 @@
+
+PUT /api/v1/admin/questions/:questionId/explanation
+
+## API Endpoint Details
+
+### Endpoint: PUT /api/v1/admin/questions/:questionId/explanation
+
+### Request Body:
+{
+  "explanation": "Explanation text (required, max 5000 chars)",
+  "explanationImages": [
+    {
+      "imagePath": "image.jpg",
+      "altText": "Alt text (optional, max 255 chars)"
+    }
+  ]
+}
