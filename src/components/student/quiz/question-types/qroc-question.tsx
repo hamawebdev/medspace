@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, X, Edit3, FileText } from 'lucide-react';
+import { Check, X, Edit3, FileText, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function QROCQuestion({ question }: Props) {
-  const { state, submitAnswer } = useQuiz();
+  const { state, submitAnswer, revealAnswer } = useQuiz();
   const { session, isAnswerRevealed } = state;
   
   const [textAnswer, setTextAnswer] = useState<string>('');
@@ -102,10 +102,10 @@ export function QROCQuestion({ question }: Props) {
   return (
     <div className="space-y-6">
       {/* Question Content */}
-      <Card className="border-primary/30 bg-gradient-to-br from-card via-primary/5 to-accent/10 shadow-lg hover:shadow-xl transition-all duration-300 card-hover-lift">
-        <CardContent className="p-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3 mb-6">
+      <Card className="border-primary/30 bg-gradient-to-br from-card via-primary/5 to-accent/10 shadow-lg hover:shadow-xl transition-all duration-300 card-hover-lift gap-0 py-0">
+        <CardContent className="p-4 sm:p-5 lg:p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-3 h-3 rounded-full bg-primary animate-pulse-soft"></div>
@@ -118,8 +118,8 @@ export function QROCQuestion({ question }: Props) {
             </div>
             <div className="relative">
               <div className="absolute -left-4 top-0 w-1 h-full bg-gradient-to-b from-primary to-primary/30 rounded-full"></div>
-              <div className="prose prose-lg max-w-none pl-4">
-                <p className="text-xl leading-relaxed font-semibold text-foreground tracking-tight">
+              <div className="prose prose-base max-w-none pl-4">
+                <p className="text-lg leading-relaxed font-semibold text-foreground tracking-tight">
                   {question.content}
                 </p>
               </div>
@@ -129,7 +129,7 @@ export function QROCQuestion({ question }: Props) {
       </Card>
 
       {/* Instructions */}
-      <div className="flex items-center justify-between bg-muted/30 rounded-lg p-4">
+      <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
         <p className="text-sm text-muted-foreground font-medium">
           Rédigez une réponse courte et précise
         </p>
@@ -151,11 +151,11 @@ export function QROCQuestion({ question }: Props) {
 
       {/* Answer Input */}
       <Card className={cn(
-        "transition-all duration-300 ease-out card-hover-lift",
+        "transition-all duration-300 ease-out card-hover-lift gap-0 py-0",
         isAnswerRevealed && userAnswer?.isCorrect && "border-green-300 bg-green-50/50 shadow-sm",
         isAnswerRevealed && !userAnswer?.isCorrect && "border-orange-300 bg-orange-50/50 shadow-sm"
       )}>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
               <Edit3 className="h-4 w-4" />
@@ -168,9 +168,9 @@ export function QROCQuestion({ question }: Props) {
               placeholder="Tapez votre réponse ici..."
               disabled={isAnswerRevealed && hasSubmitted || session.status === 'completed' || session.status === 'COMPLETED'}
               maxLength={maxChars}
-              rows={3}
+              rows={2}
               className={cn(
-                "resize-none text-sm sm:text-base focus-ring min-h-[80px] sm:min-h-[100px]",
+                "resize-none text-sm sm:text-base focus-ring min-h-[60px] sm:min-h-[80px]",
                 isAnswerRevealed && hasSubmitted && "bg-muted/50"
               )}
             />
@@ -191,6 +191,21 @@ export function QROCQuestion({ question }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Show Answer Button */}
+      {!isAnswerRevealed && session.status !== 'COMPLETED' && session.status !== 'completed' && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={revealAnswer}
+            className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+          >
+            <Lightbulb className="h-4 w-4" />
+            Show Answer & Explanation
+          </Button>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between pt-4">

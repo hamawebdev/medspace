@@ -64,8 +64,8 @@ export function EnhancedQuizFooter({
   };
 
   const getProgressStatus = () => {
-    if (isAllAnswered) return { color: 'text-green-600', bg: 'bg-green-100', icon: CheckCircle2 };
-    if (hasAnswers) return { color: 'text-blue-600', bg: 'bg-blue-100', icon: Target };
+    if (isAllAnswered) return { color: 'text-primary', bg: 'bg-primary/10', icon: CheckCircle2 };
+    if (hasAnswers) return { color: 'text-primary-foreground', bg: 'bg-primary/20', icon: Target };
     return { color: 'text-muted-foreground', bg: 'bg-muted/50', icon: Circle };
   };
 

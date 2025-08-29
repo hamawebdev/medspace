@@ -303,7 +303,7 @@ export function ApiQuizResults() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {/* Review: go to detailed results page */}
           <Button
-            onClick={() => router.push(`/student/session/${state.apiSessionId}/results`)}
+            onClick={() => router.push(`/session/${state.apiSessionId}/results`)}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
@@ -312,7 +312,7 @@ export function ApiQuizResults() {
 
           {/* Edit: reuse the original session UI in review/edit mode */}
           <Button
-            onClick={() => router.push(`/student/sessions/${state.apiSessionId}/review`)}
+            onClick={() => router.push(`/session/${state.apiSessionId}/review`)}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />

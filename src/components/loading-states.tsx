@@ -30,10 +30,10 @@ interface FullPageLoadingProps {
 
 export function FullPageLoading({ message = 'Loading...' }: FullPageLoadingProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
         <LoadingSpinner size="lg" className="mx-auto mb-4" />
-        <p className="text-gray-600 dark:text-gray-400">{message}</p>
+        <p className="text-muted-foreground">{message}</p>
       </div>
     </div>
   );
@@ -209,7 +209,7 @@ export function InlineLoading({ message = 'Loading...', size = 'md', className =
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <LoadingSpinner size={size} />
-      <span className="text-gray-600 dark:text-gray-400">{message}</span>
+      <span className="text-muted-foreground">{message}</span>
     </div>
   );
 }
@@ -278,7 +278,7 @@ export function DataLoadingState({
 
   if (!data || (Array.isArray(data) && data.length === 0)) {
     return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-8 text-muted-foreground">
         {emptyMessage}
       </div>
     );
@@ -303,15 +303,15 @@ export function ProgressiveLoading({ stages, className = '' }: ProgressiveLoadin
       {stages.map((stage, index) => (
         <div key={index} className="flex items-center gap-3">
           {stage.completed ? (
-            <div className="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
-              <svg className="h-2 w-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="h-4 w-4 bg-primary rounded-full flex items-center justify-center">
+              <svg className="h-2 w-2 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
             </div>
           ) : stage.loading ? (
             <LoadingSpinner size="sm" />
           ) : (
-            <div className="h-4 w-4 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+            <div className="h-4 w-4 bg-muted rounded-full"></div>
           )}
           <span className={`text-sm ${stage.completed ? 'text-success' : stage.loading ? 'text-primary' : 'text-muted-foreground'}`}>
             {stage.name}

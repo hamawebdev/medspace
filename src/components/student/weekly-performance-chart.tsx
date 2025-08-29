@@ -68,16 +68,16 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className='bg-card/95 backdrop-blur-sm border border-border rounded-lg p-[calc(var(--spacing)*3)] shadow-xl'>
-          <p className='text-sm font-semibold mb-[calc(var(--spacing)*2)] tracking-tight text-foreground'>{`Week: ${label}`}</p>
-          <div className='space-y-[calc(var(--spacing)*1)]'>
+        <div className='bg-card border-border rounded-lg p-3 shadow-lg'>
+          <p className='text-sm font-semibold mb-2 text-foreground'>{`Week: ${label}`}</p>
+          <div className='space-y-1'>
             {payload.map((entry: any, index: number) => (
-              <div key={index} className='flex items-center gap-[calc(var(--spacing)*2)]'>
+              <div key={index} className='flex items-center gap-2'>
                 <div
-                  className='w-2 h-2 rounded-full shadow-sm'
+                  className='w-2 h-2 rounded-full'
                   style={{ backgroundColor: entry.color }}
                 ></div>
-                <p className='text-xs leading-relaxed text-muted-foreground font-medium'>
+                <p className='text-xs text-muted-foreground'>
                   <span className='font-semibold text-foreground'>{entry.dataKey}:</span> {entry.value}
                 </p>
               </div>
@@ -234,30 +234,26 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
   }
 
   return (
-    <Card className='relative overflow-hidden bg-gradient-to-br from-chart-2/12 to-chart-2/8 border border-chart-2/20 shadow-xl hover:shadow-2xl transition-all duration-300'>
-      {/* Enhanced background elements for visual depth */}
-      <div className='absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-chart-2/15 to-chart-2/25 rounded-full blur-3xl'></div>
-      <div className='absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-chart-1/10 to-chart-3/15 rounded-full blur-2xl'></div>
-      <div className='absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5'></div>
+    <Card className='bg-card border-border shadow-sm hover:shadow-md transition-shadow duration-200'>
 
-      <CardHeader className='relative pb-[calc(var(--spacing)*4)]'>
-        <div className='flex flex-col gap-[calc(var(--spacing)*3)]'>
-          <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)]'>
-            <div className='space-y-[calc(var(--spacing)*1)] min-w-0 flex-1'>
-              <CardTitle className='flex items-center gap-[calc(var(--spacing)*2)] tracking-tight text-lg sm:text-xl'>
-                <div className='p-[calc(var(--spacing)*1)] bg-gradient-to-r from-chart-2/20 to-chart-1/20 rounded-lg'>
-                  <BarChart3 className='h-4 w-4 text-chart-2 flex-shrink-0' />
+      <CardHeader className='pb-4'>
+        <div className='flex flex-col gap-3'>
+          <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4'>
+            <div className='space-y-1 min-w-0 flex-1'>
+              <CardTitle className='flex items-center gap-2 text-lg font-semibold'>
+                <div className='p-1.5 bg-primary/10 rounded-lg'>
+                  <BarChart3 className='h-4 w-4 text-primary' />
                 </div>
                 <span className='truncate'>Weekly Performance</span>
               </CardTitle>
-              <CardDescription className='flex items-center gap-[calc(var(--spacing)*2)] leading-relaxed text-sm pl-[calc(var(--spacing)*7)]'>
+              <CardDescription className='flex items-center gap-2 text-sm text-muted-foreground'>
                 {accuracyTrend !== 0 && (
                   <>
-                    <div className='p-[calc(var(--spacing)*0.5)] bg-gradient-to-r from-muted/20 to-muted/10 rounded-full'>
+                    <div className='p-1 bg-muted/50 rounded-full'>
                       {accuracyTrend > 0 ? (
-                        <TrendingUp className='h-3 w-3 text-chart-2 flex-shrink-0' />
+                        <TrendingUp className='h-3 w-3 text-chart-2' />
                       ) : (
-                        <TrendingDown className='h-3 w-3 text-chart-5 flex-shrink-0' />
+                        <TrendingDown className='h-3 w-3 text-destructive' />
                       )}
                     </div>
                     <span className='truncate'>
@@ -268,102 +264,100 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
               </CardDescription>
             </div>
 
-            <Badge variant='outline' className='bg-card/50 backdrop-blur-sm text-xs font-medium self-start sm:self-auto flex-shrink-0 border-chart-2/30'>
+            <Badge variant='secondary' className='text-xs font-medium self-start sm:self-auto flex-shrink-0'>
               {data.length} Week{data.length !== 1 ? 's' : ''}
             </Badge>
           </div>
 
-          {/* Mobile-Optimized Chart Type Controls */}
+          {/* Chart Type Controls */}
           <div className='flex items-center justify-center sm:justify-end'>
-            <div className='flex items-center gap-[calc(var(--spacing)*1)] bg-card/50 backdrop-blur-sm rounded-lg p-[calc(var(--spacing)*1)] border border-border/30'>
+            <div className='flex items-center gap-1 bg-muted/50 rounded-lg p-1 border-border'>
               <Button
                 variant={chartType === 'bar' ? 'default' : 'ghost'}
                 size='sm'
                 onClick={() => setChartType('bar')}
-                className='h-8 px-[calc(var(--spacing)*2)] text-xs'
+                className='h-8 px-2 text-xs'
               >
-                <BarChart3 className='h-3 w-3 sm:mr-[calc(var(--spacing)*1)]' />
+                <BarChart3 className='h-3 w-3 sm:mr-1' />
                 <span className='hidden sm:inline'>Bar</span>
               </Button>
               <Button
                 variant={chartType === 'line' ? 'default' : 'ghost'}
                 size='sm'
                 onClick={() => setChartType('line')}
-                className='h-8 px-[calc(var(--spacing)*2)] text-xs'
+                className='h-8 px-2 text-xs'
               >
-                <LineChartIcon className='h-3 w-3 sm:mr-[calc(var(--spacing)*1)]' />
+                <LineChartIcon className='h-3 w-3 sm:mr-1' />
                 <span className='hidden sm:inline'>Line</span>
               </Button>
               <Button
                 variant={chartType === 'area' ? 'default' : 'ghost'}
                 size='sm'
                 onClick={() => setChartType('area')}
-                className='h-8 px-[calc(var(--spacing)*2)] text-xs'
+                className='h-8 px-2 text-xs'
               >
-                <Target className='h-3 w-3 sm:mr-[calc(var(--spacing)*1)]' />
+                <Target className='h-3 w-3 sm:mr-1' />
                 <span className='hidden sm:inline'>Area</span>
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Performance Summary */}
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-[calc(var(--spacing)*3)] mt-[calc(var(--spacing)*4)]'>
-          <div className='group bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm rounded-lg p-[calc(var(--spacing)*3)] text-center border border-chart-2/20 hover:border-chart-2/30 transition-all'>
-            <div className='flex items-center justify-center mb-[calc(var(--spacing)*1)]'>
-              <div className='p-[calc(var(--spacing)*1)] bg-chart-2/20 rounded-full'>
+        {/* Performance Summary */}
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4'>
+          <div className='bg-muted/30 rounded-lg p-3 text-center border-border hover:bg-muted/50 transition-colors'>
+            <div className='flex items-center justify-center mb-1'>
+              <div className='p-1 bg-chart-2/20 rounded-full'>
                 <Target className='h-3 w-3 text-chart-2' />
               </div>
             </div>
-            <div className='text-lg font-bold text-chart-2 tracking-tight'>{overallAccuracy}%</div>
-            <div className='text-xs text-muted-foreground font-medium leading-relaxed'>Overall Accuracy</div>
+            <div className='text-lg font-bold text-chart-2'>{overallAccuracy}%</div>
+            <div className='text-xs text-muted-foreground'>Overall Accuracy</div>
           </div>
 
-          <div className='group bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm rounded-lg p-[calc(var(--spacing)*3)] text-center border border-chart-1/20 hover:border-chart-1/30 transition-all'>
-            <div className='flex items-center justify-center mb-[calc(var(--spacing)*1)]'>
-              <div className='p-[calc(var(--spacing)*1)] bg-chart-1/20 rounded-full'>
+          <div className='bg-muted/30 rounded-lg p-3 text-center border-border hover:bg-muted/50 transition-colors'>
+            <div className='flex items-center justify-center mb-1'>
+              <div className='p-1 bg-chart-1/20 rounded-full'>
                 <BarChart3 className='h-3 w-3 text-chart-1' />
               </div>
             </div>
-            <div className='text-lg font-bold text-chart-1 tracking-tight'>{totalQuestions}</div>
-            <div className='text-xs text-muted-foreground font-medium leading-relaxed'>Total Questions</div>
+            <div className='text-lg font-bold text-chart-1'>{totalQuestions}</div>
+            <div className='text-xs text-muted-foreground'>Total Questions</div>
           </div>
 
-          <div className='group bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm rounded-lg p-[calc(var(--spacing)*3)] text-center border border-chart-3/20 hover:border-chart-3/30 transition-all'>
-            <div className='flex items-center justify-center mb-[calc(var(--spacing)*1)]'>
+          <div className='bg-muted/30 rounded-lg p-3 text-center border-border hover:bg-muted/50 transition-colors'>
+            <div className='flex items-center justify-center mb-1'>
               <div className={cn(
-                'p-[calc(var(--spacing)*1)] rounded-full',
-                accuracyTrend > 0 ? 'bg-chart-2/20' : accuracyTrend < 0 ? 'bg-chart-5/20' : 'bg-chart-3/20'
+                'p-1 rounded-full',
+                accuracyTrend > 0 ? 'bg-chart-2/20' : accuracyTrend < 0 ? 'bg-destructive/20' : 'bg-chart-3/20'
               )}>
                 {accuracyTrend > 0 ? (
                   <TrendingUp className='h-3 w-3 text-chart-2' />
                 ) : accuracyTrend < 0 ? (
-                  <TrendingDown className='h-3 w-3 text-chart-5' />
+                  <TrendingDown className='h-3 w-3 text-destructive' />
                 ) : (
                   <Award className='h-3 w-3 text-chart-3' />
                 )}
               </div>
             </div>
             <div className={cn(
-              'text-lg font-bold tracking-tight',
-              accuracyTrend > 0 ? 'text-chart-2' : accuracyTrend < 0 ? 'text-chart-5' : 'text-chart-3'
+              'text-lg font-bold',
+              accuracyTrend > 0 ? 'text-chart-2' : accuracyTrend < 0 ? 'text-destructive' : 'text-chart-3'
             )}>
               {Math.abs(accuracyTrend)}%
             </div>
-            <div className='text-xs text-muted-foreground font-medium leading-relaxed'>Weekly Trend</div>
+            <div className='text-xs text-muted-foreground'>Weekly Trend</div>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className='relative'>
-        {/* Enhanced Mobile-Responsive Chart Container */}
-        <div className='w-full h-56 sm:h-72 lg:h-80 bg-gradient-to-br from-background/50 to-card/30 rounded-lg p-[calc(var(--spacing)*2)] sm:p-[calc(var(--spacing)*3)] border border-border/30'>
+      <CardContent>
+        {/* Chart Container */}
+        <div className='w-full h-56 sm:h-72 lg:h-80 bg-muted/20 rounded-lg p-2 sm:p-3 border-border'>
           <ResponsiveContainer width='100%' height='100%'>
             {renderChart()}
           </ResponsiveContainer>
         </div>
-
-
       </CardContent>
     </Card>
   )

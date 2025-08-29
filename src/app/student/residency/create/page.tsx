@@ -100,7 +100,7 @@ export default function ResidencyCreatePage() {
       const sid = created?.data?.sessionId || created?.data?.id || (created as any)?.sessionId || (created as any)?.id;
       if (sid) {
         toast.success('Residency session created');
-        router.push(`/student/session/${sid}`);
+        router.push(`/session/${sid}`);
       } else {
         toast.error('Session created but no sessionId returned');
         router.push('/student/residency');

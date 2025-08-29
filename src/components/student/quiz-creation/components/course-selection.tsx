@@ -189,7 +189,7 @@ export function CourseSelection({
                     : isSelected
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : course.questionCount > 10
-                        ? 'bg-green-100 text-green-700 border-green-200 group-hover/course:bg-green-200'
+                        ? 'bg-chart-5/20 text-chart-5 border-chart-5/30 group-hover/course:bg-chart-5/30'
                         : 'bg-background border-border/60 group-hover/course:border-primary/30'
                 }`}
               >

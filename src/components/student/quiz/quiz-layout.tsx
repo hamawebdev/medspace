@@ -17,7 +17,9 @@ import {
   BookOpen,
   Trophy,
   Send,
-  Info
+  Info,
+  Check,
+  X as XIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -95,7 +97,7 @@ export function QuizLayout() {
     if (session.status === 'completed' || session.status === 'COMPLETED') {
       const id = (state as any).apiSessionId || session.id;
       if (id) {
-        router.push(`/student/sessions/${id}/results`);
+        router.push(`/session/${id}/results`);
       }
     }
   }, [session.status, router]);
@@ -198,12 +200,12 @@ export function QuizLayout() {
 
   const getSessionTypeBadge = (type: string) => {
     const variants = {
-      training: 'bg-blue-50 text-blue-700 border-blue-200',
-      exam: 'bg-green-50 text-green-700 border-green-200',
-      residency: 'bg-purple-50 text-purple-700 border-purple-200',
-      remedial: 'bg-orange-50 text-orange-700 border-orange-200',
+      training: 'bg-primary/10 text-primary-foreground border-primary/20',
+      exam: 'bg-primary/10 text-primary border-primary/20',
+      residency: 'bg-accent/10 text-accent-foreground border-accent/20',
+      remedial: 'bg-secondary/10 text-secondary-foreground border-secondary/20',
     };
-    return variants[type as keyof typeof variants] || 'bg-gray-50 text-gray-700 border-gray-200';
+    return variants[type as keyof typeof variants] || 'bg-muted/10 text-muted-foreground border-muted/20';
   };
 
   return (
@@ -252,12 +254,44 @@ export function QuizLayout() {
 
             {/* Timer */}
             {(session.settings?.showTimer ?? true) && (
-              <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm bg-muted/30 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
-                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                <span className="font-mono font-medium text-foreground tracking-wider text-xs sm:text-sm">
-                  {formatTime(timer.totalTime)}
-                </span>
-              </div>
+              (() => {
+                const timeLimit = session.timeLimit; // in minutes
+                const totalTimeSeconds = timer.totalTime;
+                const timeLimitSeconds = timeLimit ? timeLimit * 60 : null;
+                const timeRemaining = timeLimitSeconds ? Math.max(0, timeLimitSeconds - totalTimeSeconds) : null;
+                const isTimeUp = timeLimitSeconds && totalTimeSeconds >= timeLimitSeconds;
+                const isNearEnd = timeLimitSeconds && timeRemaining && timeRemaining <= 300; // 5 minutes warning
+
+                return (
+                  <div className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 ${
+                    isTimeUp ? 'bg-red-100 dark:bg-red-900/30' :
+                    isNearEnd ? 'bg-yellow-100 dark:bg-yellow-900/30' :
+                    'bg-muted/30'
+                  }`}>
+                    <Clock className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                      isTimeUp ? 'text-red-600 dark:text-red-400' :
+                      isNearEnd ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-muted-foreground'
+                    }`} />
+                    <span className={`font-mono font-medium tracking-wider text-xs sm:text-sm ${
+                      isTimeUp ? 'text-red-600 dark:text-red-400' :
+                      isNearEnd ? 'text-yellow-600 dark:text-yellow-400' :
+                      'text-foreground'
+                    }`}>
+                      {timeLimit ? (
+                        timeRemaining !== null ? formatTime(timeRemaining) : formatTime(totalTimeSeconds)
+                      ) : (
+                        formatTime(totalTimeSeconds)
+                      )}
+                    </span>
+                    {timeLimit && (
+                      <span className="text-xs text-muted-foreground">
+                        / {formatTime(timeLimitSeconds || 0)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()
             )}
 
             {/* Info Dropdown */}
@@ -345,7 +379,7 @@ export function QuizLayout() {
             {/* Review-mode actions */}
             {(session.status === 'COMPLETED' || session.status === 'completed') ? (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => router.push(`/student/session/${state.apiSessionId || session.id}/results`)} className="gap-2">
+                <Button variant="outline" size="sm" onClick={() => router.push(`/session/${state.apiSessionId || session.id}/results`)} className="gap-2">
                   <Home className="h-4 w-4" />
                   <span className="hidden sm:inline">Return to Results</span>
                 </Button>
@@ -432,9 +466,28 @@ export function QuizLayout() {
               </Button>
             </div>
             <div className="space-y-2">
-              {session.questions.map((_, index) => {
+              {session.questions.map((question, index) => {
                 const isCurrentQuestion = index === currentQuestionIndex;
-                const isAnswered = session.userAnswers[session.questions[index]?.id];
+                const userAnswer = session.userAnswers[question?.id];
+                const isAnswered = !!userAnswer;
+                
+                // Determine if the answer is correct
+                let isCorrect = null;
+                if (isAnswered && userAnswer) {
+                  // Check if the user's answer is correct
+                  const selectedOptions = userAnswer.selectedOptions || [];
+                  const correctOptions = (question.options || question.answers || [])
+                    .filter((opt: any) => opt.isCorrect)
+                    .map((opt: any) => String(opt.id));
+                  
+                  if (correctOptions.length > 0 && selectedOptions.length > 0) {
+                    // For multiple choice: all selected must be correct and all correct must be selected
+                    const selectedSet = new Set(selectedOptions.map(String));
+                    const correctSet = new Set(correctOptions);
+                    isCorrect = selectedSet.size === correctSet.size &&
+                               [...selectedSet].every(id => correctSet.has(id));
+                  }
+                }
 
                 return (
                   <button
@@ -447,17 +500,25 @@ export function QuizLayout() {
                       }
                     }}
                     className={cn(
-                      "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                      "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between",
                       isCurrentQuestion
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : isAnswered
-                          ? "bg-green-50 text-green-700 hover:bg-green-100"
+                          ? isCorrect
+                            ? "bg-green-50 text-green-700 hover:bg-green-100"
+                            : "bg-red-50 text-red-700 hover:bg-red-100"
                           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                   >
-                    Q{index + 1}
+                    <span>Question {index + 1}</span>
                     {isAnswered && !isCurrentQuestion && (
-                      <span className="ml-2 text-xs">✓</span>
+                      <div className="flex items-center ml-2">
+                        {isCorrect ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <XIcon className="h-4 w-4 text-red-600" />
+                        )}
+                      </div>
                     )}
                   </button>
                 );

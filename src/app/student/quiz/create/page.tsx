@@ -24,7 +24,7 @@ export default function CreateQuizPage() {
     const sessionId = quizSession?.sessionId || quizSession?.id;
     if (sessionId) {
       console.log(`Navigating to practice session: ${sessionId}`);
-      router.push(`/student/practice/session/${sessionId}`);
+      router.push(`/session/${sessionId}`);
     } else {
       console.warn('No sessionId found in quiz session data, redirecting to practice page');
       console.log('Quiz session data:', quizSession);

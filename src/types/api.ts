@@ -655,6 +655,12 @@ export interface Todo {
   priority: TodoPriority;
   status: TodoStatus;
   dueDate?: string;
+  completedAt?: string;
+  course?: any;
+  quiz?: any;
+  exam?: any;
+  quizSession?: any;
+  isOverdue?: boolean;
   courseId?: number;
   estimatedTime?: number; // minutes
   tags?: string[] | null;
@@ -669,6 +675,7 @@ export interface CreateTodoRequest {
   priority: TodoPriority;
   dueDate?: string;
   courseId?: number;
+  quizId?: number;
   estimatedTime?: number;
   tags?: string[];
 }
@@ -959,6 +966,77 @@ export interface CourseProgressResponse {
   lastAccessedAt: string;
   notes?: string;
   updatedAt: string;
+}
+
+// ==================== NOTES TYPES ====================
+
+// Note types for the new grouped API format
+export interface Note {
+  id: number;
+  noteText: string;
+  questionId?: number;
+  quizId?: number;
+  question?: {
+    id: number;
+    questionText: string;
+    course?: {
+      id: number;
+      name: string;
+    };
+  };
+  quiz?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Module group for grouped notes response
+export interface ModuleGroup {
+  module: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  notes: Note[];
+}
+
+// Grouped notes response format
+export interface GroupedNotesResponse {
+  groupedByModule: ModuleGroup[];
+  totalNotes: number;
+  totalModules: number;
+}
+
+// ==================== LABELS TYPES ====================
+
+// Label types for the new question-focused API format
+export interface Label {
+  id: number;
+  name: string;
+  statistics: {
+    quizzesCount: number;
+    questionsCount: number;
+    quizSessionsCount: number;
+    totalItems: number;
+  };
+  questionIds: number[]; // Array of associated question IDs
+  questions: LabelQuestion[]; // Array of associated questions with details
+  createdAt: string;
+}
+
+// Question details in labels
+export interface LabelQuestion {
+  id: number;
+  questionText: string;
+  course: {
+    id: number;
+    name: string;
+    module: {
+      id: number;
+      name: string;
+      description: string;
+    };
+  };
+  createdAt: string;
 }
 
 // ==================== COURSE RESOURCES TYPES ====================

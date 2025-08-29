@@ -78,7 +78,7 @@ export default function Home() {
     {
       icon: Trophy,
       label: "Success Rate",
-      value: "94%",
+      value: "100%",
       description: "Students achieve their target scores",
       color: "from-chart-2 to-chart-4",
       bgColor: "bg-chart-2/10",
@@ -100,7 +100,7 @@ export default function Home() {
       icon: Brain,
       title: 'AI-Powered Learning',
       description: 'Advanced algorithms analyze your performance and create personalized study paths for optimal learning outcomes.',
-      gradient: 'from-violet-500 to-rose-500',
+      gradient: 'from-primary to-chart-1',
     },
     {
       icon: BarChart3,
@@ -130,7 +130,7 @@ export default function Home() {
       icon: Target,
       title: 'Exam Preparation',
       description: 'Specialized modules for USMLE, MCAT, and regional medical exams with proven success strategies.',
-      gradient: 'from-rose-500 to-violet-500',
+      gradient: 'from-chart-1 to-primary',
     },
   ];
 
@@ -175,13 +175,13 @@ export default function Home() {
       title: "Sign Up & Assessment",
       description: "Create your account and take our comprehensive assessment to understand your current knowledge level.",
       icon: GraduationCap,
-      color: "from-purple-500 to-blue-500"
+      color: "from-primary to-chart-2"
     },
     {
       step: 2,
-      title: "Personalized Learning Path",
-      description: "Our AI creates a customized study plan based on your assessment, goals, and learning style.",
-      icon: Brain,
+      title: "Structured Study Plan",
+      description: "Get a customized study plan based on your assessment results, academic goals, and preferred learning approach.",
+      icon: Target,
       color: "from-blue-500 to-cyan-500"
     },
     {
@@ -196,7 +196,7 @@ export default function Home() {
       title: "Track Progress & Excel",
       description: "Monitor your improvement with detailed analytics and achieve your medical education goals.",
       icon: TrendingUp,
-      color: "from-emerald-500 to-purple-500"
+      color: "from-chart-5 to-primary"
     }
   ];
 
@@ -217,7 +217,7 @@ export default function Home() {
       price: '12,000 DA',
       features: ['Advanced Pathology', 'Pharmacology Bank', 'Case Studies', 'Peer Discussions'],
       popular: false,
-      gradient: 'from-purple-500 to-purple-600'
+      gradient: 'from-primary to-primary'
     },
     {
       year: 3,
@@ -253,7 +253,7 @@ export default function Home() {
       price: '12,000 DA',
       features: ['Residency Prep', 'Board Exam Focus', 'Interview Skills', 'Career Transition'],
       popular: false,
-      gradient: 'from-violet-500 to-purple-500'
+      gradient: 'from-primary to-primary'
     },
     {
       year: 'R',
@@ -269,11 +269,11 @@ export default function Home() {
   const faqs = [
     {
       question: "How does MedCortex personalize my learning experience?",
-      answer: "Our AI algorithm analyzes your performance patterns, learning speed, and knowledge gaps to create a customized study plan. It adapts in real-time based on your progress and focuses on areas where you need the most improvement."
+      answer: "Our platform analyzes your performance patterns, learning speed, and knowledge gaps to create a customized study plan. It adapts based on your progress and focuses on areas where you need the most improvement."
     },
     {
       question: "What makes MedCortex different from other medical learning platforms?",
-      answer: "MedCortex combines cutting-edge AI technology with evidence-based medical education. Our content is created by medical professionals, our analytics provide deep insights, and our collaborative features connect you with peers and mentors worldwide."
+      answer: "MedCortex combines evidence-based medical education with expert-created content. Our materials are developed by medical professionals, our analytics provide deep insights, and our collaborative features connect you with peers and mentors worldwide."
     },
     {
       question: "Can I access MedCortex on mobile devices?",
@@ -303,7 +303,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
           <div className="text-center space-y-6 mb-20">
-            <Badge className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0">
+            <Badge className="px-6 py-2 bg-primary text-primary-foreground border-0">
               📊 Our Global Impact
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-bold">
@@ -400,7 +400,7 @@ export default function Home() {
       <section id="features" className="container px-4 py-32 mx-auto">
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-8 mb-20">
-            <Badge className="px-6 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white border-0">
+            <Badge className="px-6 py-2 bg-primary text-primary-foreground border-0">
               ✨ Revolutionary Features
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-bold">
@@ -439,7 +439,7 @@ export default function Home() {
       <section className="container px-4 py-32 mx-auto bg-muted/30 dark:bg-muted/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center space-y-6 mb-20">
-            <Badge className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+            <Badge className="px-6 py-2 bg-primary text-primary-foreground border-0">
               🚀 Simple Process
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-bold">
@@ -463,7 +463,7 @@ export default function Home() {
                 <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mx-auto mb-6 shadow-lg`}>
                   <step.icon className="w-8 h-8 text-white" />
                 </div>
-                <div className="absolute -top-4 -right-4 w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                <div className="absolute -top-4 -right-4 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
                   {step.step}
                 </div>
                 <h3 className="text-xl font-bold mb-4 text-foreground">{step.title}</h3>
@@ -510,7 +510,7 @@ export default function Home() {
                 </blockquote>
 
                 <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
                     {testimonials[currentTestimonial].avatar}
                   </div>
                   <h4 className="font-bold text-lg text-foreground">{testimonials[currentTestimonial].name}</h4>
@@ -527,7 +527,7 @@ export default function Home() {
                   onClick={() => setCurrentTestimonial(index)}
                   className={`w-3 h-3 rounded-full transition-all duration-300 ${
                     currentTestimonial === index
-                      ? 'bg-purple-500 w-8'
+                      ? 'bg-primary w-8'
                       : 'bg-gray-300 hover:bg-gray-400'
                   }`}
                 />
@@ -620,7 +620,7 @@ export default function Home() {
       <section className="container px-4 py-32 mx-auto bg-gradient-to-br from-muted/20 via-background to-accent/10">
         <div className="max-w-5xl mx-auto">
           <div className="text-center space-y-6 mb-20">
-            <Badge className="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 text-lg font-semibold shadow-lg">
+            <Badge className="px-8 py-3 bg-primary text-primary-foreground border-0 text-lg font-semibold shadow-lg">
               ❓ Frequently Asked Questions
             </Badge>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold">
@@ -669,10 +669,10 @@ export default function Home() {
 
           {/* Additional Help Section */}
           <div className="mt-16 text-center">
-            <Card className="max-w-2xl mx-auto bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20">
+            <Card className="max-w-2xl mx-auto from-primary/10 to-secondary/10 border border-primary/20">
               <CardContent className="p-8">
                 <div className="space-y-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16  from-primary to-secondary rounded-full flex items-center justify-center mx-auto">
                     <Star className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-foreground">Still have questions?</h3>
@@ -680,7 +680,7 @@ export default function Home() {
                      Our support team is here to help you 24/7. Get personalized assistance from medical education experts.
                    </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                    <Button className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white">
+                    <Button className=" from-primary to-secondary hover:opacity-90 text-white">
                       <Clock className="w-4 h-4 mr-2" />
                       Contact Support
                     </Button>
@@ -695,120 +695,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Ultra-Modern CTA Section */}
-      <section id="contact" className="container px-4 py-32 mx-auto relative">
-        {/* Background Elements */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 rounded-full blur-3xl animate-pulse-soft"></div>
-        </div>
-
-        <div className="max-w-6xl mx-auto">
-          <Card className="relative overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-primary via-secondary to-accent">
-            {/* Animated Background Pattern */}
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/10"></div>
-              <div className="absolute top-0 left-0 w-full h-full opacity-10">
-                <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full animate-float-gentle"></div>
-                <div className="absolute top-20 right-20 w-24 h-24 bg-white/50 rounded-full animate-float-gentle delay-1000"></div>
-                <div className="absolute bottom-20 left-1/3 w-20 h-20 bg-white/30 rounded-full animate-float-gentle delay-2000"></div>
-              </div>
-            </div>
-
-            <CardContent className="relative z-10 p-12 lg:p-20 text-center text-white">
-              <div className="space-y-12">
-                {/* Header Section */}
-                <div className="space-y-6">
-                  <Badge className="px-6 py-2 bg-white/20 text-white border border-white/30 backdrop-blur-sm">
-                    🚀 Transform Your Future
-                  </Badge>
-                  <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                    Ready to Transform Your
-                    <span className="block bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
-                      Medical Education?
-                    </span>
-          </h2>
-                  <p className="text-xl lg:text-2xl opacity-90 max-w-4xl mx-auto leading-relaxed">
-                    Join thousands of successful medical students and residents who chose MedCortex
-                    to accelerate their learning and achieve their goals.
-                  </p>
-                </div>
-
-                {/* CTA Buttons */}
-                <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Link href="/register">
-                    <Button
-                      size="lg"
-                      className="group bg-white text-primary hover:bg-gray-50 text-lg px-12 py-6 rounded-full shadow-2xl hover:shadow-white/25 transition-all duration-300 transform hover:scale-105 font-semibold"
-                    >
-                      <GraduationCap className="mr-3 h-6 w-6 group-hover:rotate-12 transition-transform duration-300" />
-                      Start Free Trial Today
-                      <ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-1 transition-transform duration-300" />
-              </Button>
-            </Link>
-            <Link href="/login">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="text-lg px-12 py-6 rounded-full border-2 border-white/50 text-white hover:bg-white/10 hover:border-white backdrop-blur-sm transition-all duration-300 font-semibold"
-                    >
-                      <Users className="mr-3 h-6 w-6" />
-                Login to Account
-              </Button>
-            </Link>
-          </div>
-
-                {/* Trust Indicators */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-8">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <CheckCircle className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-lg font-semibold">14-Day Free Trial</span>
-                    <span className="text-sm opacity-75">Full access, no commitment</span>
-                  </div>
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <Shield className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-lg font-semibold">No Credit Card Required</span>
-                    <span className="text-sm opacity-75">Start learning immediately</span>
-                  </div>
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-lg font-semibold">Cancel Anytime</span>
-                    <span className="text-sm opacity-75">Flexible subscription options</span>
-                  </div>
-                </div>
-
-                {/* Social Proof */}
-                <div className="pt-8 border-t border-white/20">
-                  <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8">
-                    <div className="flex items-center space-x-2">
-                      <div className="flex -space-x-2">
-                        <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full border-2 border-white flex items-center justify-center text-xs">👨‍⚕️</div>
-                        <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full border-2 border-white flex items-center justify-center text-xs">👩‍⚕️</div>
-                        <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full border-2 border-white flex items-center justify-center text-xs">🩺</div>
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full border-2 border-white flex items-center justify-center text-xs">🎓</div>
-                      </div>
-                      <span className="text-sm opacity-90">25,000+ students trust MedCortex</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                      ))}
-                      <span className="text-sm opacity-90 ml-2">4.9/5 average rating</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
       <Footer />
     </div>
   );

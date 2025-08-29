@@ -19,8 +19,7 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
         "relative overflow-hidden",
         // Group class for child hover effects
         "group",
-        // Subtle background gradient on hover
-        "before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/50 before:via-transparent before:to-black/5 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300 before:pointer-events-none",
+
         className
       )}
       {...props}

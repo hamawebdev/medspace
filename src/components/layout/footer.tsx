@@ -1,6 +1,7 @@
 // @ts-nocheck
 import Link from 'next/link';
 import { Stethoscope, Mail, Phone, MapPin } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 
 export function Footer() {
   return (
@@ -9,11 +10,11 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Stethoscope className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold text-primary">MedCortex</span>
+            <Link href="/" className="flex items-center space-x-3">
+              <Logo
+                className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+              />
+              <span className="text-xl sm:text-2xl font-bold text-primary">MedCortex</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Advancing medical education through innovative e-learning solutions for students, residents, and professionals.

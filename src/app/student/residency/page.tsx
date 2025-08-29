@@ -72,7 +72,7 @@ export default function ResidencyPage() {
     if (res.success) {
       const data = res.data?.data || res.data;
       const newId = data?.session?.id || data?.sessionId || data?.id;
-      if (newId) router.push(`/student/session/${newId}`);
+      if (newId) router.push(`/session/${newId}`);
     } else {
       toast.error(res.error || 'Failed to create retake');
     }
@@ -284,7 +284,7 @@ export default function ResidencyPage() {
                     return (
                       <Card
                         key={s.id}
-                        onClick={() => { if (clickable) router.push(`/student/sessions/${s.id}/results`); }}
+                        onClick={() => { if (clickable) router.push(`/session/${s.id}/results`); }}
                         className={cn(
                           'relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-2',
                           clickable && 'cursor-pointer hover:bg-accent/10',
@@ -337,7 +337,7 @@ export default function ResidencyPage() {
                                 <Button size="sm" variant="default" onClick={async (e) => {
                                   e.stopPropagation();
                                   try { await QuizService.updateQuizSessionStatus(s.id, 'IN_PROGRESS'); } catch {}
-                                  router.push(`/student/session/${s.id}`)
+                                  router.push(`/session/${s.id}`)
                                 }}>
                                   Start Session
                                 </Button>
@@ -345,7 +345,7 @@ export default function ResidencyPage() {
 
                               {st === 'IN_PROGRESS' && (
                                 <>
-                                  <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/student/session/${s.id}`); }}>
+                                  <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/session/${s.id}`); }}>
                                     Continue
                                   </Button>
                                   <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleOpenRetake(s); }}>
@@ -356,7 +356,7 @@ export default function ResidencyPage() {
 
                               {st === 'COMPLETED' && (
                                 <>
-                                  <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/student/sessions/${s.id}/results`); }}>
+                                  <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/session/${s.id}/results`); }}>
                                     View Results
                                   </Button>
                                   <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleOpenRetake(s); }}>

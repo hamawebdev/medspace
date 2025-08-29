@@ -69,9 +69,9 @@ export function ClientStorageIndicator() {
     if (state.pendingSubmission) {
       return {
         icon: Upload,
-        color: 'text-blue-500',
-        bgColor: 'bg-blue-50 dark:bg-blue-950/20',
-        borderColor: 'border-blue-200 dark:border-blue-800',
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+        borderColor: 'border-primary/20',
         status: 'Submitting',
         description: 'Submitting answers to server...',
         animate: true,
@@ -105,9 +105,9 @@ export function ClientStorageIndicator() {
 
     return {
       icon: Database,
-      color: 'text-gray-500',
-      bgColor: 'bg-gray-50 dark:bg-gray-950/20',
-      borderColor: 'border-gray-200 dark:border-gray-800',
+      color: 'text-muted-foreground',
+      bgColor: 'bg-muted/10',
+      borderColor: 'border-muted/20',
       status: 'Ready',
       description: 'Answers will be saved locally until submission',
     };

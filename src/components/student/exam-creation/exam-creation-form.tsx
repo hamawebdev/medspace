@@ -241,7 +241,7 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
         </Button>
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <GraduationCap className="h-8 w-8 text-purple-600" />
+            <GraduationCap className="h-8 w-8 text-chart-3" />
             Create Exam Session
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -251,10 +251,10 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
       </div>
 
       {/* Exam Mode Info */}
-      <Alert className="border-purple-200 bg-purple-50">
+      <Alert className="border-chart-3/30 bg-chart-3/10">
         <GraduationCap className="h-4 w-4" />
         <AlertDescription>
-          <strong>Exam Mode:</strong> This creates a formal assessment session with questions from your selected modules. 
+          <strong>Exam Mode:</strong> This creates a formal assessment session with questions from your selected modules.
           Perfect for testing your knowledge and preparing for real exams.
         </AlertDescription>
       </Alert>
@@ -303,9 +303,9 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
             <CardContent className="space-y-4">
               {/* Validation Result Alert */}
               {validationResult && !validationResult.isValid && (
-                <Alert className="border-red-200 bg-red-50">
+                <Alert className="border-destructive/30 bg-destructive/10">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-red-800">
+                  <AlertDescription className="text-destructive">
                     <strong>No Questions Available:</strong> {validationResult.message}
                     <br />
                     <span className="text-sm mt-1 block">
@@ -317,9 +317,9 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
 
               {/* Partial Availability Warning */}
               {validationResult && validationResult.isValid && validationResult.unavailableModules.length > 0 && (
-                <Alert className="border-yellow-200 bg-yellow-50">
+                <Alert className="border-chart-4/30 bg-chart-4/10">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-yellow-800">
+                  <AlertDescription className="text-chart-4">
                     <strong>Limited Availability:</strong> {validationResult.message}
                     <br />
                     <span className="text-sm mt-1 block">
@@ -347,10 +347,10 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
                         key={module.id}
                         className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                           isSelected
-                            ? 'border-purple-200 bg-purple-50'
+                            ? 'border-chart-3/30 bg-chart-3/10'
                             : hasQuestions
                             ? 'border-border hover:bg-muted/50'
-                            : 'border-red-200 bg-red-50/50 opacity-75'
+                            : 'border-destructive/30 bg-destructive/10 opacity-75'
                         }`}
                         onClick={() => hasQuestions && handleModuleToggle(module.id)}
                       >
@@ -365,7 +365,7 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
                             {availability && (
                               <div className="flex items-center gap-1">
                                 {hasQuestions ? (
-                                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                  <Badge variant="secondary" className="text-xs bg-chart-5/20 text-chart-5">
                                     {availability.examCount} exams
                                   </Badge>
                                 ) : (
@@ -434,7 +434,7 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
                   <div className="space-y-1">
                     {selectedModuleNames.map(name => (
                       <div key={name} className="text-xs text-muted-foreground flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        <CheckCircle className="h-3 w-3 text-chart-5" />
                         {name}
                       </div>
                     ))}
@@ -448,12 +448,12 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
               {config.selectedModules.length > 0 && validationResult && (
                 <div className="text-sm space-y-1">
                   {validationResult.isValid ? (
-                    <div className="text-green-600 flex items-center gap-1">
+                    <div className="text-chart-5 flex items-center gap-1">
                       <CheckCircle className="h-3 w-3" />
                       Ready to create exam ({validationResult.totalQuestions} questions available)
                     </div>
                   ) : (
-                    <div className="text-red-600 flex items-center gap-1">
+                    <div className="text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       Cannot create exam - no questions available
                     </div>
@@ -465,7 +465,7 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
               <Button
                 onClick={handleCreateExam}
                 disabled={!canCreate}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-chart-3 hover:bg-chart-3/90"
                 size="lg"
               >
                 {validating ? (

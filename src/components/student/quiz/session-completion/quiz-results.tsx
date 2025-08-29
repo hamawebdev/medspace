@@ -58,18 +58,18 @@ export function QuizResults() {
 
   // Get performance level
   const getPerformanceLevel = (percentage: number) => {
-    if (percentage >= 90) return { level: 'Excellent', color: 'text-green-600', icon: Award };
-    if (percentage >= 80) return { level: 'Very Good', color: 'text-blue-600', icon: Trophy };
-    if (percentage >= 70) return { level: 'Good', color: 'text-yellow-600', icon: Star };
-    if (percentage >= 60) return { level: 'Fair', color: 'text-orange-600', icon: Target };
-    return { level: 'Needs Improvement', color: 'text-red-600', icon: TrendingUp };
+    if (percentage >= 90) return { level: 'Excellent', color: 'text-chart-5', icon: Award };
+    if (percentage >= 80) return { level: 'Very Good', color: 'text-chart-2', icon: Trophy };
+    if (percentage >= 70) return { level: 'Good', color: 'text-chart-1', icon: Star };
+    if (percentage >= 60) return { level: 'Fair', color: 'text-chart-4', icon: Target };
+    return { level: 'Needs Improvement', color: 'text-destructive', icon: TrendingUp };
   };
 
   const performance = getPerformanceLevel(percentage);
   const PerformanceIcon = performance.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
@@ -116,16 +116,16 @@ export function QuizResults() {
                 <div className="text-sm text-red-700 dark:text-red-400">Incorrect</div>
               </div>
               
-              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <Target className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-blue-600">{totalQuestions}</div>
-                <div className="text-sm text-blue-700 dark:text-blue-400">Total</div>
+              <div className="text-center p-4 bg-primary/10 rounded-lg">
+                <Target className="h-8 w-8 text-primary mx-auto mb-2" />
+                <div className="text-2xl font-bold text-primary">{totalQuestions}</div>
+                <div className="text-sm text-primary-foreground">Total</div>
               </div>
-              
-              <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                <Clock className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-purple-600">{formatTime(totalTimeSec)}</div>
-                <div className="text-sm text-purple-700 dark:text-purple-400">Time</div>
+
+              <div className="text-center p-4 bg-accent/10 rounded-lg">
+                <Clock className="h-8 w-8 text-accent-foreground mx-auto mb-2" />
+                <div className="text-2xl font-bold text-accent-foreground">{formatTime(totalTimeSec)}</div>
+                <div className="text-sm text-accent-foreground/80">Time</div>
               </div>
             </div>
           </CardContent>
@@ -200,7 +200,7 @@ export function QuizResults() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {/* Review */}
           <Button
-            onClick={() => router.push(`/student/session/${session.id || session.sessionId}/results`)}
+            onClick={() => router.push(`/session/${session.id || session.sessionId}/results`)}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
@@ -209,7 +209,7 @@ export function QuizResults() {
 
           {/* Edit reuses the session page with review/edit flags */}
           <Button
-            onClick={() => router.push(`/student/sessions/${session.id || session.sessionId}/review`)}
+            onClick={() => router.push(`/session/${session.id || session.sessionId}/review`)}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />

@@ -1,7 +1,8 @@
 // @ts-nocheck
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 // Basic quiz types for compatibility
 export interface QuizQuestion {
@@ -309,6 +310,8 @@ interface QuizProviderProps {
 }
 
 export function QuizProvider({ children, initialSession }: QuizProviderProps) {
+  const [timeUpNotificationShown, setTimeUpNotificationShown] = useState(false);
+
   const initialState: QuizState = {
     session: initialSession,
     timer: {
@@ -377,6 +380,37 @@ export function QuizProvider({ children, initialSession }: QuizProviderProps) {
   const completeQuiz = useCallback(() => {
     dispatch({ type: 'COMPLETE_QUIZ' });
   }, []);
+
+  // Timer effect
+  useEffect(() => {
+    if (!state.timer.isRunning || state.timer.isPaused) return;
+
+    const interval = setInterval(() => {
+      const newTotalTime = state.timer.totalTime + 1;
+      const newQuestionTime = state.timer.questionTime + 1;
+
+      dispatch({
+        type: 'UPDATE_TIMER',
+        totalTime: newTotalTime,
+        questionTime: newQuestionTime
+      });
+
+      // Check for time limit and show notification
+      const timeLimit = state.session.timeLimit; // in minutes
+      if (timeLimit && !timeUpNotificationShown) {
+        const timeLimitSeconds = timeLimit * 60;
+        if (newTotalTime >= timeLimitSeconds) {
+          setTimeUpNotificationShown(true);
+          toast.warning('Time is up!', {
+            description: `You have reached the ${timeLimit} minute time limit for this quiz.`,
+            duration: 5000,
+          });
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state.timer.isRunning, state.timer.isPaused, state.timer.totalTime, state.timer.questionTime, state.session.timeLimit, timeUpNotificationShown]);
 
   const value: QuizContextType = {
     state,

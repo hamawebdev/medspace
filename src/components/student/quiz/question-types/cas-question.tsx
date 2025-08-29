@@ -65,7 +65,7 @@ export function CASQuestion({ question }: Props) {
   return (
     <div className="space-y-8">
       {/* Clinical Case Header */}
-      <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-blue-100/30 card-hover-lift">
+      <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-blue-100/30 card-hover-lift gap-0 py-0">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-3 text-blue-900 text-xl font-bold tracking-tight">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -151,8 +151,8 @@ export function CASQuestion({ question }: Props) {
       )}
 
       {/* Question Section */}
-      <Card className="border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 shadow-sm">
-        <CardContent className="p-6">
+      <Card className="border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 shadow-sm gap-0 py-0">
+        <CardContent className="p-4 sm:p-5">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export function CASQuestion({ question }: Props) {
               {/* Removed duplicate QuestionActions here; actions appear once below */}
             </div>
             <div className="prose prose-sm max-w-none mb-4">
-              <p className="text-lg leading-relaxed font-medium text-foreground">
+              <p className="text-base leading-relaxed font-medium text-foreground">
                 {question.content}
               </p>
             </div>

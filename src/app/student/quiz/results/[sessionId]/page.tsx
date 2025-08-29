@@ -510,7 +510,7 @@ export default function QuizResultsPage() {
                 ))}
               </div>
                 <Button
-                  onClick={() => router.push(`/student/sessions/${quizResults.sessionId}/review`)}
+                  onClick={() => router.push(`/session/${quizResults.sessionId}/review`)}
                   className="group/review relative overflow-hidden bg-gradient-to-r from-chart-2 to-green-500 hover:from-chart-2/90 hover:to-green-500/90 text-white px-10 py-4 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-500/25 btn-interactive"
                   size="lg"
                 >

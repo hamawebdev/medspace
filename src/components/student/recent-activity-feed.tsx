@@ -88,38 +88,40 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
       return;
     }
     if (status === 'COMPLETED') {
-      router.push(`/student/session/${id}/results`);
+      router.push(`/session/${id}/results`);
     } else {
-      router.push(`/student/session/${id}`);
+      router.push(`/session/${id}`);
     }
   };
 
   // If there are no activities at all, render the empty state regardless of loading status to avoid undefined access
   if (!combinedActivities || combinedActivities.length === 0) {
     return (
-      <Card className="relative overflow-hidden bg-gradient-to-br from-background/95 via-accent/8 to-muted/12 border border-border/50 shadow-xl">
-        {/* Enhanced background elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-chart-1/15 to-chart-2/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-chart-3/12 to-chart-5/15 rounded-full blur-2xl"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5"></div>
-
-        <CardHeader className="relative">
-          <CardTitle className="flex items-center gap-[calc(var(--spacing)*2)] tracking-tight text-lg">
-            <div className="p-[calc(var(--spacing)*1)] bg-gradient-to-r from-chart-1/20 to-chart-2/20 rounded-lg">
-              <Clock className="h-4 w-4 text-chart-1" />
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <div className="p-1.5 bg-primary/10 rounded-md">
+              <Clock className="h-4 w-4 text-primary" />
             </div>
             Recent Activity
           </CardTitle>
-          <CardDescription className="leading-relaxed pl-[calc(var(--spacing)*7)]">Your recent study sessions will appear here</CardDescription>
+          <CardDescription className="text-sm text-muted-foreground">
+            Your recent study sessions will appear here
+          </CardDescription>
         </CardHeader>
-        <CardContent className="relative">
-          <div className="text-center py-[calc(var(--spacing)*8)]">
-            <div className="p-[calc(var(--spacing)*4)] bg-gradient-to-r from-muted/20 to-muted/10 rounded-full w-fit mx-auto mb-[calc(var(--spacing)*4)]">
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="p-4 bg-muted/50 rounded-full w-fit mx-auto mb-4">
               <BookOpen className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold tracking-tight mb-[calc(var(--spacing)*2)]">No Recent Activity</h3>
-            <p className="text-muted-foreground mb-[calc(var(--spacing)*6)] font-medium leading-relaxed max-w-sm mx-auto">Start your learning journey and track your progress here</p>
-            <Button onClick={() => router.push('/student/practice')} className="gap-[calc(var(--spacing)*2)] bg-gradient-to-r from-chart-1 to-chart-2 hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold tracking-tight">
+            <h3 className="text-lg font-semibold mb-2">No Recent Activity</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+              Start your learning journey and track your progress here
+            </p>
+            <Button
+              onClick={() => router.push('/student/practice')}
+              className="gap-2"
+            >
               <Play className="h-4 w-4" />
               Start Your First Session
             </Button>
@@ -144,23 +146,7 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
     }
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-chart-2 bg-chart-2/10'
-    if (score >= 70) return 'text-chart-3 bg-chart-3/10'
-    if (score >= 50) return 'text-chart-1 bg-chart-1/10'
-    return 'text-destructive bg-destructive/10'
-  }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'EXAM':
-        return 'bg-chart-5/10 text-chart-5 border-chart-5/20'
-      case 'PRACTICE':
-        return 'bg-chart-1/10 text-chart-1 border-chart-1/20'
-      default:
-        return 'bg-muted/10 text-muted-foreground border-muted/20'
-    }
-  }
 
   const formatActivityDate = (dateString: string) => {
     try {
@@ -171,43 +157,61 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
   }
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-background/95 via-accent/8 to-muted/12 border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300">
-      {/* Enhanced background elements for visual depth */}
-      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-chart-1/15 to-chart-2/25 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-chart-3/12 to-chart-5/18 rounded-full blur-2xl"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5"></div>
-
-      <CardHeader className="relative pb-[calc(var(--spacing)*4)]">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)]">
-          <div className="space-y-[calc(var(--spacing)*1)] min-w-0 flex-1">
-            <CardTitle className="flex items-center gap-[calc(var(--spacing)*2)] tracking-tight text-lg sm:text-xl">
-              <div className="p-[calc(var(--spacing)*1)] bg-gradient-to-r from-chart-1/20 to-chart-2/20 rounded-lg">
-                <Clock className="h-4 w-4 text-chart-1 flex-shrink-0" />
+    <Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow duration-200">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <div className="p-1.5 bg-primary/10 rounded-md">
+                <Clock className="h-4 w-4 text-primary" />
               </div>
-              <span className="truncate">Recent Activity</span>
+              Recent Activity
             </CardTitle>
-            <CardDescription className="leading-relaxed text-sm pl-[calc(var(--spacing)*7)]">
-              {sessionsLoading ? 'Loading recent sessions...' : 'Your latest study sessions and progress'}
-            </CardDescription>
+           
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1 text-xs font-medium text-muted-foreground">Filter:</div>
-            <div className="flex rounded-md overflow-hidden border border-border/30">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center rounded-lg border-border bg-background p-1">
               <button
                 onClick={() => setTypeFilter('ALL')}
-                className={cn('px-3 py-1.5 text-xs', typeFilter==='ALL' ? 'bg-card text-foreground' : 'bg-background/50 text-muted-foreground')}
-              >All</button>
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                  typeFilter === 'ALL'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+              >
+                All
+              </button>
               <button
                 onClick={() => setTypeFilter('PRACTICE')}
-                className={cn('px-3 py-1.5 text-xs border-l border-border/30', typeFilter==='PRACTICE' ? 'bg-card text-foreground' : 'bg-background/50 text-muted-foreground')}
-              >Practice</button>
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                  typeFilter === 'PRACTICE'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+              >
+                Practice
+              </button>
               <button
                 onClick={() => setTypeFilter('EXAM')}
-                className={cn('px-3 py-1.5 text-xs border-l border-border/30', typeFilter==='EXAM' ? 'bg-card text-foreground' : 'bg-background/50 text-muted-foreground')}
-              >Exam</button>
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                  typeFilter === 'EXAM'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+              >
+                Exam
+              </button>
             </div>
-            <Button variant="outline" size="sm" onClick={() => router.push('/student/analytics')} className="bg-card/50 backdrop-blur-sm gap-[calc(var(--spacing)*2)] font-medium self-start sm:self-auto flex-shrink-0 border-chart-1/30 hover:border-chart-1/50 transition-all">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/student/analytics')}
+              className="gap-2 font-medium"
+            >
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">View All</span>
               <span className="sm:hidden">All</span>
@@ -216,79 +220,87 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="relative space-y-[calc(var(--spacing)*4)]">
-        {/* Enhanced Most Recent Activity - Featured */}
-        <div className="relative group">
-          <div className="bg-gradient-to-r from-chart-1/12 to-chart-2/12 rounded-xl p-[calc(var(--spacing)*5)] border border-chart-1/20 hover:border-chart-1/30 transition-all duration-300 shadow-lg hover:shadow-xl">
-            {/* Subtle background pattern */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5 rounded-xl"></div>
-
-            <div className="relative">
-              <button onClick={() => navigateToSession(mostRecentActivity as any)} className="w-full text-left">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-[calc(var(--spacing)*4)] mb-[calc(var(--spacing)*4)]">
-                  <div className="flex items-center gap-[calc(var(--spacing)*4)] min-w-0 flex-1">
-                    <div className="p-[calc(var(--spacing)*2.5)] bg-gradient-to-r from-chart-1 to-chart-2 rounded-xl flex-shrink-0 shadow-lg">
-                      {(() => {
-                        const Icon = getActivityIcon(mostRecentActivity.type)
-                        return <Icon className="h-5 w-5 text-white" />
-                      })()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-base line-clamp-1 tracking-tight mb-[calc(var(--spacing)*1)]">
-                        {mostRecentActivity.activity}
-                      </h3>
-                      <p className="text-sm text-muted-foreground font-medium leading-relaxed truncate">
-                        {mostRecentActivity.subject} • {formatActivityDate(mostRecentActivity.date)}
-                      </p>
-                    </div>
+      <CardContent className="space-y-4">
+        {/* Most Recent Activity - Featured */}
+        <div className="group">
+          <div className="bg-muted/30 rounded-lg p-4 border-border hover:bg-muted/50 transition-colors duration-200">
+            <button
+              onClick={() => navigateToSession(mostRecentActivity as any)}
+              className="w-full text-left"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="p-2 bg-primary rounded-lg flex-shrink-0">
+                    {(() => {
+                      const Icon = getActivityIcon(mostRecentActivity.type)
+                      return <Icon className="h-4 w-4 text-primary-foreground" />
+                    })()}
                   </div>
-
-                  <div className="flex items-center gap-[calc(var(--spacing)*2)] flex-shrink-0 self-start sm:self-auto">
-                    <Badge variant="outline" className={`${getTypeColor(mostRecentActivity.type)} text-xs font-medium border-current/30`}>
-                      {mostRecentActivity.type}
-                    </Badge>
-                    <Badge variant="outline" className={`${getScoreColor(mostRecentActivity.score)} text-sm font-semibold tracking-tight border-current/30`}>
-                      {mostRecentActivity.score}%
-                    </Badge>
-                  </div>
-                </div>
-              </button>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)]">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)] text-sm text-muted-foreground font-medium leading-relaxed">
-                  <div className="flex items-center gap-[calc(var(--spacing)*2)]">
-                    <div className="p-[calc(var(--spacing)*1)] bg-chart-2/20 rounded-full">
-                      <CheckCircle className="h-3 w-3 text-chart-2 flex-shrink-0" />
-                    </div>
-                    <span>{mostRecentActivity.status === 'COMPLETED' ? 'Completed' : 'In Progress'}</span>
-                  </div>
-                  <div className="flex items-center gap-[calc(var(--spacing)*2)]">
-                    <div className="p-[calc(var(--spacing)*1)] bg-chart-3/20 rounded-full">
-                      <Calendar className="h-3 w-3 text-chart-3 flex-shrink-0" />
-                    </div>
-                    <span className="hidden sm:inline">{new Date(mostRecentActivity.date).toLocaleDateString()}</span>
-                    <span className="sm:hidden">{new Date(mostRecentActivity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-base line-clamp-1 mb-1">
+                      {mostRecentActivity.activity}
+                    </h3>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {mostRecentActivity.subject} • {formatActivityDate(mostRecentActivity.date)}
+                    </p>
                   </div>
                 </div>
 
-                <Button onClick={() => navigateToSession(mostRecentActivity as any)} variant="ghost" size="sm" className="h-9 px-[calc(var(--spacing)*4)] text-sm font-medium self-start sm:self-auto bg-card/50 hover:bg-card/70 transition-all">
-                  {mostRecentActivity.status === 'COMPLETED' ? 'Review' : 'Resume'}
-                </Button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge variant="secondary" className="text-xs font-medium">
+                    {mostRecentActivity.type}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-sm font-semibold",
+                      mostRecentActivity.score >= 90 && "text-chart-2 border-chart-2/20 bg-chart-2/10",
+                      mostRecentActivity.score >= 70 && mostRecentActivity.score < 90 && "text-chart-1 border-chart-1/20 bg-chart-1/10",
+                      mostRecentActivity.score >= 50 && mostRecentActivity.score < 70 && "text-chart-4 border-chart-4/20 bg-chart-4/10",
+                      mostRecentActivity.score < 50 && "text-destructive border-destructive/20 bg-destructive/10"
+                    )}
+                  >
+                    {mostRecentActivity.score}%
+                  </Badge>
+                </div>
               </div>
+            </button>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3" />
+                  <span>{mostRecentActivity.status === 'COMPLETED' ? 'Completed' : 'In Progress'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3 w-3" />
+                  <span className="hidden sm:inline">{new Date(mostRecentActivity.date).toLocaleDateString()}</span>
+                  <span className="sm:hidden">{new Date(mostRecentActivity.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => navigateToSession(mostRecentActivity as any)}
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-sm font-medium self-start sm:self-auto"
+              >
+                {mostRecentActivity.status === 'COMPLETED' ? 'Review' : 'Resume'}
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Earlier Sessions */}
+        {/* Earlier Sessions */}
         {otherActivities.length > 0 && (
-          <div className="space-y-[calc(var(--spacing)*3)]">
-            <div className="flex items-center gap-[calc(var(--spacing)*3)]">
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1"></div>
-              <h4 className="text-sm font-semibold text-muted-foreground tracking-tight">Earlier Sessions</h4>
-              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1"></div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-px bg-border flex-1"></div>
+              <h4 className="text-sm font-medium text-muted-foreground">Earlier Sessions</h4>
+              <div className="h-px bg-border flex-1"></div>
             </div>
 
-            <div className="grid grid-cols-1 gap-[calc(var(--spacing)*2)]">
+            <div className="space-y-2">
               {otherActivities.map((activity, index) => {
                 const Icon = getActivityIcon(activity.type)
 
@@ -296,23 +308,32 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
                   <button
                     key={`${activity.date}-${index}`}
                     onClick={() => navigateToSession(activity as any)}
-                    className="group flex items-center gap-[calc(var(--spacing)*3)] p-[calc(var(--spacing)*4)] bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-sm rounded-lg border border-border/20 hover:border-border/40 transition-all duration-300 cursor-pointer hover:shadow-md text-left"
+                    className="group flex items-center gap-3 p-3 bg-background rounded-lg border-border hover:bg-muted/50 transition-colors duration-200 cursor-pointer text-left w-full"
                   >
-                    <div className="p-[calc(var(--spacing)*2)] bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg group-hover:from-chart-1/20 group-hover:to-chart-2/20 transition-all duration-300">
-                      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-chart-1 transition-colors" />
+                    <div className="p-2 bg-muted rounded-lg group-hover:bg-primary/10 transition-colors">
+                      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold line-clamp-1 tracking-tight mb-[calc(var(--spacing)*0.5)]">
+                      <p className="text-sm font-medium line-clamp-1 mb-0.5">
                         {activity.activity}
                       </p>
-                      <p className="text-xs text-muted-foreground font-medium">
+                      <p className="text-xs text-muted-foreground">
                         {activity.subject} • {formatActivityDate(activity.date)}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-[calc(var(--spacing)*2)]">
-                      <Badge variant="outline" className={`${getScoreColor(activity.score)} text-xs font-semibold border-current/30`}>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-xs font-medium",
+                          activity.score >= 90 && "text-chart-2 border-chart-2/20 bg-chart-2/10",
+                          activity.score >= 70 && activity.score < 90 && "text-chart-1 border-chart-1/20 bg-chart-1/10",
+                          activity.score >= 50 && activity.score < 70 && "text-chart-4 border-chart-4/20 bg-chart-4/10",
+                          activity.score < 50 && "text-destructive border-destructive/20 bg-destructive/10"
+                        )}
+                      >
                         {activity.score}%
                       </Badge>
                     </div>
@@ -323,14 +344,17 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
           </div>
         )}
 
-        {/* Enhanced Quick Action */}
-        <div className="pt-[calc(var(--spacing)*5)] border-t border-gradient-to-r from-transparent via-border to-transparent">
-          <div className="bg-gradient-to-r from-background/50 to-card/30 rounded-lg p-[calc(var(--spacing)*4)] border border-border/30">
-            <div className="text-center mb-[calc(var(--spacing)*3)]">
-              <h4 className="text-sm font-semibold text-muted-foreground tracking-tight">Ready for More?</h4>
-              <p className="text-xs text-muted-foreground mt-[calc(var(--spacing)*1)]">Continue your learning journey</p>
+        {/* Quick Action */}
+        <div className="pt-4 border-t border-border">
+          <div className="bg-muted/20 rounded-lg p-4 border-border">
+            <div className="text-center mb-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Ready for More?</h4>
+              <p className="text-xs text-muted-foreground mt-1">Continue your learning journey</p>
             </div>
-            <Button onClick={() => router.push('/student/practice')} className="w-full gap-[calc(var(--spacing)*2)] bg-gradient-to-r from-chart-1 to-chart-2 hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold tracking-tight">
+            <Button
+              onClick={() => router.push('/student/practice')}
+              className="w-full gap-2"
+            >
               <Play className="h-4 w-4" />
               Start New Session
             </Button>

@@ -186,10 +186,15 @@ function Sidebar({
           data-slot='sidebar'
           data-mobile='true'
           className={cn(
-            'bg-sidebar/95 backdrop-blur-md text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden',
+            'bg-sidebar/95 backdrop-blur-md text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden invisible-scrollbar',
             'border-r border-sidebar-border/50 shadow-2xl',
             'transition-all duration-300 ease-in-out'
           )}
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
+            overscrollBehavior: 'contain',
+          }}
           style={
             {
               '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
@@ -201,7 +206,15 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className='flex h-full w-full flex-col bg-sidebar/95 backdrop-blur-md'>
+          <div
+            className='flex h-full w-full flex-col bg-sidebar/95 backdrop-blur-md invisible-scrollbar overflow-y-auto'
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-y',
+            }}
+          >
             {children}
           </div>
         </SheetContent>
@@ -248,7 +261,13 @@ function Sidebar({
         <div
           data-sidebar='sidebar'
           data-slot='sidebar-inner'
-          className='bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm'
+          className='bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm invisible-scrollbar overflow-y-auto'
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
+          }}
         >
           {children}
         </div>
@@ -382,9 +401,15 @@ function SidebarContent({ className, ...props }: React.ComponentProps<'div'>) {
       data-slot='sidebar-content'
       data-sidebar='content'
       className={cn(
-        'flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
+        'flex min-h-0 flex-1 flex-col gap-2 overflow-auto invisible-scrollbar group-data-[collapsible=icon]:overflow-hidden',
         className
       )}
+      style={{
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
+      }}
       {...props}
     />
   )

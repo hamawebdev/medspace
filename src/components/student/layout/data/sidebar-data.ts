@@ -1,53 +1,17 @@
 // @ts-nocheck
 import {
-  IconBarrierBlock,
-  IconBrowserCheck,
-  IconBug,
-  IconChecklist,
-  IconError404,
-  IconHelp,
-  IconLayoutDashboard,
-  IconLock,
-  IconLockAccess,
-  IconMessages,
-  IconNotification,
-  IconPackages,
-  IconPalette,
-  IconServerOff,
-  IconSettings,
-  IconTool,
-  IconUserCog,
-  IconUserOff,
-  IconUsers,
-  IconChartBar,
-  IconDatabase,
-  IconShield,
-  IconReportAnalytics,
-  IconCoin,
-  IconBook,
-  IconSchool,
-  IconActivity,
-  IconCertificate,
-  IconNotes,
-  IconTags,
-  IconClipboardList,
-} from '@tabler/icons-react'
-import {
-  AudioWaveform,
-  Command,
-  GalleryVerticalEnd,
-  Stethoscope,
-  Sparkles,
-  BookOpen,
-  Search,
-  StickyNote,
-  CheckSquare,
-  BarChart3,
-  FileText,
-  TrendingUp,
+  LayoutDashboard,
+  Activity,
   GraduationCap,
   FolderOpen,
-  ClipboardCheck
+  BarChart3,
+  StickyNote,
+  Tags,
+  FileText,
+  ClipboardCheck,
+  CreditCard,
+  Settings,
+  Stethoscope
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -60,12 +24,12 @@ export const sidebarData: SidebarData = {
         {
           title: 'Dashboard',
           url: '/student/dashboard',
-          icon: IconLayoutDashboard,
+          icon: LayoutDashboard,
         },
         {
           title: 'Practice',
           url: '/student/practice',
-          icon: IconActivity,
+          icon: Activity,
         },
         {
           title: 'Exams',
@@ -90,12 +54,12 @@ export const sidebarData: SidebarData = {
         {
           title: 'Notes',
           url: '/student/notes',
-          icon: IconNotes,
+          icon: StickyNote,
         },
         {
           title: 'Labels',
           url: '/student/labels',
-          icon: IconTags,
+          icon: Tags,
         },
         {
           title: 'Questions Reports',
@@ -115,12 +79,12 @@ export const sidebarData: SidebarData = {
         {
           title: 'Subscriptions',
           url: '/student/subscriptions',
-          icon: IconCoin,
+          icon: CreditCard,
         },
         {
           title: 'Settings',
           url: '/student/settings',
-          icon: IconSettings,
+          icon: Settings,
         },
       ],
     },

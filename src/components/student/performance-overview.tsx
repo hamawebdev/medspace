@@ -41,28 +41,26 @@ interface PerformanceOverviewProps {
 export function PerformanceOverview({ performance }: PerformanceOverviewProps) {
   if (!performance) {
     return (
-      <Card className="relative overflow-hidden bg-gradient-to-br from-background/95 via-accent/8 to-muted/12 border border-border/50 shadow-xl">
-        {/* Enhanced background elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-chart-1/15 to-chart-2/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-chart-3/12 to-chart-5/15 rounded-full blur-2xl"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5"></div>
-
-        <CardHeader className="relative">
-          <CardTitle className="flex items-center gap-[calc(var(--spacing)*2)] tracking-tight text-lg">
-            <div className="p-[calc(var(--spacing)*1)] bg-gradient-to-r from-chart-1/20 to-chart-2/20 rounded-lg">
-              <BarChart3 className="h-4 w-4 text-chart-1" />
+      <Card className="bg-card border border-border shadow-sm">
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
+              <BarChart3 className="w-4 h-4 text-primary" />
             </div>
             Performance Overview
           </CardTitle>
-          <CardDescription className="leading-relaxed pl-[calc(var(--spacing)*7)]">Loading your performance data...</CardDescription>
+          <CardDescription className="text-sm text-muted-foreground">
+            Loading your performance data...
+          </CardDescription>
         </CardHeader>
-        <CardContent className="relative">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[calc(var(--spacing)*4)] sm:gap-[calc(var(--spacing)*5)]">
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-gradient-to-br from-muted/30 to-muted/20 rounded-xl p-[calc(var(--spacing)*4)] animate-pulse border border-muted/30">
-                <div className="h-4 bg-muted rounded mb-[calc(var(--spacing)*3)]"></div>
-                <div className="h-8 bg-muted rounded mb-[calc(var(--spacing)*2)]"></div>
-                <div className="h-3 bg-muted rounded"></div>
+              <div key={i} className="flex flex-col items-center p-4 bg-muted/30 rounded-lg border border-border/50 animate-pulse">
+                <div className="w-10 h-10 bg-muted rounded-lg mb-3"></div>
+                <div className="h-6 w-12 bg-muted rounded mb-1"></div>
+                <div className="h-4 w-16 bg-muted rounded mb-1"></div>
+                <div className="h-3 w-20 bg-muted rounded"></div>
               </div>
             ))}
           </div>
@@ -136,111 +134,49 @@ export function PerformanceOverview({ performance }: PerformanceOverviewProps) {
   ]
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-background/95 via-accent/8 to-muted/12 border border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300">
-      {/* Enhanced background elements for visual depth */}
-      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-chart-1/15 to-chart-2/25 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-chart-3/12 to-chart-5/22 rounded-full blur-2xl"></div>
-      <div className="absolute top-1/3 right-1/3 w-24 h-24 bg-gradient-to-r from-accent/10 to-muted/12 rounded-full blur-xl"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5"></div>
-
-      <CardHeader className="relative pb-[calc(var(--spacing)*4)]">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)]">
-          <div className="space-y-[calc(var(--spacing)*1)] min-w-0 flex-1">
-            <CardTitle className="flex items-center gap-[calc(var(--spacing)*2)] tracking-tight text-lg sm:text-xl">
-              <div className="p-[calc(var(--spacing)*1)] bg-gradient-to-r from-chart-1/20 to-chart-2/20 rounded-lg">
-                <BarChart3 className="h-4 w-4 text-chart-1 flex-shrink-0" />
-              </div>
-              <span className="truncate">Performance Overview</span>
-            </CardTitle>
-            <CardDescription className="flex items-center gap-[calc(var(--spacing)*2)] leading-relaxed text-sm pl-[calc(var(--spacing)*7)]">
-              <div className="p-[calc(var(--spacing)*0.5)] bg-gradient-to-r from-muted/20 to-muted/10 rounded-full">
-                <TrendIcon className={cn("h-3 w-3 flex-shrink-0", getTrendColor(performance.improvementTrend))} />
-              </div>
-              <span className="truncate">
-                {performance.improvementTrend === 0
-                  ? "Steady progress"
-                  : performance.improvementTrend > 0
-                    ? `Improving by ${performance.improvementTrend}%`
-                    : `Declining by ${Math.abs(performance.improvementTrend)}%`
-                }
-              </span>
-            </CardDescription>
+    <Card className="bg-card border border-border shadow-sm">
+      <CardHeader className="pb-6">
+        <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+          <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
+            <BarChart3 className="w-4 h-4 text-primary" />
           </div>
-
-          <Badge variant="outline" className="bg-card/50 backdrop-blur-sm text-xs font-medium self-start sm:self-auto flex-shrink-0 border-chart-1/30">
-            {totalSubjects} Subject{totalSubjects !== 1 ? 's' : ''}
-          </Badge>
-        </div>
+          Performance Overview
+        </CardTitle>
       </CardHeader>
 
-      <CardContent className="relative">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[calc(var(--spacing)*4)] sm:gap-[calc(var(--spacing)*5)]">
-          {metrics.map((metric, index) => {
+      <CardContent>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {metrics.map((metric) => {
             const Icon = metric.icon
-            const isPrimary = index < 2 // First two metrics get primary treatment
 
             return (
               <div
                 key={metric.label}
-                className={cn(
-                  "relative group cursor-pointer transition-all duration-300 hover:scale-[1.02]",
-                  "bg-gradient-to-br rounded-xl border shadow-lg hover:shadow-xl",
-                  isPrimary ? "p-[calc(var(--spacing)*5)] border-white/30" : "p-[calc(var(--spacing)*4)] border-white/20",
-                  "hover:border-white/40",
-                  metric.bgGradient
-                )}
+                className="flex flex-col items-center p-4 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors"
               >
-                {/* Enhanced background gradient */}
-                <div className={cn(
-                  "absolute top-0 right-0 rounded-full blur-2xl transition-opacity group-hover:opacity-30",
-                  isPrimary ? "w-20 h-20 opacity-25" : "w-16 h-16 opacity-20",
-                  "bg-gradient-to-br", metric.gradient
-                )}></div>
+                {/* Icon */}
+                <div className="flex items-center justify-center w-10 h-10 mb-3 bg-primary/10 rounded-lg">
+                  <Icon className="w-5 h-5 text-primary" />
+                </div>
 
-                {/* Subtle overlay for depth */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/5 rounded-xl"></div>
+                {/* Value */}
+                <div className="text-2xl font-bold text-foreground mb-1">
+                  {metric.value}{metric.unit}
+                </div>
 
-                <div className="relative">
-                  {/* Enhanced Icon */}
-                  <div className="flex items-center justify-center mb-[calc(var(--spacing)*3)]">
-                    <div className={cn(
-                      "rounded-xl bg-gradient-to-r shadow-lg group-hover:scale-110 transition-all duration-300",
-                      isPrimary ? "p-[calc(var(--spacing)*2.5)]" : "p-[calc(var(--spacing)*2)]",
-                      metric.gradient
-                    )}>
-                      <Icon className={cn("text-white", isPrimary ? "h-5 w-5" : "h-4 w-4")} />
-                    </div>
-                  </div>
+                {/* Label */}
+                <div className="text-sm font-medium text-foreground text-center mb-1">
+                  {metric.label}
+                </div>
 
-                  {/* Enhanced Value Display */}
-                  <div className="text-center space-y-[calc(var(--spacing)*1.5)]">
-                    <div className={cn(
-                      "font-bold bg-gradient-to-r bg-clip-text text-transparent tracking-tight",
-                      isPrimary ? "text-3xl" : "text-2xl",
-                      metric.gradient
-                    )}>
-                      {metric.value}{metric.unit}
-                    </div>
-                    <div className={cn(
-                      "font-semibold text-foreground/80 tracking-tight",
-                      isPrimary ? "text-sm" : "text-xs"
-                    )}>
-                      {metric.label}
-                    </div>
-                    <div className={cn(
-                      "text-muted-foreground leading-relaxed",
-                      isPrimary ? "text-sm" : "text-xs"
-                    )}>
-                      {metric.description}
-                    </div>
-                  </div>
+                {/* Description */}
+                <div className="text-xs text-muted-foreground text-center">
+                  {metric.description}
                 </div>
               </div>
             )
           })}
         </div>
-
-
       </CardContent>
     </Card>
   )

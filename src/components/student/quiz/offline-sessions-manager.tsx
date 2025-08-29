@@ -72,7 +72,7 @@ export function OfflineSessionsManager() {
   const getStatusBadge = (status: string, answersCount: number) => {
     if (status === 'COMPLETED') {
       return (
-        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+        <Badge variant="default" className="bg-chart-5/20 text-chart-5">
           <CheckCircle className="h-3 w-3 mr-1" />
           Ready to Submit
         </Badge>

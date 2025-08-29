@@ -37,14 +37,14 @@ const QUIZ_MODE_OPTIONS: QuizModeOption[] = [
     description: 'Study with immediate feedback and explanations',
     icon: <BookOpen className="h-6 w-6" />,
     recommended: true,
-    gradient: 'from-blue-500 to-blue-600'
+    gradient: 'from-primary to-primary'
   },
   {
     type: 'exam',
     title: 'Exam Mode',
     description: 'Timed test with realistic exam conditions',
     icon: <GraduationCap className="h-6 w-6" />,
-    gradient: 'from-purple-500 to-purple-600'
+    gradient: 'from-chart-3 to-chart-3'
   }
 ];
 

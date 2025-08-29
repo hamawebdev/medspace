@@ -46,7 +46,7 @@ export default function EmployeeDashboard() {
           <div>
             <h1 className="text-3xl font-bold">Employee Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome, {user.firstName} {user.lastName} • Content Creator
+              Welcome, {user.firstName} {user.lastName} • Building trusted medical education content
             </p>
           </div>
           <div className="flex items-center space-x-4">

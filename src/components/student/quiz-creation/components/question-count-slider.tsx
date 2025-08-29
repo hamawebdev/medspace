@@ -155,10 +155,10 @@ export function QuestionCountSlider({
   // Get range color for styling
   const getRangeColor = (range: string) => {
     switch (range) {
-      case 'quick': return 'bg-green-500';
-      case 'standard': return 'bg-yellow-500';
-      case 'comprehensive': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case 'quick': return 'bg-primary';
+      case 'standard': return 'bg-accent';
+      case 'comprehensive': return 'bg-destructive';
+      default: return 'bg-muted';
     }
   };
 

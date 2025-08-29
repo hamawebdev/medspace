@@ -20,7 +20,7 @@ export function ImportProgressTracker({
     if (step.completed) {
       return <CheckCircle className="h-4 w-4 text-green-600" />;
     } else if (step.active) {
-      return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
+      return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
     } else {
       return <Circle className="h-4 w-4 text-muted-foreground" />;
     }
@@ -33,9 +33,9 @@ export function ImportProgressTracker({
   };
 
   const getProgressColor = () => {
-    if (progress.step === 'error') return 'bg-red-500';
+    if (progress.step === 'error') return 'bg-destructive';
     if (progress.step === 'completed') return 'bg-green-500';
-    if (progress.step === 'importing') return 'bg-blue-500';
+    if (progress.step === 'importing') return 'bg-primary';
     return 'bg-primary';
   };
 
@@ -106,8 +106,8 @@ export function ImportProgressTracker({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h4 className={`text-sm font-medium ${
-                    step.completed ? 'text-green-700' :
-                    step.active ? 'text-blue-700' :
+                    step.completed ? 'text-primary' :
+                    step.active ? 'text-primary-foreground' :
                     'text-muted-foreground'
                   }`}>
                     {step.title}

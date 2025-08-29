@@ -61,34 +61,43 @@ function StatCard({
   }
 
   return (
-    <Card className={cn("relative overflow-hidden", className)}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card className={cn("relative overflow-hidden hover:shadow-md transition-all duration-300", className)}>
+      <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
+        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-tight">
           {title}
         </CardTitle>
-        <Icon className="w-4 h-4 text-muted-foreground" />
+        <div className="flex items-center justify-center w-8 h-8 bg-muted/30 rounded-lg">
+          <Icon className="w-4 h-4 text-muted-foreground" />
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value.toLocaleString()}</div>
+      <CardContent className="space-y-3">
+        <div className="text-3xl font-bold tracking-tight text-foreground leading-none">
+          {value.toLocaleString()}
+        </div>
         {description && (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {description}
           </p>
         )}
         {trend && (
-          <div className="flex items-center mt-2">
-            {trend.isPositive ? (
-              <TrendingUp className="w-3 h-3 mr-1 text-green-500" />
-            ) : (
-              <TrendingDown className="w-3 h-3 mr-1 text-red-500" />
-            )}
+          <div className="flex items-center gap-2 pt-1">
+            <div className={cn(
+              "flex items-center justify-center w-5 h-5 rounded-full",
+              trend.isPositive ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"
+            )}>
+              {trend.isPositive ? (
+                <TrendingUp className="w-3 h-3 text-green-600 dark:text-green-400" />
+              ) : (
+                <TrendingDown className="w-3 h-3 text-red-600 dark:text-red-400" />
+              )}
+            </div>
             <span className={cn(
-              "text-xs font-medium",
-              trend.isPositive ? "text-green-600" : "text-red-600"
+              "text-sm font-semibold",
+              trend.isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
             )}>
               {trend.isPositive ? '+' : ''}{trend.value}%
             </span>
-            <span className="ml-1 text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {trend.label}
             </span>
           </div>
@@ -169,39 +178,41 @@ export function DetailedStatsCards({ stats, loading, error }: StatsCardsProps) {
   }
 
   return (
-    <div className="grid gap-4 mt-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 mt-8 md:grid-cols-2 lg:grid-cols-3">
       {/* User Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-base">
-            <UserPlus className="w-4 h-4 mr-2" />
+      <Card className="hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className="flex items-center justify-center w-8 h-8 bg-chart-1/10 rounded-lg">
+              <UserPlus className="w-4 h-4 text-chart-1" />
+            </div>
             User Distribution
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Students</span>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">{stats?.users?.students || 0}</Badge>
-              <span className="text-xs text-muted-foreground">
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Students</span>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="font-semibold">{stats?.users?.students || 0}</Badge>
+              <span className="text-xs text-muted-foreground font-medium min-w-[3rem] text-right">
                 {stats?.users?.total ? Math.round((stats.users.students / stats.users.total) * 100) : 0}%
               </span>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Employees</span>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">{stats?.users?.employees || 0}</Badge>
-              <span className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Employees</span>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="font-semibold">{stats?.users?.employees || 0}</Badge>
+              <span className="text-xs text-muted-foreground font-medium min-w-[3rem] text-right">
                 {stats?.users?.total ? Math.round((stats.users.employees / stats.users.total) * 100) : 0}%
               </span>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Admins</span>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{stats?.users?.admins || 0}</Badge>
-              <span className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Admins</span>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="font-semibold">{stats?.users?.admins || 0}</Badge>
+              <span className="text-xs text-muted-foreground font-medium min-w-[3rem] text-right">
                 {stats?.users?.total ? Math.round((stats.users.admins / stats.users.total) * 100) : 0}%
               </span>
             </div>
@@ -210,25 +221,27 @@ export function DetailedStatsCards({ stats, loading, error }: StatsCardsProps) {
       </Card>
 
       {/* Session Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-base">
-            <PlayCircle className="w-4 h-4 mr-2" />
+      <Card className="hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className="flex items-center justify-center w-8 h-8 bg-chart-2/10 rounded-lg">
+              <PlayCircle className="w-4 h-4 text-chart-2" />
+            </div>
             Session Metrics
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total Sessions</span>
-            <Badge variant="secondary">{stats?.content?.totalSessions || 0}</Badge>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Total Sessions</span>
+            <Badge variant="secondary" className="font-semibold">{stats?.content?.totalSessions || 0}</Badge>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Today&apos;s Sessions</span>
-            <Badge variant="secondary">{stats?.activity?.sessionsToday || 0}</Badge>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Today's Sessions</span>
+            <Badge variant="secondary" className="font-semibold">{stats?.activity?.sessionsToday || 0}</Badge>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Avg. Score</span>
-            <Badge variant="outline">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Avg. Score</span>
+            <Badge variant="outline" className="font-semibold">
               {stats?.activity?.averageSessionScore ? `${stats.activity.averageSessionScore}%` : 'N/A'}
             </Badge>
           </div>
@@ -236,25 +249,27 @@ export function DetailedStatsCards({ stats, loading, error }: StatsCardsProps) {
       </Card>
 
       {/* Subscription Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-base">
-            <CreditCard className="w-4 h-4 mr-2" />
+      <Card className="hover:shadow-md transition-all duration-300">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className="flex items-center justify-center w-8 h-8 bg-chart-4/10 rounded-lg">
+              <CreditCard className="w-4 h-4 text-chart-4" />
+            </div>
             Subscriptions
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Active</span>
-            <Badge variant="default">{stats?.subscriptions?.active || 0}</Badge>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Active</span>
+            <Badge variant="default" className="font-semibold">{stats?.subscriptions?.active || 0}</Badge>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Expired</span>
-            <Badge variant="destructive">{stats?.subscriptions?.expired || 0}</Badge>
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Expired</span>
+            <Badge variant="destructive" className="font-semibold">{stats?.subscriptions?.expired || 0}</Badge>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total Revenue</span>
-            <Badge variant="outline">
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-muted-foreground">Total Revenue</span>
+            <Badge variant="outline" className="font-semibold">
               ${(stats?.subscriptions?.revenue || 0).toLocaleString()}
             </Badge>
           </div>

@@ -67,7 +67,7 @@ export default function ExamsPage() {
     if (res.success) {
       const data = res.data?.data || res.data;
       const newId = data?.session?.id || data?.sessionId || data?.id;
-      if (newId) router.push(`/student/session/${newId}`);
+      if (newId) router.push(`/session/${newId}`);
     } else {
       toast.error(res.error || 'Failed to create retake');
     }
@@ -148,66 +148,66 @@ export default function ExamsPage() {
           {/* Statistics Overview */}
           <div className="responsive-grid-1-2-4 lg:grid-cols-5">
             <Card className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-chart-2 to-chart-2" />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Exams</p>
-                    <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+                    <p className="text-2xl font-bold text-chart-2">{stats.total}</p>
                   </div>
-                  <BarChart3 className="h-8 w-8 text-blue-500" />
+                  <BarChart3 className="h-8 w-8 text-chart-2" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-chart-5 to-chart-5" />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Completed</p>
-                    <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+                    <p className="text-2xl font-bold text-chart-5">{stats.completed}</p>
                   </div>
-                  <CheckCircle className="h-8 w-8 text-green-500" />
+                  <CheckCircle className="h-8 w-8 text-chart-5" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 to-orange-500" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-chart-4 to-chart-4" />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">In Progress</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.inProgress}</p>
+                    <p className="text-2xl font-bold text-chart-4">{stats.inProgress}</p>
                   </div>
-                  <Clock className="h-8 w-8 text-orange-500" />
+                  <Clock className="h-8 w-8 text-chart-4" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-chart-3 to-chart-3" />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Not Started</p>
-                    <p className="text-2xl font-bold text-purple-600">{stats.notStarted}</p>
+                    <p className="text-2xl font-bold text-chart-3">{stats.notStarted}</p>
                   </div>
-                  <Target className="h-8 w-8 text-purple-500" />
+                  <Target className="h-8 w-8 text-chart-3" />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-yellow-500" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-chart-1 to-chart-1" />
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Avg Score</p>
-                    <p className="text-2xl font-bold text-amber-600">{stats.avgScore}%</p>
+                    <p className="text-2xl font-bold text-chart-1">{stats.avgScore}%</p>
                   </div>
-                  <Trophy className="h-8 w-8 text-amber-500" />
+                  <Trophy className="h-8 w-8 text-chart-1" />
                 </div>
               </CardContent>
             </Card>
@@ -217,7 +217,7 @@ export default function ExamsPage() {
           {sessionsLoading ? (
             <div className="flex items-center justify-center py-16">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500" />
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
                 Loading exam sessions...
               </div>
             </div>
@@ -229,9 +229,9 @@ export default function ExamsPage() {
                   title="No exam sessions yet"
                   description="Create your first exam session to start tracking your performance."
                   action={
-                    <Button 
-                      onClick={() => router.push('/student/exams/create')} 
-                      className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+                    <Button
+                      onClick={() => router.push('/student/exams/create')}
+                      className="gap-2"
                     >
                       <Plus className="w-4 h-4" />
                       Create Exam Session
@@ -249,7 +249,7 @@ export default function ExamsPage() {
                 return (
                   <Card
                     key={s.id}
-                    onClick={() => { if (clickable) router.push(`/student/sessions/${s.id}/results`); }}
+                    onClick={() => { if (clickable) router.push(`/session/${s.id}/results`); }}
                     className={cn(
                       'relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-2',
                       clickable && 'cursor-pointer hover:bg-accent/10',
@@ -259,8 +259,8 @@ export default function ExamsPage() {
                     tabIndex={clickable ? 0 : -1}
                   >
                     <div className={cn("absolute top-0 left-0 w-full h-1",
-                      st === 'COMPLETED' ? "bg-success" :
-                      st === 'IN_PROGRESS' ? "bg-primary" :
+                      st === 'COMPLETED' ? "bg-chart-5" :
+                      st === 'IN_PROGRESS' ? "bg-chart-4" :
                       "bg-muted-foreground"
                     )} />
                     
@@ -269,8 +269,8 @@ export default function ExamsPage() {
                         <CardTitle className="text-lg truncate">{s.title || `Exam ${s.id}`}</CardTitle>
                         <div className="flex items-center gap-2">
                           {typeof s.percentage === 'number' && (
-                            <span className={cn('text-xs font-semibold px-2 py-1 rounded-full', 
-                              s.percentage >= 50 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            <span className={cn('text-xs font-semibold px-2 py-1 rounded-full',
+                              s.percentage >= 50 ? 'bg-chart-5/20 text-chart-5' : 'bg-destructive/20 text-destructive'
                             )}>
                               {Math.round(s.percentage)}%
                             </span>
@@ -302,7 +302,7 @@ export default function ExamsPage() {
                             <Button size="sm" variant="default" onClick={async (e) => {
                               e.stopPropagation();
                               try { await QuizService.updateQuizSessionStatus(s.id, 'IN_PROGRESS'); } catch {}
-                              router.push(`/student/session/${s.id}`)
+                              router.push(`/session/${s.id}`)
                             }}>
                               Start Exam
                             </Button>
@@ -310,7 +310,7 @@ export default function ExamsPage() {
 
                           {st === 'IN_PROGRESS' && (
                             <>
-                              <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/student/session/${s.id}`); }}>
+                              <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/session/${s.id}`); }}>
                                 Continue
                               </Button>
                               <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleOpenRetake(s); }}>
@@ -321,7 +321,7 @@ export default function ExamsPage() {
 
                           {st === 'COMPLETED' && (
                             <>
-                              <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/student/sessions/${s.id}/results`); }}>
+                              <Button size="sm" variant="default" onClick={(e) => { e.stopPropagation(); router.push(`/session/${s.id}/results`); }}>
                                 View Results
                               </Button>
                               <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); handleOpenRetake(s); }}>

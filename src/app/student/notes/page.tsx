@@ -37,16 +37,16 @@ export default function NotesPage() {
   const [questionId] = useState<number | undefined>(
     searchParams.get('questionId') ? Number(searchParams.get('questionId')) : undefined
   )
-  const [sessionId] = useState<number | undefined>(
-    searchParams.get('sessionId') ? Number(searchParams.get('sessionId')) : undefined
+  const [quizId] = useState<number | undefined>(
+    searchParams.get('quizId') ? Number(searchParams.get('quizId')) : undefined
   )
 
-  const { notes, pagination, loading, updateNote, deleteNote } = useNotes({
+  const { notes, groupedNotes, totalNotes, totalModules, pagination, loading, updateNote, deleteNote } = useNotes({
     page,
     limit,
     search: searchQuery || undefined,
     questionId,
-    sessionId,
+    quizId,
   })
   // labels removed from UI per request
   const labels = [] as any[]; const labelsLoading = false
@@ -58,9 +58,9 @@ export default function NotesPage() {
     if (limit) params.set('limit', String(limit))
     if (searchQuery) params.set('q', searchQuery)
     if (questionId) params.set('questionId', String(questionId))
-    if (sessionId) params.set('sessionId', String(sessionId))
+    if (quizId) params.set('quizId', String(quizId))
     router.replace(`?${params.toString()}`)
-  }, [page, limit, searchQuery, questionId, sessionId, router])
+  }, [page, limit, searchQuery, questionId, quizId, router])
 
   const formatDate = (dateString: string) => {
     try {
@@ -170,55 +170,118 @@ export default function NotesPage() {
         <EmptyState
           icon={StickyNote}
           title="No Notes Found"
-          description={questionId || sessionId ? "No notes for this context yet." : "You haven’t created any notes yet. Add notes while answering questions in a practice or exam session."}
+          description={questionId || quizId ? "No notes for this context yet." : "You haven’t created any notes yet. Add notes while answering questions in a practice or exam session."}
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {list.map((note) => (
-              <Card key={note.id} className="hover:shadow-sm transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-base">
-                      {note.question?.questionText ? note.question.questionText : 'Note'}
-                    </CardTitle>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(note)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => requestDelete(note.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
-                    {note.noteText}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>{formatDate(note.updatedAt || note.createdAt)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Display grouped notes if available, otherwise fall back to flat list */}
+          {groupedNotes && groupedNotes.length > 0 ? (
+            <div className="space-y-8">
+              {/* Summary stats */}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>{totalNotes} notes across {totalModules} modules</span>
+              </div>
 
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} notes
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={!pagination.hasPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                  Previous
-                </Button>
-                <Button variant="outline" size="sm" disabled={!pagination.hasNext} onClick={() => setPage((p) => p + 1)}>
-                  Next
-                </Button>
-              </div>
+              {/* Grouped by module */}
+              {groupedNotes.map((moduleGroup) => (
+                <div key={moduleGroup.module.id} className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {moduleGroup.module.name}
+                    </h3>
+                    {moduleGroup.module.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {moduleGroup.module.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {moduleGroup.notes.length} note{moduleGroup.notes.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {moduleGroup.notes.map((note) => (
+                      <Card key={note.id} className="hover:shadow-sm transition-shadow">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <CardTitle className="text-base">
+                              {note.question?.questionText ? note.question.questionText : 'Note'}
+                            </CardTitle>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => openEdit(note)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => requestDelete(note.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                            {note.noteText}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>{formatDate(note.updatedAt || note.createdAt)}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
+          ) : (
+            /* Fallback to flat list for backward compatibility */
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {list.map((note) => (
+                  <Card key={note.id} className="hover:shadow-sm transition-shadow">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <CardTitle className="text-base">
+                          {note.question?.questionText ? note.question.questionText : 'Note'}
+                        </CardTitle>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(note)}>
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => requestDelete(note.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-3 whitespace-pre-wrap">
+                        {note.noteText}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{formatDate(note.updatedAt || note.createdAt)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} notes
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={!pagination.hasPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={!pagination.hasNext} onClick={() => setPage((p) => p + 1)}>
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

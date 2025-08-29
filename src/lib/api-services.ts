@@ -741,14 +741,14 @@ export class StudentService {
 
   // Notes Management
   /**
-   * Get student notes with pagination and filtering
+   * Get student notes - now returns grouped by module format
    */
   static async getNotes(params: PaginationParams & {
     search?: string;
     questionId?: number;
-    sessionId?: number;
+    quizId?: number; // Changed from sessionId to quizId to match API docs
     labelIds?: number[];
-  } = {}): Promise<ApiResponse<PaginatedResponse<any>>> {
+  } = {}): Promise<ApiResponse<any>> {
     const searchParams = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -766,7 +766,7 @@ export class StudentService {
     // Use centralized logging with throttling
     logServiceCall('StudentService', 'getNotes', { endpoint, params });
 
-    return apiClient.get<PaginatedResponse<any>>(endpoint);
+    return apiClient.get<any>(endpoint);
   }
 
   /**
@@ -775,14 +775,14 @@ export class StudentService {
   static async createNote(noteData: {
     noteText: string;
     questionId?: number;
-    sessionId?: number;
+    quizId?: number; // Changed from sessionId to quizId to match API docs
     labelIds?: number[];
   }): Promise<ApiResponse<any>> {
     // Send data directly as API expects noteText field
     const apiData = {
       noteText: noteData.noteText,
       questionId: noteData.questionId,
-      sessionId: noteData.sessionId,
+      quizId: noteData.quizId, // Changed from sessionId to quizId
       labelIds: noteData.labelIds
     };
 
@@ -891,11 +891,26 @@ export class StudentService {
     return apiClient.post<any>(`/students/quiz-sessions/${sessionId}/labels/${labelId}`);
   }
 
+  /**
+   * Add question to label (new question-focused API)
+   */
+  static async addQuestionToLabel(questionId: number, labelId: number): Promise<ApiResponse<any>> {
+    return apiClient.post<any>(`/students/questions/${questionId}/labels/${labelId}`);
+  }
+
+  /**
+   * Remove question from label (new question-focused API)
+   */
+  static async removeQuestionFromLabel(questionId: number, labelId: number): Promise<ApiResponse<any>> {
+    return apiClient.delete<any>(`/students/questions/${questionId}/labels/${labelId}`);
+  }
+
   // Todos Management (aligned with endpoint contract)
   /**
    * Get paginated todos with optional filters
    */
   static async getTodos(params: PaginationParams & {
+    includeCompleted?: boolean;
     status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'ALL' | 'pending' | 'in_progress' | 'completed' | 'overdue' | 'all';
     priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'ALL' | 'low' | 'medium' | 'high' | 'all';
     type?: 'READING' | 'QUIZ' | 'SESSION' | 'EXAM' | 'OTHER' | 'ALL' | 'reading' | 'quiz' | 'session' | 'exam' | 'other' | 'all';
@@ -912,6 +927,7 @@ export class StudentService {
       limit: params.limit,
       sortBy: params.sortBy,
       sortOrder: params.sortOrder,
+      includeCompleted: params.includeCompleted,
       status: params.status ? mapStatus(params.status as string) : undefined,
       priority: params.priority ? mapUpper(params.priority as string) : undefined,
       type: params.type ? mapUpper(params.type as string) : undefined,
@@ -942,6 +958,7 @@ export class StudentService {
       priority: mapUpper(todoData.priority),
       dueDate: todoData.dueDate ? new Date(todoData.dueDate).toISOString() : undefined,
       courseId: todoData.courseId,
+      quizId: todoData.quizId,
       estimatedTime: todoData.estimatedTime,
       tags: todoData.tags,
     };

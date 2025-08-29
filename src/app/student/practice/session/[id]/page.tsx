@@ -12,7 +12,7 @@ export default function PracticeSessionCompatibilityRedirect() {
 
   useEffect(() => {
     if (!Number.isNaN(sessionId)) {
-      router.replace(`/student/session/${sessionId}`);
+      router.replace(`/session/${sessionId}`);
     } else {
       router.replace('/student/practice');
     }

@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Providers } from "@/components/providers";
-import { StagewiseToolbar } from "@stagewise/toolbar-next";
-import ReactPlugin  from "@stagewise-plugins/react";
+import { FrontextInit } from "@/components/frontext-init";
 import "./globals.css";
 
 // Using Inter font for all text
@@ -15,15 +14,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MedCortex - Revolutionize Your Medical Education",
-  description: "Experience the future of medical learning with AI-powered personalization, comprehensive analytics, and collaborative study tools designed for the next generation of healthcare professionals.",
-  keywords: "medical education, medical students, USMLE, MCAT, medical learning platform, AI-powered learning, medical questions bank",
+  title: "MedCortex - Trusted Medical Education Platform",
+  description: "Comprehensive medical learning platform designed by healthcare professionals with evidence-based content, detailed analytics, and collaborative study tools for medical students.",
+  keywords: "medical education, medical students, USMLE, MCAT, medical learning platform, evidence-based learning, medical questions bank",
   authors: [{ name: "MedCortex Team" }],
   creator: "MedCortex",
   metadataBase: new URL("https://medcortex.com"),
   openGraph: {
-    title: "MedCortex - Revolutionize Your Medical Education",
-    description: "Experience the future of medical learning with AI-powered personalization and comprehensive analytics.",
+    title: "MedCortex - Trusted Medical Education Platform",
+    description: "Comprehensive medical learning platform designed by healthcare professionals with evidence-based content and collaborative study tools.",
     url: "https://medcortex.com",
     siteName: "MedCortex",
     images: [
@@ -39,8 +38,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "MedCortex - Revolutionize Your Medical Education",
-    description: "Experience the future of medical learning with AI-powered personalization and comprehensive analytics.",
+    title: "MedCortex - Trusted Medical Education Platform",
+    description: "Comprehensive medical learning platform designed by healthcare professionals with evidence-based content and collaborative study tools.",
     images: ["/og-image.jpg"],
   },
   robots: {
@@ -74,11 +73,7 @@ export default function RootLayout({
             disableTransitionOnChange={false}
           >
             {children}
-            <StagewiseToolbar
-              config={{
-                plugins: [ReactPlugin]
-              }}
-            />
+            <FrontextInit />
           </ThemeProvider>
         </Providers>
       </body>

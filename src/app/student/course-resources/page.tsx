@@ -167,12 +167,12 @@ export default function CourseResourcesPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-8 pt-6">
+    <div className="flex-1 space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 xl:p-10 pt-4 sm:pt-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Course Resources</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl xl:text-3xl font-bold tracking-tight">Course Resources</h2>
+          <p className="text-sm sm:text-base xl:text-lg text-muted-foreground mt-1">
             Select a course to access its educational resources and study materials.
           </p>
         </div>
@@ -181,79 +181,88 @@ export default function CourseResourcesPage() {
       <Separator />
 
       {/* Course Selection and Resources Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6 xl:gap-8">
         {/* Course Selector */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 xl:col-span-1 2xl:col-span-1">
           <CourseSelector
             selectedCourseId={selectedCourseId}
             onCourseSelect={handleCourseSelect}
+            className="h-fit sticky top-4"
           />
         </div>
 
         {/* Resources Section */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-3 xl:col-span-2 2xl:col-span-3 space-y-4 xl:space-y-6">
           {selectedCourseId ? (
             <>
               {/* Course Info Header */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
+                <CardHeader className="p-4 sm:p-6 xl:p-8">
+                  <CardTitle className="flex items-center gap-2 text-lg xl:text-xl">
+                    <BookOpen className="h-5 w-5 xl:h-6 xl:w-6" />
                     {selectedCourseName || courseName}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm xl:text-base">
                     Educational resources for this course
                   </CardDescription>
                 </CardHeader>
               </Card>
 
               {/* Filters and Search */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                  <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search resources..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-
-                  <Select value={selectedType} onValueChange={setSelectedType}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="File type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {availableTypes.map(type => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="title">Title</SelectItem>
-                      <SelectItem value="type">Type</SelectItem>
-                      <SelectItem value="created">Date Created</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="flex flex-col gap-4">
+                {/* Search Bar - Full Width on Mobile */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search resources..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                  >
-                    {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-                  </Button>
+                {/* Filters and View Toggle */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                  <div className="flex flex-col xs:flex-row lg:flex-row gap-3 flex-1">
+                    <Select value={selectedType} onValueChange={setSelectedType}>
+                      <SelectTrigger className="w-full xs:w-[140px] lg:w-[160px]">
+                        <SelectValue placeholder="File type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        {availableTypes.map(type => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                      <SelectTrigger className="w-full xs:w-[140px] lg:w-[160px]">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="title">Title</SelectItem>
+                        <SelectItem value="type">Type</SelectItem>
+                        <SelectItem value="created">Date Created</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                      className="touch-target"
+                    >
+                      {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+                      <span className="ml-2 hidden sm:inline">
+                        {viewMode === 'grid' ? 'List' : 'Grid'}
+                      </span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -284,10 +293,10 @@ export default function CourseResourcesPage() {
                 />
               ) : (
                 <div className={cn(
-                  "gap-4",
+                  "gap-3 sm:gap-4 xl:gap-6",
                   viewMode === 'grid'
-                    ? "grid grid-cols-1 md:grid-cols-2"
-                    : "flex flex-col space-y-4"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3"
+                    : "flex flex-col space-y-3 sm:space-y-4 xl:space-y-6"
                 )}>
                   {filteredResources.map((resource) => {
                     const FileIcon = FILE_TYPE_ICONS[resource.type] || FileText
@@ -302,25 +311,27 @@ export default function CourseResourcesPage() {
                         onClick={() => handleViewResource(resource)}
                       >
                         <CardHeader className={cn(
-                          "pb-3",
+                          "pb-3 p-4 sm:p-6",
                           viewMode === 'list' && "flex-1"
                         )}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start gap-3 flex-1">
-                              <div className="p-2 bg-muted rounded-lg">
-                                <FileIcon className="h-5 w-5" />
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className="p-2 bg-muted rounded-lg flex-shrink-0">
+                                <FileIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <CardTitle className="text-lg line-clamp-1">{resource.title}</CardTitle>
+                                <div className="flex items-start gap-2 mb-1">
+                                  <CardTitle className="text-base sm:text-lg line-clamp-2 flex-1">
+                                    {resource.title}
+                                  </CardTitle>
                                   {resource.isPaid && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="outline" className="text-xs flex-shrink-0">
                                       <DollarSign className="h-3 w-3 mr-1" />
                                       {resource.price ? `$${resource.price}` : 'Paid'}
                                     </Badge>
                                   )}
                                 </div>
-                                <CardDescription className="line-clamp-2">
+                                <CardDescription className="line-clamp-2 text-sm">
                                   {resource.description || 'No description available'}
                                 </CardDescription>
                                 <div className="flex flex-wrap gap-1 mt-2">
@@ -338,7 +349,7 @@ export default function CourseResourcesPage() {
 
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" className="touch-target flex-shrink-0">
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -364,15 +375,18 @@ export default function CourseResourcesPage() {
                           </div>
                         </CardHeader>
 
-                        <CardContent className={cn(viewMode === 'list' && "flex-1")}>
-                          <div className="space-y-3">
+                        <CardContent className={cn(
+                          "p-4 sm:p-6 pt-0",
+                          viewMode === 'list' && "flex-1"
+                        )}>
+                          <div className="space-y-2 sm:space-y-3">
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                {formatDate(resource.createdAt)}
+                                <span className="truncate">{formatDate(resource.createdAt)}</span>
                               </div>
                               {resource.downloadCount && (
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1 flex-shrink-0">
                                   <Download className="h-3 w-3" />
                                   {resource.downloadCount}
                                 </div>
@@ -380,14 +394,14 @@ export default function CourseResourcesPage() {
                             </div>
 
                             {resource.type === 'VIDEO' && resource.youtubeVideoId && (
-                              <div className="flex items-center gap-1 text-xs text-blue-600">
+                              <div className="flex items-center gap-1 text-xs text-primary">
                                 <Play className="h-3 w-3" />
                                 YouTube Video
                               </div>
                             )}
 
                             {resource.type === 'LINK' && resource.externalUrl && (
-                              <div className="flex items-center gap-1 text-xs text-green-600">
+                              <div className="flex items-center gap-1 text-xs text-primary">
                                 <ExternalLink className="h-3 w-3" />
                                 External Link
                               </div>

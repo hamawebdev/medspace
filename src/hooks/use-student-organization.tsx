@@ -16,10 +16,30 @@ export interface Note {
   question?: {
     id: number;
     questionText: string;
+    course?: {
+      id: number;
+      name: string;
+    };
   };
   quiz?: any;
   createdAt: string;
   updatedAt: string;
+}
+
+// New types for grouped notes response
+export interface ModuleGroup {
+  module: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  notes: Note[];
+}
+
+export interface GroupedNotesResponse {
+  groupedByModule: ModuleGroup[];
+  totalNotes: number;
+  totalModules: number;
 }
 
 export interface Label {
@@ -31,6 +51,24 @@ export interface Label {
     quizSessionsCount: number;
     totalItems: number;
   };
+  questionIds: number[]; // New: Array of associated question IDs
+  questions: LabelQuestion[]; // New: Array of associated questions with details
+  createdAt: string;
+}
+
+// New interface for questions in labels
+export interface LabelQuestion {
+  id: number;
+  questionText: string;
+  course: {
+    id: number;
+    name: string;
+    module: {
+      id: number;
+      name: string;
+      description: string;
+    };
+  };
   createdAt: string;
 }
 
@@ -38,7 +76,7 @@ export interface Todo {
   id: number;
   title: string;
   description?: string;
-  type: 'READING' | 'SESSION' | 'EXAM' | 'OTHER';
+  type: 'READING' | 'QUIZ' | 'SESSION' | 'EXAM' | 'OTHER';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   dueDate?: string;
@@ -56,10 +94,13 @@ export interface Todo {
 export function useNotes(params: PaginationParams & {
   search?: string;
   questionId?: number;
-  sessionId?: number;
+  quizId?: number; // Changed from sessionId to quizId to match API docs
   labelIds?: number[];
 } = {}) {
   const [notes, setNotes] = useState<Note[] | null>(null);
+  const [groupedNotes, setGroupedNotes] = useState<ModuleGroup[] | null>(null);
+  const [totalNotes, setTotalNotes] = useState<number>(0);
+  const [totalModules, setTotalModules] = useState<number>(0);
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,12 +115,34 @@ export function useNotes(params: PaginationParams & {
       const response = await StudentService.getNotes(params);
 
       if (response.success) {
-        // Handle nested API response structure: response.data.data.data
-        const notesData = response.data?.data?.data || response.data?.data || response.data || [];
-        const notesArray = Array.isArray(notesData) ? notesData : [];
+        // Handle new grouped response format from API documentation
+        const responseData = response.data?.data || response.data;
 
-        setNotes(notesArray);
-        setPagination(response.data?.pagination || response.data?.data?.pagination || null);
+        if (responseData?.groupedByModule) {
+          // New grouped format
+          setGroupedNotes(responseData.groupedByModule);
+          setTotalNotes(responseData.totalNotes || 0);
+          setTotalModules(responseData.totalModules || 0);
+
+          // Flatten notes for backward compatibility
+          const flatNotes = responseData.groupedByModule.reduce((acc: Note[], group: ModuleGroup) => {
+            return acc.concat(group.notes);
+          }, []);
+          setNotes(flatNotes);
+
+          // No pagination in grouped format
+          setPagination(null);
+        } else {
+          // Fallback to old paginated format
+          const notesData = responseData?.data || responseData || [];
+          const notesArray = Array.isArray(notesData) ? notesData : [];
+
+          setNotes(notesArray);
+          setGroupedNotes(null);
+          setTotalNotes(notesArray.length);
+          setTotalModules(0);
+          setPagination(responseData?.pagination || null);
+        }
       } else {
         logger.error('📝 useNotes: API returned error', response.error);
         throw new Error(response.error || 'Failed to fetch notes');
@@ -95,15 +158,18 @@ export function useNotes(params: PaginationParams & {
 
       setError(errorMessage);
       setNotes([]); // Set empty array on error
+      setGroupedNotes(null);
+      setTotalNotes(0);
+      setTotalModules(0);
     } finally {
       setLoading(false);
     }
-  }, [params.page, params.limit, params.search, params.questionId, params.sessionId, params.labelIds]);
+  }, [params.page, params.limit, params.search, params.questionId, params.quizId, params.labelIds]);
 
   const createNote = useCallback(async (noteData: {
     noteText: string;
     questionId?: number;
-    sessionId?: number;
+    quizId?: number; // Changed from sessionId to quizId
     labelIds?: number[];
   }) => {
     try {
@@ -168,6 +234,9 @@ export function useNotes(params: PaginationParams & {
 
   return {
     notes,
+    groupedNotes,
+    totalNotes,
+    totalModules,
     pagination,
     loading,
     error,
@@ -251,7 +320,7 @@ export function useLabels() {
   const deleteLabel = useCallback(async (labelId: number) => {
     try {
       const response = await StudentService.deleteLabel(labelId);
-      
+
       if (response.success) {
         toast.success('Label deleted successfully');
         fetchLabels(); // Refresh the list
@@ -261,6 +330,43 @@ export function useLabels() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete label';
+      toast.error(errorMessage);
+      throw error;
+    }
+  }, [fetchLabels]);
+
+  // New methods for question-label associations
+  const addQuestionToLabel = useCallback(async (questionId: number, labelId: number) => {
+    try {
+      const response = await StudentService.addQuestionToLabel(questionId, labelId);
+
+      if (response.success) {
+        toast.success('Question added to label successfully');
+        fetchLabels(); // Refresh the list to show updated associations
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to add question to label');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add question to label';
+      toast.error(errorMessage);
+      throw error;
+    }
+  }, [fetchLabels]);
+
+  const removeQuestionFromLabel = useCallback(async (questionId: number, labelId: number) => {
+    try {
+      const response = await StudentService.removeQuestionFromLabel(questionId, labelId);
+
+      if (response.success) {
+        toast.success('Question removed from label successfully');
+        fetchLabels(); // Refresh the list to show updated associations
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Failed to remove question from label');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to remove question from label';
       toast.error(errorMessage);
       throw error;
     }
@@ -278,13 +384,17 @@ export function useLabels() {
     createLabel,
     updateLabel,
     deleteLabel,
+    addQuestionToLabel,
+    removeQuestionFromLabel,
   };
 }
 
 // Todos Management Hook
 export function useTodos(params: PaginationParams & {
+  includeCompleted?: boolean;
   status?: 'pending' | 'completed' | 'all';
   priority?: 'low' | 'medium' | 'high' | 'all';
+  type?: 'reading' | 'quiz' | 'session' | 'exam' | 'other' | 'all';
   dueDate?: string;
 } = {}) {
   const [todos, setTodos] = useState<Todo[] | null>(null);
@@ -322,7 +432,9 @@ export function useTodos(params: PaginationParams & {
     description?: string;
     dueDate?: string;
     priority?: 'LOW' | 'MEDIUM' | 'HIGH';
-    type?: 'READING' | 'SESSION' | 'EXAM' | 'OTHER';
+    type?: 'READING' | 'QUIZ' | 'SESSION' | 'EXAM' | 'OTHER';
+    courseId?: number;
+    quizId?: number;
   }) => {
     try {
       const response = await StudentService.createTodo(todoData);

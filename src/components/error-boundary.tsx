@@ -58,11 +58,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-background">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
               <CardTitle className="text-xl">Something went wrong</CardTitle>
               <CardDescription>
@@ -133,14 +133,14 @@ export function ApiError({ error, onRetry, onDismiss, className = '' }: ApiError
   if (!error) return null;
 
   return (
-    <div className={`bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4 ${className}`}>
+    <div className={`bg-destructive/10 border border-destructive/20 rounded-lg p-4 ${className}`}>
       <div className="flex items-start gap-3">
-        <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+        <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-red-800 dark:text-red-200">
+          <p className="text-sm font-medium text-destructive-foreground">
             Error
           </p>
-          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+          <p className="text-sm text-destructive-foreground/80 mt-1">
             {error}
           </p>
           {(onRetry || onDismiss) && (
@@ -169,12 +169,12 @@ export function DashboardSkeleton() {
   return (
     <div className="space-y-8 p-4 md:p-8 max-w-7xl mx-auto animate-pulse">
       {/* Welcome Banner Skeleton */}
-      <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-32"></div>
-      
+      <div className="bg-muted rounded-lg h-32"></div>
+
       {/* Metrics Cards Skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-gray-200 dark:bg-gray-700 rounded-lg h-24"></div>
+          <div key={i} className="bg-muted rounded-lg h-24"></div>
         ))}
       </div>
 
@@ -182,16 +182,16 @@ export function DashboardSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-64"></div>
-          <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-80"></div>
-          <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-48"></div>
+          <div className="bg-muted rounded-lg h-64"></div>
+          <div className="bg-muted rounded-lg h-80"></div>
+          <div className="bg-muted rounded-lg h-48"></div>
         </div>
 
         {/* Right Column */}
         <div className="space-y-8">
-          <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-32"></div>
-          <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-64"></div>
-          <div className="bg-gray-200 dark:bg-gray-700 rounded-lg h-48"></div>
+          <div className="bg-muted rounded-lg h-32"></div>
+          <div className="bg-muted rounded-lg h-64"></div>
+          <div className="bg-muted rounded-lg h-48"></div>
         </div>
       </div>
     </div>
@@ -200,13 +200,13 @@ export function DashboardSkeleton() {
 
 export function MetricCardSkeleton() {
   return (
-    <div className="bg-gray-200 dark:bg-gray-700 rounded-lg p-6 animate-pulse">
+    <div className="bg-muted rounded-lg p-6 animate-pulse">
       <div className="flex items-center justify-between mb-4">
-        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-24"></div>
-        <div className="h-6 w-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
+        <div className="h-4 bg-muted-foreground/20 rounded w-24"></div>
+        <div className="h-6 w-6 bg-muted-foreground/20 rounded"></div>
       </div>
-      <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-16 mb-2"></div>
-      <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-32"></div>
+      <div className="h-8 bg-muted-foreground/20 rounded w-16 mb-2"></div>
+      <div className="h-3 bg-muted-foreground/20 rounded w-32"></div>
     </div>
   );
 }

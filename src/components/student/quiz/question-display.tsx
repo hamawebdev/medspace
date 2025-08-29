@@ -66,13 +66,13 @@ export function QuestionDisplay() {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'beginner':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'intermediate':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        return 'bg-accent/10 text-accent-foreground border-accent/20';
       case 'advanced':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'bg-muted/10 text-muted-foreground border-muted/20';
     }
   };
 
@@ -191,7 +191,7 @@ export function QuestionDisplay() {
 
       {/* Question Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8 max-w-5xl mx-auto">
+        <div className="p-3 sm:p-4 md:p-4 lg:p-5 space-y-3 sm:space-y-3 lg:space-y-4 max-w-4xl mx-auto">
 
           {/* Status Badge in review */}
           {autoReveal && (

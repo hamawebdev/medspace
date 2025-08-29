@@ -25,7 +25,7 @@ export function ModernNavigation({ children, className }: ModernNavigationProps)
           <Header />
           
           {/* Page Content */}
-          <main className='flex-1 overflow-auto'>
+          <main className='flex-1 overflow-auto custom-scrollbar'>
             <div className='container mx-auto p-6'>
               {children}
             </div>

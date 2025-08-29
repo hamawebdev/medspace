@@ -46,7 +46,10 @@ export default function PracticeCreatePage() {
       const createPayload = {
         title: payload.title || 'Practice Session',
         ...(quizType ? { quizType } : {}),
-        settings: { questionCount: safeCount },
+        settings: {
+          questionCount: safeCount,
+          ...(payload.timeLimit ? { timeLimit: payload.timeLimit } : {})
+        },
         filters: {
           yearLevels: yearLevelsFromSubs,
           ...filters,
@@ -92,7 +95,7 @@ export default function PracticeCreatePage() {
       const sid = created?.data?.sessionId || created?.data?.id || (created as any)?.sessionId || (created as any)?.id;
       if (sid) {
         toast.success('Practice session created');
-        router.push(`/student/session/${sid}`);
+        router.push(`/session/${sid}`);
       } else {
         toast.error('Session created but no sessionId returned');
         router.push('/student/practice');

@@ -39,8 +39,8 @@ export function QuizTimer({ totalTime, timeLimit, isRunning, isPaused, className
     <div className={cn("flex items-center gap-2", className)}>
       <Clock className={cn(
         "h-4 w-4",
-        isPaused && "text-orange-500",
-        isNearEnd && "text-red-500",
+        isPaused && "text-accent-foreground",
+        isNearEnd && "text-destructive",
         !isPaused && !isNearEnd && "text-muted-foreground"
       )} />
       
@@ -48,8 +48,8 @@ export function QuizTimer({ totalTime, timeLimit, isRunning, isPaused, className
         {timeLimit ? (
           <div className="flex items-center gap-2">
             <span className={cn(
-              isOvertime && "text-red-600 font-bold",
-              isNearEnd && !isOvertime && "text-orange-600",
+              isOvertime && "text-destructive font-bold",
+              isNearEnd && !isOvertime && "text-accent-foreground",
               !isNearEnd && "text-foreground"
             )}>
               {timeRemaining !== null ? formatTime(timeRemaining) : formatTime(totalTime)}

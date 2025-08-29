@@ -108,7 +108,7 @@ export function WelcomeHeader({ user }: WelcomeHeaderProps) {
                 })}</span>
               </div>
               <div className="text-xs text-muted-foreground leading-relaxed hidden sm:block">
-                Ready to continue learning?
+                Your trusted medical education companion
               </div>
             </div>
 

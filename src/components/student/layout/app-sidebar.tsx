@@ -12,29 +12,26 @@ import { sidebarData } from './data/sidebar-data'
 import { Stethoscope, GraduationCap } from 'lucide-react'
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription'
 import { cn } from '@/lib/utils'
+import { Logo } from '@/components/ui/logo'
 
 function AppSidebarHeader() {
   const { state } = useSidebar()
 
   return (
     <div className='flex h-full items-center gap-3 px-1'>
-      {/* Logo Icon - Always visible */}
-      <div className={cn(
-        'flex items-center justify-center rounded-xl transition-all duration-200',
-        'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg',
-        'h-10 w-10 min-w-[2.5rem]'
-      )}>
-        <GraduationCap className='h-5 w-5 text-white' />
-      </div>
+      {/* Logo Icon - Always visible, no background */}
+      <Logo
+        className="h-14 w-14 object-contain transition-all duration-200 hover:scale-105"
+      />
 
       {/* Logo Text - Only visible when expanded */}
       {state === 'expanded' && (
         <div className='flex flex-col'>
-          <span className='whitespace-nowrap text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent'>
+          <span className='whitespace-nowrap text-lg font-bold text-primary'>
             MedCortex
           </span>
           <span className='text-xs text-muted-foreground font-medium'>
-            Medical Education
+            For Better Study
           </span>
         </div>
       )}

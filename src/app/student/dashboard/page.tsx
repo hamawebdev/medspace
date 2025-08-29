@@ -87,10 +87,10 @@ export default function StudentDashboard() {
 
           {/* API Loading Indicator */}
           {apiLoading && (
-            <div className='bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-[calc(var(--spacing)*4)]'>
+            <div className='bg-primary/10 border border-primary/20 rounded-lg p-[calc(var(--spacing)*4)]'>
               <div className='flex items-center gap-[calc(var(--spacing)*3)]'>
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
-                <p className='text-sm text-blue-700 dark:text-blue-300'>
+                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-primary'></div>
+                <p className='text-sm text-primary-foreground'>
                   Loading latest performance data...
                 </p>
               </div>
@@ -134,33 +134,18 @@ export default function StudentDashboard() {
               <PerformanceOverview performance={performance} />
 
               {/* Main Content Layout - Enhanced Visual Hierarchy */}
-              <div className='space-y-section'>
+              <div className='space-y-8'>
                 {/* Recent Activity - Full Width */}
                 <RecentActivityFeed activities={performance.recentActivity || []} />
 
                 {/* Analytics & Actions Section */}
-                <section className='space-y-[calc(var(--spacing)*8)]'>
-                  {/* Enhanced Responsive Section Header */}
-                  <div className='text-center space-y-[calc(var(--spacing)*2)] sm:space-y-[calc(var(--spacing)*3)]'>
-                    <h2 className='text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent'>
-                      Performance & Actions
-                    </h2>
-                    <p className='text-sm sm:text-base text-muted-foreground font-medium leading-relaxed max-w-xl sm:max-w-2xl mx-auto px-4 sm:px-0'>
-                      Track your progress and take your next learning steps
-                    </p>
-                  </div>
-
+                <section className='space-y-8'>
                   {/* Vertical Stacked Content Layout */}
-                  <div className='space-y-[calc(var(--spacing)*6)] sm:space-y-[calc(var(--spacing)*8)]'>
+                  <div className='space-y-6'>
                     {/* Primary Analytics Section */}
-                    <div className='space-y-[calc(var(--spacing)*6)] sm:space-y-[calc(var(--spacing)*8)]'>
+                    <div className='space-y-6'>
                       {/* Performance Analytics Section */}
-                      <div className='space-y-[calc(var(--spacing)*4)]'>
-                        <div className='flex items-center gap-[calc(var(--spacing)*3)]'>
-                          <div className='h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1'></div>
-                          <h3 className='text-base sm:text-lg font-semibold tracking-tight text-muted-foreground text-center'>Analytics Overview</h3>
-                          <div className='h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1'></div>
-                        </div>
+                      <div className='space-y-6'>
                         <WeeklyPerformanceChart
                           weeklyPerformance={performance.weeklyStats?.map((week, index) => {
                             // Calculate actual date for each week based on current date
@@ -206,9 +191,9 @@ export default function StudentDashboard() {
 // Loading skeleton component
 function DashboardLoadingSkeleton() {
   return (
-    <div className='space-y-section'>
+    <div className='space-y-8'>
       {/* Welcome Header Skeleton */}
-      <Card className='relative overflow-hidden bg-gradient-to-r from-background via-accent/5 to-background border-0 shadow-sm'>
+      <Card className='bg-card border-border shadow-sm'>
         <CardContent className='p-[calc(var(--spacing)*6)]'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center gap-[calc(var(--spacing)*4)]'>
@@ -224,7 +209,7 @@ function DashboardLoadingSkeleton() {
       </Card>
 
       {/* Performance Overview Skeleton */}
-      <Card className='relative overflow-hidden bg-gradient-to-br from-background via-accent/5 to-muted/10 border-0 shadow-lg'>
+      <Card className='bg-card border-border shadow-sm'>
         <CardHeader className='pb-[calc(var(--spacing)*4)]'>
           <div className='flex items-center justify-between'>
             <div className='space-y-[calc(var(--spacing)*2)]'>
@@ -248,9 +233,9 @@ function DashboardLoadingSkeleton() {
       </Card>
 
       {/* Main Content Skeleton - Full Width Layout */}
-      <div className='space-y-section'>
+      <div className='space-y-8'>
         {/* Recent Activity Skeleton - Full Width */}
-        <Card className='relative overflow-hidden bg-gradient-to-br from-background via-accent/5 to-muted/10 border-0 shadow-lg'>
+        <Card className='bg-card border-border shadow-sm'>
           <CardHeader className='pb-[calc(var(--spacing)*4)]'>
             <div className='h-6 w-32 bg-muted rounded animate-pulse'></div>
           </CardHeader>
@@ -287,7 +272,7 @@ function DashboardLoadingSkeleton() {
                   <div className='h-6 w-32 bg-muted rounded animate-pulse'></div>
                   <div className='h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1'></div>
                 </div>
-                <Card className='relative overflow-hidden bg-gradient-to-br from-background via-accent/5 to-muted/10 border-0 shadow-lg'>
+                <Card className='bg-card border-border shadow-sm'>
                   <CardHeader className='pb-[calc(var(--spacing)*4)]'>
                     <div className='h-6 w-48 bg-muted rounded animate-pulse'></div>
                   </CardHeader>
@@ -328,7 +313,7 @@ function DashboardLoadingSkeleton() {
               {/* Progress Cards Skeleton */}
               <div className='space-y-[calc(var(--spacing)*6)]'>
                 {/* Study Streak Skeleton */}
-                <Card className='relative overflow-hidden bg-gradient-to-br from-chart-5/10 to-orange-500/10 border-0 shadow-lg'>
+                <Card className='bg-card border-border shadow-sm'>
                   <CardHeader className='pb-[calc(var(--spacing)*4)]'>
                     <div className='h-6 w-32 bg-muted rounded animate-pulse'></div>
                   </CardHeader>
@@ -342,7 +327,7 @@ function DashboardLoadingSkeleton() {
                 </Card>
 
                 {/* Subscription Status Skeleton */}
-                <Card className='relative overflow-hidden bg-gradient-to-br from-chart-3/10 to-chart-3/5 border-chart-3/20'>
+                <Card className='bg-card border-border shadow-sm'>
                   <CardHeader className='pb-[calc(var(--spacing)*4)]'>
                     <div className='h-6 w-32 bg-muted rounded animate-pulse'></div>
                   </CardHeader>

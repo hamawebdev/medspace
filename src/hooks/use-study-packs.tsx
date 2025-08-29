@@ -514,13 +514,13 @@ export function getStudyPackPrice(studyPack: ExtendedStudyPackDetails): string {
 export function getStudyPackDifficultyColor(difficulty: string): string {
   switch (difficulty) {
     case 'beginner':
-      return 'text-green-600 bg-green-50 border-green-200';
+      return 'text-primary-foreground bg-primary/10 border-primary/20';
     case 'intermediate':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'text-accent-foreground bg-accent/10 border-accent/20';
     case 'advanced':
-      return 'text-red-600 bg-red-50 border-red-200';
+      return 'text-destructive-foreground bg-destructive/10 border-destructive/20';
     default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
+      return 'text-muted-foreground bg-muted/10 border-muted/20';
   }
 }
 

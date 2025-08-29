@@ -409,6 +409,7 @@ export function ApiQuizProvider({
   // Disable per-question API submission by default; answers are sent only on final submit
   enableApiSubmission = false
 }: ApiQuizProviderProps) {
+  const [timeUpNotificationShown, setTimeUpNotificationShown] = useState(false);
   const initialState: ApiQuizState = {
     session: initialSession,
     timer: {
@@ -811,24 +812,50 @@ export function ApiQuizProvider({
     return quizStorage.getStorageStats();
   }, []);
 
+  // Reset time up notification when session changes
+  useEffect(() => {
+    setTimeUpNotificationShown(false);
+  }, [apiSessionId, initialSession.id]);
+
   // Timer effect
   useEffect(() => {
     if (!state.timer.isRunning || state.timer.isPaused) return;
 
     const interval = setInterval(() => {
+      const newTotalTime = state.timer.totalTime + 1;
+      const newQuestionTime = state.timer.questionTime + 1;
+
       dispatch({
         type: 'UPDATE_TIMER',
-        totalTime: state.timer.totalTime + 1,
-        questionTime: state.timer.questionTime + 1
+        totalTime: newTotalTime,
+        questionTime: newQuestionTime
       });
+
+      // Check for time limit and show notification
+      const timeLimit = state.session.timeLimit; // in minutes
+      if (timeLimit && !timeUpNotificationShown) {
+        const timeLimitSeconds = timeLimit * 60;
+        if (newTotalTime >= timeLimitSeconds) {
+          setTimeUpNotificationShown(true);
+          toast.warning('⏰ Time is up!', {
+            description: `You have reached the ${timeLimit} minute time limit for this quiz. You can continue, but your time is over.`,
+            duration: 8000,
+            important: true,
+          });
+          
+          // Also dispatch an action to handle time up state
+          dispatch({ type: 'PAUSE_QUIZ' });
+        }
+      }
+
       // Persist timer periodically
       if (state.apiSessionId) {
-        quizStorage.updateSessionProgress(state.apiSessionId, { timeSpent: state.timer.totalTime + 1 });
+        quizStorage.updateSessionProgress(state.apiSessionId, { timeSpent: newTotalTime });
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [state.timer.isRunning, state.timer.isPaused, state.timer.totalTime, state.timer.questionTime, state.apiSessionId]);
+  }, [state.timer.isRunning, state.timer.isPaused, state.timer.totalTime, state.timer.questionTime, state.apiSessionId, state.session.timeLimit, timeUpNotificationShown]);
 
   const value: ApiQuizContextType & { updateAnswer: (questionId: number, selectedAnswerId: number) => Promise<void> } = {
     state,

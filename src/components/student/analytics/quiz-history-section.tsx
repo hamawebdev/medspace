@@ -95,9 +95,9 @@ export function QuizHistorySection() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'EXAM': return 'bg-destructive/10 text-destructive';
+      case 'EXAM': return 'bg-chart-3/10 text-chart-3';
       case 'PRACTICE': return 'bg-primary/10 text-primary';
-      case 'REMEDIAL': return 'bg-warning/10 text-warning';
+      case 'REMEDIAL': return 'bg-chart-4/10 text-chart-4';
       default: return 'bg-muted text-muted-foreground';
     }
   };

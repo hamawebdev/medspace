@@ -1,8 +1,8 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
-import { CheckCircle, Circle, Check, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, Circle, Check, X, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function QCMQuestion({ question }: Props) {
-  const { state, submitAnswer, updateAnswer } = useQuiz();
+  const { state, submitAnswer, updateAnswer, revealAnswer } = useQuiz();
   const { session, isAnswerRevealed } = state;
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -70,6 +70,44 @@ export function QCMQuestion({ question }: Props) {
     setHasSubmitted(false);
   };
 
+  // Handle keyboard shortcuts for option selection
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Only handle if not in an input field
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    // Don't handle if answer is revealed and not in edit mode
+    if (isAnswerRevealed && !editMode) {
+      return;
+    }
+
+    // Don't handle if session is completed and not in edit mode
+    if ((session.status === 'completed' || session.status === 'COMPLETED') && !editMode) {
+      return;
+    }
+
+    const key = event.key.toLowerCase();
+
+    // Handle alphabetical option selection (a, b, c, etc.)
+    if (key >= 'a' && key <= 'z') {
+      const optionIndex = key.charCodeAt(0) - 97; // Convert 'a' to 0, 'b' to 1, etc.
+      if (question.options && optionIndex < question.options.length) {
+        event.preventDefault();
+        const targetOption = question.options[optionIndex];
+        handleOptionToggle(targetOption.id);
+      }
+    }
+  }, [question.options, isAnswerRevealed, editMode, hasSubmitted, session.status, handleOptionToggle]);
+
+  // Add keyboard event listeners
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
+
   const getOptionStatus = (option: { id: string; isCorrect: boolean }) => {
     if (!isAnswerRevealed) return 'default';
     
@@ -84,11 +122,11 @@ export function QCMQuestion({ question }: Props) {
   const getOptionStyles = (status: string) => {
     switch (status) {
       case 'correct-selected':
-        return 'border-green-500 bg-green-50 text-green-900 shadow-sm';
+        return 'border-primary bg-primary/10 text-primary-foreground shadow-sm';
       case 'correct-unselected':
-        return 'border-green-300 bg-green-25 text-green-700';
+        return 'border-primary/50 bg-primary/5 text-primary-foreground/80';
       case 'incorrect-selected':
-        return 'border-red-500 bg-red-50 text-red-900 shadow-sm';
+        return 'border-destructive bg-destructive/10 text-destructive-foreground shadow-sm';
       default:
         return 'border-border hover:border-primary/50 hover:bg-accent/20 transition-all duration-200';
     }
@@ -123,10 +161,10 @@ export function QCMQuestion({ question }: Props) {
   return (
     <div className="space-y-6">
       {/* Question Content */}
-      <Card className="border-primary/30 bg-gradient-to-br from-card via-primary/5 to-accent/10 shadow-lg hover:shadow-xl transition-all duration-300 card-hover-lift">
-        <CardContent className="p-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3 mb-6">
+      <Card className="border-primary/30 bg-gradient-to-br from-card via-primary/5 to-accent/10 shadow-lg hover:shadow-xl transition-all duration-300 card-hover-lift gap-0 py-0">
+        <CardContent className="p-4 sm:p-5 lg:p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-3 h-3 rounded-full bg-primary animate-pulse-soft"></div>
@@ -154,8 +192,8 @@ export function QCMQuestion({ question }: Props) {
                   ))}
                 </div>
               )}
-              <div className="prose prose-lg max-w-none pl-4">
-                <p className="text-xl leading-relaxed font-semibold text-foreground tracking-tight">
+              <div className="prose prose-base max-w-none pl-4">
+                <p className="text-lg leading-relaxed font-semibold text-foreground tracking-tight">
                   {question.content}
                 </p>
               </div>
@@ -165,8 +203,8 @@ export function QCMQuestion({ question }: Props) {
       </Card>
 
       {/* Instructions */}
-      <Card className="border-accent/20 bg-gradient-to-r from-accent/5 to-muted/10">
-        <CardContent className="p-4">
+      <Card className="border-accent/20 bg-gradient-to-r from-accent/5 to-muted/10 gap-0 py-0">
+        <CardContent className="p-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-md border-2 border-primary/60 flex items-center justify-center">
@@ -194,49 +232,69 @@ export function QCMQuestion({ question }: Props) {
         </CardContent>
       </Card>
 
+      {/* Keyboard shortcuts hint */}
+      {!isAnswerRevealed && (
+        <div className="text-xs text-muted-foreground/80 mb-3 flex items-center gap-2">
+          <span>💡 Press</span>
+          <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">a</kbd>
+          <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">b</kbd>
+          <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border border-border rounded">c</kbd>
+          <span>etc. to toggle options directly</span>
+        </div>
+      )}
+
       {/* Options */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {question.options.map((option, index) => {
           const status = getOptionStatus(option);
           const isSelected = selectedOptions.includes(option.id);
           const isDisabled = !editMode && (isAnswerRevealed && hasSubmitted);
+          const alphabetPrefix = String.fromCharCode(97 + index); // Convert 0 to 'a', 1 to 'b', etc.
 
           return (
             <Card
               key={option.id}
               className={cn(
-                "group cursor-pointer transition-all duration-300 ease-out hover:shadow-lg hover:scale-[1.02] border-2",
+                "group cursor-pointer transition-all duration-200 ease-out hover:shadow-md border-2 gap-0 py-0",
                 getOptionStyles(status),
-                isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary/5",
+                isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary",
                 !isSelected && !isAnswerRevealed && "hover:border-primary/30 hover:bg-primary/5",
                 isDisabled && "cursor-not-allowed opacity-75"
               )}
               onClick={() => !isDisabled && handleOptionToggle(option.id)}
             >
-              <CardContent className="p-5">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-start gap-4">
+                  {/* Alphabetical prefix */}
                   <div className="flex-shrink-0 mt-1">
                     <div className={cn(
-                      "w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200",
-                      isSelected && !isAnswerRevealed ? "border-primary bg-primary" : "border-muted-foreground group-hover:border-primary/60",
-                      isAnswerRevealed && status === 'correct-selected' && "border-green-500 bg-green-500",
-                      isAnswerRevealed && status === 'correct-unselected' && "border-green-500 bg-green-100",
-                      isAnswerRevealed && status === 'incorrect-selected' && "border-red-500 bg-red-500"
+                      "w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200 text-xs font-bold",
+                      isSelected && !isAnswerRevealed ? "border-primary-foreground bg-primary-foreground text-primary" : "border-muted-foreground text-muted-foreground group-hover:border-primary/60 group-hover:text-primary/60",
+                      isAnswerRevealed && status === 'correct-selected' && "border-green-500 bg-green-500 text-white",
+                      isAnswerRevealed && status === 'correct-unselected' && "border-green-500 bg-green-100 text-green-700",
+                      isAnswerRevealed && status === 'incorrect-selected' && "border-red-500 bg-red-500 text-white"
                     )}>
                       {isAnswerRevealed ? (
                         status === 'correct-selected' || status === 'correct-unselected' ? (
-                          <Check className="h-3 w-3 text-white" />
+                          <Check className="h-3 w-3" />
                         ) : status === 'incorrect-selected' ? (
-                          <X className="h-3 w-3 text-white" />
-                        ) : null
+                          <X className="h-3 w-3" />
+                        ) : (
+                          alphabetPrefix
+                        )
                       ) : isSelected ? (
-                        <Check className="h-3 w-3 text-white" />
-                      ) : null}
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        alphabetPrefix
+                      )}
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-base leading-relaxed font-medium text-foreground group-hover:text-foreground">
+                    <p className={cn(
+                      "text-sm leading-relaxed font-medium transition-colors duration-200",
+                      isSelected && !isAnswerRevealed ? "text-primary-foreground" : "text-foreground group-hover:text-foreground"
+                    )}>
                       {option.text}
                     </p>
                   </div>
@@ -253,6 +311,21 @@ export function QCMQuestion({ question }: Props) {
           );
         })}
       </div>
+
+      {/* Show Answer Button */}
+      {!isAnswerRevealed && session.status !== 'COMPLETED' && session.status !== 'completed' && (
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={revealAnswer}
+            className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+          >
+            <Lightbulb className="h-4 w-4" />
+            Show Answer & Explanation
+          </Button>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between pt-4">

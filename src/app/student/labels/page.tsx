@@ -25,7 +25,7 @@ import { toast } from 'sonner'
 
 export default function LabelsPage() {
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
-  const { labels, loading, createLabel, updateLabel, deleteLabel, refresh } = useLabels()
+  const { labels, loading, createLabel, updateLabel, deleteLabel, refresh, addQuestionToLabel, removeQuestionFromLabel } = useLabels()
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const limit = 12
@@ -139,19 +139,51 @@ export default function LabelsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {pageItems.map((l) => (
-          <div key={l.id} className="border rounded-md p-4 flex items-center justify-between">
-            <div>
+          <div key={l.id} className="border rounded-md p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
               <div className="font-medium">{l.name}</div>
-              {l.statistics && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  {l.statistics.totalItems || 0} items
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setEditId(l.id); setEditName(l.name) }}>Edit</Button>
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeletingId(l.id)}>Delete</Button>
+              </div>
+            </div>
+
+            {/* Enhanced statistics showing question-focused data */}
+            {l.statistics && (
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>{l.statistics.questionsCount || 0} questions</div>
+                {l.statistics.quizzesCount > 0 && (
+                  <div>{l.statistics.quizzesCount} quizzes</div>
+                )}
+                {l.statistics.quizSessionsCount > 0 && (
+                  <div>{l.statistics.quizSessionsCount} sessions</div>
+                )}
+              </div>
+            )}
+
+            {/* Show associated questions if available */}
+            {l.questions && l.questions.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">Recent Questions:</div>
+                <div className="space-y-1">
+                  {l.questions.slice(0, 2).map((question) => (
+                    <div key={question.id} className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                      <div className="truncate">{question.questionText}</div>
+                      {question.course && (
+                        <div className="text-xs text-muted-foreground/70 mt-1">
+                          {question.course.module?.name} - {question.course.name}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {l.questions.length > 2 && (
+                    <div className="text-xs text-muted-foreground">
+                      +{l.questions.length - 2} more questions
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setEditId(l.id); setEditName(l.name) }}>Edit</Button>
-              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDeletingId(l.id)}>Delete</Button>
-            </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

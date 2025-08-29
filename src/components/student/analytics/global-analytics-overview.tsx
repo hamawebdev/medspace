@@ -123,7 +123,7 @@ export function AnalyticsOverview({ data, className }: AnalyticsOverviewProps) {
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "p-2 rounded-full",
-                      activity.type === 'EXAM' ? 'bg-purple-100 dark:bg-purple-900' : 'bg-blue-100 dark:bg-blue-900'
+                      activity.type === 'EXAM' ? 'bg-chart-3/20' : 'bg-primary/20'
                     )}>
                       {activity.type === 'EXAM' ? (
                         <Trophy className="h-4 w-4 text-purple-600 dark:text-purple-400" />

@@ -15,19 +15,19 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
   const isCorrect = userAnswer?.isCorrect || false;
 
   return (
-    <Card className="border-blue-200 bg-blue-50/30">
+    <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-blue-900">
+        <CardTitle className="flex items-center gap-2 text-primary-foreground">
           <Lightbulb className="h-4 w-4" />
           Explication
         </CardTitle>
-        <CardDescription className="text-blue-700">
+        <CardDescription className="text-primary-foreground/80">
           Comprenez les concepts clés de cette question
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="prose prose-sm max-w-none">
-          <p className="text-sm leading-relaxed text-blue-900">
+          <p className="text-sm leading-relaxed text-primary-foreground">
             {question.explanation}
           </p>
         </div>

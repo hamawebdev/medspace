@@ -182,18 +182,18 @@ export function CourseSelector({ selectedCourseId, onCourseSelect, className }: 
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5" />
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
           Select Course
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Choose a course to view its educational resources
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
         {/* Search and Module Filter */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -206,7 +206,7 @@ export function CourseSelector({ selectedCourseId, onCourseSelect, className }: 
 
           {/* Module filter only */}
           <div className="space-y-2">
-            <Label>Module</Label>
+            <Label className="text-sm font-medium">Module</Label>
             <Select value={selectedModule} onValueChange={setSelectedModule}>
               <SelectTrigger>
                 <SelectValue placeholder="All modules" />
@@ -225,11 +225,11 @@ export function CourseSelector({ selectedCourseId, onCourseSelect, className }: 
         <Separator />
 
         {/* Course List */}
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="space-y-2 max-h-80 sm:max-h-96 overflow-y-auto">
           {filteredCourses.length === 0 ? (
-            <div className="text-center py-8">
-              <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
+            <div className="text-center py-6 sm:py-8">
+              <GraduationCap className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+              <p className="text-sm text-muted-foreground">
                 {searchQuery
                   ? 'No courses match your search'
                   : 'No courses available for your active study pack'
@@ -241,17 +241,17 @@ export function CourseSelector({ selectedCourseId, onCourseSelect, className }: 
               <div
                 key={course.id}
                 className={cn(
-                  "p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md",
+                  "p-3 sm:p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md touch-target",
                   selectedCourseId === course.id
                     ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20"
                     : "bg-background hover:bg-accent/50"
                 )}
                 onClick={() => handleCourseSelect(course)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-sm">{course.name}</h4>
-                    <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm line-clamp-2 mb-2">{course.name}</h4>
+                    <div className="flex flex-wrap gap-1 sm:gap-2">
                       <Badge variant="secondary" className="text-xs">
                         {course.moduleName}
                       </Badge>
@@ -265,9 +265,9 @@ export function CourseSelector({ selectedCourseId, onCourseSelect, className }: 
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                     <Users className="h-3 w-3" />
-                    {course.questionCount}
+                    <span>{course.questionCount}</span>
                   </div>
                 </div>
               </div>

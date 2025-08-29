@@ -76,7 +76,7 @@ export function SessionCard({
 
   const startOrContinue = () => {
     onUpdate(session.id, { lastStartedAt: new Date().toISOString() });
-    router.push(`/student/practice/session/${session.id}`);
+    router.push(`/session/${session.id}`);
   };
 
   const retake = () => {

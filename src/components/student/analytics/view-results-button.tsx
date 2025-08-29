@@ -45,7 +45,7 @@ export function ViewResultsButton({
 
     try {
       // Navigate to the standardized session results route
-      const resultsUrl = `/student/session/${sessionId}/results`;
+      const resultsUrl = `/session/${sessionId}/results`;
 
       // Show loading toast
       const loadingToast = toast.loading('Loading session results...');

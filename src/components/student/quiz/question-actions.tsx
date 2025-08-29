@@ -91,10 +91,10 @@ export function QuestionActions() {
 
     try {
       // Persist via API so it shows in /student/notes
-      // We pass sessionId when available
+      // We pass quizId when available (changed from sessionId to match API docs)
       const payload: any = { noteText, questionId: Number(questionId) };
       const sId = state?.apiSessionId || state?.session?.id || state?.session?.sessionId;
-      if (sId) payload.sessionId = Number(sId);
+      if (sId) payload.quizId = Number(sId); // Changed from sessionId to quizId
       if (selectedLabelId) payload.labelIds = [Number(selectedLabelId)];
 
       const { StudentService } = await import('@/lib/api-services');
@@ -211,7 +211,7 @@ export function QuestionActions() {
             </Button>
           </QuestionReportDialog>
 
-          {/* Add Label to Session */}
+          {/* Add Question to Label */}
           <Dialog open={showLabelDialog} onOpenChange={setShowLabelDialog}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1">
@@ -221,8 +221,8 @@ export function QuestionActions() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Add to Label</DialogTitle>
-                <DialogDescription>Select a label for this quiz session</DialogDescription>
+                <DialogTitle>Add Question to Label</DialogTitle>
+                <DialogDescription>Select a label to associate with this question</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 <div className="text-sm text-muted-foreground">Your labels</div>
@@ -237,9 +237,12 @@ export function QuestionActions() {
                       )}
                     >
                       <div className="font-medium text-sm">{l.name}</div>
-                      {l.statistics?.totalItems !== undefined && (
-                        <div className="text-xs text-muted-foreground">{l.statistics.totalItems} items</div>
-                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {l.statistics?.questionsCount || 0} questions
+                        {l.statistics?.totalItems !== undefined && l.statistics.totalItems !== l.statistics?.questionsCount &&
+                          ` • ${l.statistics.totalItems} total items`
+                        }
+                      </div>
                     </button>
                   ))}
                   {(labels || []).length === 0 && (
@@ -251,25 +254,26 @@ export function QuestionActions() {
                 <Button variant="outline" onClick={() => setShowLabelDialog(false)}>Cancel</Button>
                 <Button onClick={async () => {
                   try {
-                    const sId = state?.apiSessionId || state?.session?.id || state?.session?.sessionId;
-                    if (!sId || !selectedLabelId) {
+                    const questionId = currentQuestion?.id;
+                    if (!questionId || !selectedLabelId) {
                       toast.error('Please select a label');
                       return;
                     }
                     const { StudentService } = await import('@/lib/api-services');
-                    const res = await StudentService.associateLabelWithQuizSession(Number(sId), Number(selectedLabelId));
+                    const res = await StudentService.addQuestionToLabel(Number(questionId), Number(selectedLabelId));
                     if (res?.success) {
-                      toast.success('Label added successfully');
+                      toast.success('Question added to label successfully');
                       await refreshLabels();
                       setShowLabelDialog(false);
+                      setSelectedLabelId(null);
                     } else {
-                      throw new Error(res?.error || 'Failed to add label');
+                      throw new Error(res?.error || 'Failed to add question to label');
                     }
                   } catch (e) {
                     console.error(e);
-                    toast.error('Could not add the label');
+                    toast.error('Could not add the question to label');
                   }
-                }}>Add</Button>
+                }}>Add Question</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

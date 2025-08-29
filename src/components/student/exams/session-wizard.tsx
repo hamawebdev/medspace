@@ -222,7 +222,7 @@ export function ExamSessionWizard({
       if (sessionId) {
         // Title is already passed during creation; do not perform a separate update call
         toast.success('Exam session created');
-        router.push(`/student/session/${sessionId}`);
+        router.push(`/session/${sessionId}`);
         return;
       }
 

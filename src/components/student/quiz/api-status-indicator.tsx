@@ -68,9 +68,9 @@ export function ApiStatusIndicator() {
     if (state.apiSessionId && state.autoSave) {
       return {
         icon: Cloud,
-        color: 'text-green-500',
-        bgColor: 'bg-green-50 dark:bg-green-950/20',
-        borderColor: 'border-green-200 dark:border-green-800',
+        color: 'text-primary',
+        bgColor: 'bg-primary/10',
+        borderColor: 'border-primary/20',
         status: 'Online',
         description: 'Auto-save enabled - answers synced automatically',
       };
@@ -78,9 +78,9 @@ export function ApiStatusIndicator() {
 
     return {
       icon: CloudOff,
-      color: 'text-gray-500',
-      bgColor: 'bg-gray-50 dark:bg-gray-950/20',
-      borderColor: 'border-gray-200 dark:border-gray-800',
+      color: 'text-muted-foreground',
+      bgColor: 'bg-muted/10',
+      borderColor: 'border-muted/20',
       status: 'Local Only',
       description: 'Answers saved locally only',
     };
@@ -206,7 +206,7 @@ export function AnswerSubmissionStatus({ questionId, className = '' }: AnswerSub
     if (isCurrentQuestion && state.submittingAnswer) {
       return {
         icon: Loader2,
-        color: 'text-blue-500',
+        color: 'text-primary',
         label: 'Submitting...',
         animate: true,
       };
@@ -215,7 +215,7 @@ export function AnswerSubmissionStatus({ questionId, className = '' }: AnswerSub
     if (state.lastSubmissionError && isCurrentQuestion) {
       return {
         icon: AlertCircle,
-        color: 'text-yellow-500',
+        color: 'text-destructive',
         label: 'Sync failed',
       };
     }
@@ -223,14 +223,14 @@ export function AnswerSubmissionStatus({ questionId, className = '' }: AnswerSub
     if (state.apiSessionId && state.autoSave) {
       return {
         icon: CheckCircle,
-        color: 'text-green-500',
+        color: 'text-primary',
         label: 'Synced',
       };
     }
 
     return {
       icon: CloudOff,
-      color: 'text-gray-500',
+      color: 'text-muted-foreground',
       label: 'Local only',
     };
   };

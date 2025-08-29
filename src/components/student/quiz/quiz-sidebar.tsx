@@ -114,13 +114,13 @@ export function QuizSidebar() {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'beginner':
-        return 'bg-green-50 text-green-700 border-green-200';
+        return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'intermediate':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        return 'bg-accent/10 text-accent-foreground border-accent/20';
       case 'advanced':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'bg-muted/10 text-muted-foreground border-muted/20';
     }
   };
 

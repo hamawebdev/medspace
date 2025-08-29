@@ -109,6 +109,7 @@ export default function TodosPage() {
     type: 'READING',
     dueDate: undefined,
     courseId: undefined,
+    quizId: undefined,
     estimatedTime: undefined,
     tags: []
   })
@@ -169,14 +170,31 @@ export default function TodosPage() {
         if (!initialLoadDone) setLoading(true); else setFetching(true)
         setError(null)
 
-        const response = await StudentService.getTodos({
+        // Determine API parameters based on status filter
+        let apiParams: any = {
           page,
           limit,
           type: selectedCategory !== 'ALL' ? selectedCategory : undefined,
           priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
-          status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
           search: searchQuery || undefined,
-        })
+        }
+
+        // Handle status filtering according to new API behavior
+        if (selectedStatus === 'ALL') {
+          // Show all todos including completed
+          apiParams.includeCompleted = true
+        } else if (selectedStatus === 'COMPLETED') {
+          // Show only completed todos
+          apiParams.includeCompleted = true
+          apiParams.status = 'COMPLETED'
+        } else {
+          // Show specific status (PENDING, IN_PROGRESS, OVERDUE)
+          // For OVERDUE, we might need completed todos to determine overdue status
+          apiParams.status = selectedStatus
+          apiParams.includeCompleted = selectedStatus === 'OVERDUE'
+        }
+
+        const response = await StudentService.getTodos(apiParams)
 
         if (response.success) {
           // Accept shapes: {data:{data:{todos:[]}}}, {data:{todos:[]}}, {data:[]}
@@ -245,8 +263,10 @@ export default function TodosPage() {
   const filteredTodos = todos
     .filter(todo => {
       if (!todo) return false
-      // Completed visibility
-      if (!showCompleted && todo.status === 'COMPLETED') return false
+
+      // Client-side completed visibility (only applies when status filter is 'ALL')
+      if (selectedStatus === 'ALL' && !showCompleted && todo.status === 'COMPLETED') return false
+
       // Search by title/description (defensive)
       const t = (todo.title ?? '').toLowerCase()
       const d = (todo.description ?? '').toLowerCase()
@@ -254,12 +274,15 @@ export default function TodosPage() {
         const q = searchQuery.toLowerCase()
         if (!t.includes(q) && !d.includes(q)) return false
       }
-      // Type filter
+
+      // Type filter (client-side for additional filtering)
       if (selectedCategory !== 'ALL' && todo.type !== selectedCategory) return false
-      // Priority filter
+      // Priority filter (client-side for additional filtering)
       if (selectedPriority !== 'ALL' && todo.priority !== selectedPriority) return false
-      // Status filter
-      if (selectedStatus !== 'ALL' && todo.status !== selectedStatus) return false
+
+      // Note: Status filtering is now handled server-side, so we don't need client-side status filtering
+      // unless we want to add additional client-side refinement
+
       return true
     })
     .sort((a, b) => {
@@ -354,6 +377,7 @@ export default function TodosPage() {
         type: 'READING',
         dueDate: undefined,
         courseId: undefined,
+        quizId: undefined,
         estimatedTime: undefined,
         tags: []
       })
@@ -449,6 +473,7 @@ export default function TodosPage() {
       type: todo.type,
       dueDate: todo.dueDate,
       courseId: todo.courseId,
+      quizId: undefined, // Not available in current todo structure
       estimatedTime: todo.estimatedTime,
       tags: todo.tags || []
     })
@@ -494,9 +519,9 @@ export default function TodosPage() {
     const diffTime = date.getTime() - now.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-    if (diffDays < 0) return 'text-red-600'
-    if (diffDays === 0) return 'text-orange-600'
-    if (diffDays <= 3) return 'text-yellow-600'
+    if (diffDays < 0) return 'text-destructive'
+    if (diffDays === 0) return 'text-destructive/80'
+    if (diffDays <= 3) return 'text-accent-foreground'
     return 'text-muted-foreground'
   }
 
@@ -569,6 +594,7 @@ export default function TodosPage() {
                   type: 'READING',
                   dueDate: undefined,
                   courseId: undefined,
+                  quizId: undefined,
                   estimatedTime: undefined,
                   tags: []
                 })
@@ -789,16 +815,19 @@ export default function TodosPage() {
           </Select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="show-completed"
-            checked={showCompleted}
-            onCheckedChange={setShowCompleted}
-          />
-          <Label htmlFor="show-completed" className="text-sm">
-            Show completed
-          </Label>
-        </div>
+        {/* Show completed checkbox only when status filter is 'ALL' */}
+        {selectedStatus === 'ALL' && (
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="show-completed"
+              checked={showCompleted}
+              onCheckedChange={setShowCompleted}
+            />
+            <Label htmlFor="show-completed" className="text-sm">
+              Show completed
+            </Label>
+          </div>
+        )}
       </div>
 
       {/* Todos Content */}
@@ -843,6 +872,7 @@ export default function TodosPage() {
                       type: 'READING',
                       dueDate: undefined,
                       courseId: undefined,
+                      quizId: undefined,
                       estimatedTime: undefined,
                       tags: []
                     })
@@ -871,6 +901,7 @@ export default function TodosPage() {
                     type: 'READING',
                     dueDate: undefined,
                     courseId: undefined,
+                    quizId: undefined,
                     estimatedTime: undefined,
                     tags: []
                   })

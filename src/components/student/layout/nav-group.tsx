@@ -58,7 +58,7 @@ export function NavGroup({ title, items }: NavGroup) {
 }
 
 const NavBadge = ({ children }: { children: ReactNode }) => (
-  <Badge className='rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 border-0 dark:bg-blue-900/30 dark:text-blue-300'>
+  <Badge className='rounded-full px-2 py-0.5 text-xs font-medium bg-primary/20 text-primary border-0 group-data-[active=true]:bg-primary-foreground/20 group-data-[active=true]:text-primary-foreground'>
     {children}
   </Badge>
 )
@@ -78,7 +78,7 @@ const SidebarMenuLink = ({ item, href }: { item: NavLink & { disabled?: boolean 
         className={`
           relative h-10 rounded-lg transition-all duration-200 group
           ${isActive
-            ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-200/50 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/50'
+            ? '!bg-primary !text-primary-foreground shadow-md border border-primary/20 font-medium'
             : 'hover:bg-muted/50 hover:text-foreground'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
@@ -95,9 +95,6 @@ const SidebarMenuLink = ({ item, href }: { item: NavLink & { disabled?: boolean 
             {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
             <span className="font-medium">{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            {isActive && (
-              <div className="absolute right-2 h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400" />
-            )}
           </Link>
         )}
       </SidebarMenuButton>

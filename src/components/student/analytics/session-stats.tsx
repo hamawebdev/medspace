@@ -297,7 +297,7 @@ export function SessionStats() {
                         <TableCell className="text-green-600 dark:text-green-400">{row.correct}</TableCell>
                         <TableCell className="text-red-600 dark:text-red-400">{row.incorrect}</TableCell>
                         <TableCell>
-                          <Button size="sm" variant="outline" className="gap-2" onClick={(e) => { e.stopPropagation(); router.push(`/student/sessions/${row.id}/results`); }}>
+                          <Button size="sm" variant="outline" className="gap-2" onClick={(e) => { e.stopPropagation(); router.push(`/session/${row.id}/results`); }}>
                             <FileText className="h-4 w-4" /> View
                           </Button>
                         </TableCell>

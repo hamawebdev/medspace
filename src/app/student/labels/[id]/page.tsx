@@ -39,7 +39,7 @@ export default function LabelDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
           <div className="flex items-center justify-center py-12">
             <LoadingSpinner size="lg" />
@@ -65,7 +65,8 @@ export default function LabelDetailsPage() {
   }
 
   const stats = label.statistics || {}
-  const sessions = label.sessions || []
+  const questions = label.questions || []
+  const questionIds = label.questionIds || []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
@@ -80,17 +81,17 @@ export default function LabelDetailsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">Overview</CardTitle>
-          <CardDescription>Summary of items associated with this label</CardDescription>
+          <CardDescription>Summary of questions and content associated with this label</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-3 rounded-lg border bg-primary/5">
+              <div className="text-sm text-muted-foreground">Questions</div>
+              <div className="text-2xl font-semibold text-primary">{stats.questionsCount ?? questionIds.length ?? 0}</div>
+            </div>
             <div className="p-3 rounded-lg border">
               <div className="text-sm text-muted-foreground">Total Items</div>
               <div className="text-2xl font-semibold">{stats.totalItems ?? 0}</div>
-            </div>
-            <div className="p-3 rounded-lg border">
-              <div className="text-sm text-muted-foreground">Questions</div>
-              <div className="text-2xl font-semibold">{stats.questionsCount ?? 0}</div>
             </div>
             <div className="p-3 rounded-lg border">
               <div className="text-sm text-muted-foreground">Quiz Sessions</div>
@@ -106,24 +107,49 @@ export default function LabelDetailsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">Sessions</CardTitle>
-          <CardDescription>Recent sessions tagged with this label</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Associated Questions
+          </CardTitle>
+          <CardDescription>Questions tagged with this label</CardDescription>
         </CardHeader>
         <CardContent>
-          {sessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No sessions yet.</p>
+          {questions.length === 0 ? (
+            <div className="text-center py-8">
+              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground">No questions associated with this label yet.</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Questions will appear here when you add them to this label during practice or exam sessions.
+              </p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {sessions.map((s: any) => (
-                <div key={s.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <div className="font-medium">{s.title || `Session #${s.id}`}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Type: {s.type} • Status: {s.status}
+            <div className="space-y-4">
+              {questions.map((question: any) => (
+                <div key={question.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="space-y-3">
+                    <div className="font-medium text-sm leading-relaxed">
+                      {question.questionText}
                     </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 inline mr-1" /> {new Date(s.createdAt).toLocaleString()}
+
+                    {question.course && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Badge variant="secondary" className="text-xs">
+                          {question.course.module?.name || 'Module'}
+                        </Badge>
+                        <span>•</span>
+                        <span>{question.course.name}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>Added {new Date(question.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Question #{question.id}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
