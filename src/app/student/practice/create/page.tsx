@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { SessionWizard, PracticeSessionPayload } from '@/components/student/practice/session-wizard';
 import { useQuizFilters } from '@/hooks/use-quiz-api';
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription';
-import { QuizService, StudentService } from '@/lib/api-services';
+import { QuizService } from '@/lib/api-services';
+import { NewApiService } from '@/lib/api/new-api-services';
 import { toast } from 'sonner';
 
 export default function PracticeCreatePage() {
@@ -16,7 +17,7 @@ export default function PracticeCreatePage() {
   const { filters: quizFilters } = useQuizFilters();
   const { subscriptions } = useUserSubscriptions();
 
-  const handleCreateSession = async (payload: PracticeSessionPayload & { questionCount?: number; courseIds?: number[] }) => {
+  const handleCreateSession = async (payload: PracticeSessionPayload & { questionCount?: number; courseIds?: number[]; sessionFilters?: any }) => {
     try {
       const selectedTypes = payload.filters.types || [];
       const questionTypes = selectedTypes.map((t) => (t.toUpperCase() === 'QCM' ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE')) as Array<'SINGLE_CHOICE'|'MULTIPLE_CHOICE'>;
@@ -41,7 +42,18 @@ export default function PracticeCreatePage() {
 
       const yearLevelsFromSubs = selectEffectiveActiveSubscription(subscriptions).allowedYearLevels;
 
-      const safeCount = Math.max(1, Math.min(payload.questionCount || 10, payload.availableCount || Infinity));
+      // Validate that we have a valid question count from the API
+      if (!payload.questionCount || payload.questionCount <= 0) {
+        toast.error('Invalid question count. Please select a valid number of questions.');
+        return;
+      }
+
+      if (!payload.availableCount || payload.availableCount <= 0) {
+        toast.error('No questions available with current filters. Please adjust your selection.');
+        return;
+      }
+
+      const safeCount = Math.min(payload.questionCount, payload.availableCount);
 
       const createPayload = {
         title: payload.title || 'Practice Session',
@@ -58,47 +70,97 @@ export default function PracticeCreatePage() {
         },
       } as any;
 
-      // Build question IDs via GET /students/questions then create by IDs as PRACTICE
-      const baseParams: any = {
-        yearLevels: yearLevelsFromSubs,
-        moduleIds,
-        uniteIds,
-        count: safeCount,
-        randomize: true,
-      };
-      if (questionTypes.length === 1) {
-        baseParams.questionType = questionTypes[0];
+      // Method 1: Complete Workflow of Filter
+      // Step 1: Get Content Structure (already available via useQuizFilters)
+      // Step 2: Get Available Questions by Unite or Module
+      let allQuestions: any[] = [];
+
+      // Fetch questions for each unite
+      if (uniteIds && uniteIds.length > 0) {
+        for (const uniteId of uniteIds) {
+          try {
+            console.debug('[Practice/Create] Fetching questions for unite:', uniteId);
+            const qRes = await NewApiService.getQuestionsByUniteOrModule({ uniteId });
+            if (qRes.success && qRes.data?.questions) {
+              allQuestions.push(...qRes.data.questions);
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch questions for unite ${uniteId}:`, err);
+          }
+        }
       }
 
-      console.debug('[Practice/Create] Fetching questions to build PRACTICE session by IDs', baseParams);
-      const qRes = await StudentService.getQuestions(baseParams);
-      if (!qRes.success) {
-        const msg = qRes.error || 'Failed to fetch questions for the selected filters';
-        toast.error(msg);
+      // Fetch questions for each module
+      if (moduleIds && moduleIds.length > 0) {
+        for (const moduleId of moduleIds) {
+          try {
+            console.debug('[Practice/Create] Fetching questions for module:', moduleId);
+            const qRes = await NewApiService.getQuestionsByUniteOrModule({ moduleId });
+            if (qRes.success && qRes.data?.questions) {
+              allQuestions.push(...qRes.data.questions);
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch questions for module ${moduleId}:`, err);
+          }
+        }
+      }
+
+      if (allQuestions.length === 0) {
+        toast.error('No questions available for the selected content');
         return;
       }
 
-      const questionsArr: any[] = (qRes.data?.data?.questions || qRes.data?.questions || qRes.data?.items || []) as any[];
-      const questionIds: number[] = questionsArr.slice(0, safeCount).map((q: any) => Number(q?.id)).filter(Boolean);
+      // Step 3: Apply Frontend Filters
+      let filteredQuestions = allQuestions;
+
+      // Filter by question type if specified
+      if (questionTypes.length === 1) {
+        const targetType = questionTypes[0];
+        filteredQuestions = filteredQuestions.filter((q: any) => q.questionType === targetType);
+      }
+
+      // Remove duplicates by question ID
+      const uniqueQuestions = filteredQuestions.filter((q: any, index: number, arr: any[]) =>
+        arr.findIndex((item: any) => item.id === q.id) === index
+      );
+
+      // Randomize and limit to requested count
+      const shuffledQuestions = uniqueQuestions.sort(() => Math.random() - 0.5);
+      const questionIds: number[] = shuffledQuestions.slice(0, safeCount).map((q: any) => Number(q?.id)).filter(Boolean);
 
       if (!questionIds.length) {
         toast.error('No questions available with current filters');
         return;
       }
 
-      const created = await QuizService.createSessionByQuestions({
-        type: 'PRACTICE',
-        questionIds,
+      // Step 4: Create Session using new endpoint
+      const sessionData = {
         title: createPayload.title,
-      });
+        questionCount: safeCount,
+        courseIds: selectedCourseIds,
+        sessionType: 'PRACTISE' as const, // Note: using PRACTISE as per documentation
+        // Practice sessions should not include rotations
+        rotations: [] as Array<'R1' | 'R2' | 'R3' | 'R4'>,
+        ...(payload.sessionFilters?.questionTypes?.length > 0 && {
+          questionTypes: payload.sessionFilters.questionTypes
+        }),
+        ...(payload.sessionFilters?.years?.length > 0 && {
+          years: payload.sessionFilters.years
+        }),
+        ...(payload.sessionFilters?.questionSourceIds?.length > 0 && {
+          questionSourceIds: payload.sessionFilters.questionSourceIds
+        }),
+      };
 
-      const sid = created?.data?.sessionId || created?.data?.id || (created as any)?.sessionId || (created as any)?.id;
-      if (sid) {
+      console.debug('[Practice/Create] Creating PRACTICE session with new endpoint:', sessionData);
+      const created = await QuizService.createSession(sessionData);
+
+      if (created.success && created.data?.sessionId) {
         toast.success('Practice session created');
-        router.push(`/session/${sid}`);
+        router.push(`/session/${created.data.sessionId}`);
       } else {
-        toast.error('Session created but no sessionId returned');
-        router.push('/student/practice');
+        console.error('Session creation failed:', created);
+        toast.error(created.error || 'Failed to create practice session');
       }
     } catch (e: any) {
       console.error('[Practice/Create] error:', e);

@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
-import { useQuizSessions } from '@/hooks/use-quiz-api'
 import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -41,39 +40,16 @@ interface RecentActivityFeedProps {
 export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
   const router = useRouter();
 
-  // Fetch recent completed sessions to supplement the activities data
-  const { sessions: recentSessions, loading: sessionsLoading } = useQuizSessions({
-    status: 'COMPLETED',
-    limit: 5,
-  });
-
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'PRACTICE' | 'EXAM'>('ALL');
 
-  // Combine API activities with recent session data
+  // Use only the activities passed as props
   const combinedActivities = useMemo(() => {
     const apiActivities = (activities || []).map(a => ({ ...a }));
 
-    // Convert recent sessions to activity format with sessionId/status for navigation
-    const sessionActivities = (recentSessions || []).map(session => ({
-      date: session.completedAt || session.createdAt,
-      activity: `Completed ${session.sessionType === 'PRACTICE' ? 'Practice' : 'Exam'} Session - ${session.title || 'Quiz Session'}`,
-      score: Math.round(session.finalScore || 0),
-      type: session.sessionType || 'PRACTICE',
-      subject: session.subject || 'General',
-      sessionId: session.id,
-      status: session.status,
-    }));
-
-    // Merge and deduplicate activities, sort by date
-    const allActivities = [...apiActivities, ...sessionActivities];
-    const uniqueActivities = allActivities.filter((activity, index, self) =>
-      index === self.findIndex(a => a.date === activity.date && a.activity === activity.activity)
-    );
-
-    return uniqueActivities
+    return apiActivities
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 8); // Keep more to allow filtering to still show up to ~4
-  }, [activities, recentSessions]);
+  }, [activities]);
 
   const filteredActivities = useMemo(() => {
     if (typeFilter === 'ALL') return combinedActivities.slice(0, 4);
@@ -291,58 +267,7 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
           </div>
         </div>
 
-        {/* Earlier Sessions */}
-        {otherActivities.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="h-px bg-border flex-1"></div>
-              <h4 className="text-sm font-medium text-muted-foreground">Earlier Sessions</h4>
-              <div className="h-px bg-border flex-1"></div>
-            </div>
 
-            <div className="space-y-2">
-              {otherActivities.map((activity, index) => {
-                const Icon = getActivityIcon(activity.type)
-
-                return (
-                  <button
-                    key={`${activity.date}-${index}`}
-                    onClick={() => navigateToSession(activity as any)}
-                    className="group flex items-center gap-3 p-3 bg-background rounded-lg border-border hover:bg-muted/50 transition-colors duration-200 cursor-pointer text-left w-full"
-                  >
-                    <div className="p-2 bg-muted rounded-lg group-hover:bg-primary/10 transition-colors">
-                      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium line-clamp-1 mb-0.5">
-                        {activity.activity}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.subject} • {formatActivityDate(activity.date)}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs font-medium",
-                          activity.score >= 90 && "text-chart-2 border-chart-2/20 bg-chart-2/10",
-                          activity.score >= 70 && activity.score < 90 && "text-chart-1 border-chart-1/20 bg-chart-1/10",
-                          activity.score >= 50 && activity.score < 70 && "text-chart-4 border-chart-4/20 bg-chart-4/10",
-                          activity.score < 50 && "text-destructive border-destructive/20 bg-destructive/10"
-                        )}
-                      >
-                        {activity.score}%
-                      </Badge>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Quick Action */}
         <div className="pt-4 border-t border-border">

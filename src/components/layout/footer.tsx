@@ -1,103 +1,68 @@
 // @ts-nocheck
 import Link from 'next/link';
-import { Stethoscope, Mail, Phone, MapPin } from 'lucide-react';
-import { Logo } from '@/components/ui/logo';
+import { Facebook, Instagram, Youtube, Mail } from 'lucide-react';
 
 export function Footer() {
+  const currentYear = new Date().getFullYear();
+
+  const socialLinks = [
+    {
+      name: 'Facebook',
+      icon: Facebook,
+      href: '#',
+      label: 'Facebook'
+    },
+    {
+      name: 'Instagram',
+      icon: Instagram,
+      href: '#',
+      label: 'Instagram'
+    },
+    {
+      name: 'Youtube',
+      icon: Youtube,
+      href: '#',
+      label: 'Youtube'
+    },
+    {
+      name: 'Email',
+      icon: Mail,
+      href: 'mailto:contact@quizy.com',
+      label: 'Email'
+    }
+  ];
+
   return (
-    <footer className="border-t bg-muted/30">
-      <div className="container px-4 py-12">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
-          <div className="space-y-4">
-            <Link href="/" className="flex items-center space-x-3">
-              <Logo
-                className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
-              />
-              <span className="text-xl sm:text-2xl font-bold text-primary">MedCortex</span>
-            </Link>
-            <p className="text-sm text-muted-foreground">
-              Advancing medical education through innovative e-learning solutions for students, residents, and professionals.
-            </p>
-          </div>
-
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold">Quick Links</h3>
-            <nav className="flex flex-col space-y-2">
-              <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-                Home
-              </Link>
-              <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground">
-                Pricing
-              </Link>
-              <Link href="/enterprise" className="text-sm text-muted-foreground hover:text-foreground">
-                Enterprise
-              </Link>
-              <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground">
-                Login
-              </Link>
-            </nav>
-          </div>
-
-          {/* Resources */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold">Resources</h3>
-            <nav className="flex flex-col space-y-2">
-              <Link href="/resources" className="text-sm text-muted-foreground hover:text-foreground">
-                Resources
-              </Link>
-              <Link href="/resources/blog" className="text-sm text-muted-foreground hover:text-foreground">
-                Blog
-              </Link>
-              <Link href="/resources/help" className="text-sm text-muted-foreground hover:text-foreground">
-                Help Center
-              </Link>
-              <Link href="/changelog" className="text-sm text-muted-foreground hover:text-foreground">
-                Changelog
-              </Link>
-            </nav>
-          </div>
-
-          {/* Contact */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold">Contact</h3>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                <span>support@medcortex.com</span>
+    <footer className="bg-slate-700 text-white py-16">
+      <div className="container mx-auto px-4">
+        {/* Social Media Icons */}
+        <div className="flex flex-col sm:flex-row justify-center items-center space-y-8 sm:space-y-0 sm:space-x-8 md:space-x-16 mb-12">
+          {socialLinks.map((social) => {
+            const IconComponent = social.icon;
+            return (
+              <div key={social.name} className="flex flex-col items-center space-y-3 group">
+                <Link
+                  href={social.href}
+                  className="w-16 h-16 bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-primary/25 hover:bg-primary/90"
+                  aria-label={social.label}
+                >
+                  <IconComponent className="w-7 h-7 text-white" />
+                </Link>
+                <span className="text-sm font-medium text-white/90 group-hover:text-white transition-colors duration-300">
+                  {social.label}
+                </span>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4" />
-                <span>+213 XXX XXX XXX</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>Algiers, Algeria</span>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
-        <div className="mt-8 border-t pt-8">
-          <div className="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-            <p className="text-sm text-muted-foreground">
-              © 2024 MedCortex. All rights reserved.
-            </p>
-            <div className="flex space-x-6">
-              <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground">
-                Privacy
-              </Link>
-              <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground">
-                Terms
-              </Link>
-              <Link href="/register" className="text-sm text-muted-foreground hover:text-foreground">
-                Sign Up
-              </Link>
-            </div>
-          </div>
+        {/* Copyright */}
+        <div className="text-center">
+          <p className="text-sm text-white/80">
+            Tous les droits sont réservés © {currentYear} EURL QUIZY
+          </p>
         </div>
       </div>
     </footer>
   );
-} 
+}

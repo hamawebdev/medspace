@@ -39,30 +39,37 @@ export function QuizSidebar() {
   const [filterType, setFilterType] = useState<FilterType>('all');
 
   const getQuestionStatus = (questionId: string | number) => {
-    const id = String(questionId);
-    const userAnswer = session.userAnswers[id];
+    const id = Number(questionId);
+    // Use localAnswers from API context instead of session.userAnswers
+    const userAnswer = state.localAnswers?.[id] || session.userAnswers?.[String(id)];
     if (!userAnswer) return 'unanswered';
 
-    if (userAnswer.selectedOptions?.length || userAnswer.textAnswer) {
+    if (userAnswer.selectedOptions?.length || userAnswer.selectedAnswerId || userAnswer.selectedAnswerIds?.length || userAnswer.textAnswer) {
       return 'answered';
     }
     return 'unanswered';
   };
 
   const isQuestionBookmarked = (questionId: string | number) => {
-    const id = String(questionId);
-    return session.userAnswers[id]?.isBookmarked || false;
+    const id = Number(questionId);
+    // Use localAnswers from API context instead of session.userAnswers
+    const userAnswer = state.localAnswers?.[id] || session.userAnswers?.[String(id)];
+    return userAnswer?.isBookmarked || false;
   };
 
   const isQuestionFlagged = (questionId: string | number) => {
-    const id = String(questionId);
-    const flags = session.userAnswers[id]?.flags || [];
+    const id = Number(questionId);
+    // Use localAnswers from API context instead of session.userAnswers
+    const userAnswer = state.localAnswers?.[id] || session.userAnswers?.[String(id)];
+    const flags = userAnswer?.flags || [];
     return flags.length > 0;
   };
 
   const getQuestionFlags = (questionId: string | number) => {
-    const id = String(questionId);
-    return session.userAnswers[id]?.flags || [];
+    const id = Number(questionId);
+    // Use localAnswers from API context instead of session.userAnswers
+    const userAnswer = state.localAnswers?.[id] || session.userAnswers?.[String(id)];
+    return userAnswer?.flags || [];
   };
 
   const filteredQuestions = session.questions.filter((question, index) => {
@@ -124,16 +131,17 @@ export function QuizSidebar() {
     }
   };
 
-  const answeredCount = Object.keys(session.userAnswers).filter(
-    questionId => getQuestionStatus(questionId) === 'answered'
+  // Calculate counts using all questions, not just userAnswers keys
+  const answeredCount = session.questions.filter(
+    question => getQuestionStatus(question.id) === 'answered'
   ).length;
 
-  const bookmarkedCount = Object.keys(session.userAnswers).filter(
-    questionId => isQuestionBookmarked(questionId)
+  const bookmarkedCount = session.questions.filter(
+    question => isQuestionBookmarked(question.id)
   ).length;
 
-  const flaggedCount = Object.keys(session.userAnswers).filter(
-    questionId => isQuestionFlagged(questionId)
+  const flaggedCount = session.questions.filter(
+    question => isQuestionFlagged(question.id)
   ).length;
 
   return (
@@ -165,17 +173,17 @@ export function QuizSidebar() {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 text-xs">
-            <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg bg-background/80 border border-border/50 hover:bg-background transition-colors">
-              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl text-primary">{answeredCount}</div>
-              <div className="text-muted-foreground font-medium text-xs sm:text-sm lg:text-base leading-tight">Answered</div>
+            <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg" style={{ backgroundColor: '#00B05020', border: '1px solid #00B05040' }}>
+              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#00B050' }}>{answeredCount}</div>
+              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#00B050' }}>Justes</div>
             </div>
-            <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg bg-background/80 border border-border/50 hover:bg-background transition-colors">
-              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl text-blue-600">{bookmarkedCount}</div>
-              <div className="text-muted-foreground font-medium text-xs sm:text-sm lg:text-base leading-tight">Bookmarked</div>
+            <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg" style={{ backgroundColor: '#FF000020', border: '1px solid #FF000040' }}>
+              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#FF0000' }}>{bookmarkedCount}</div>
+              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#FF0000' }}>Fausses</div>
             </div>
-            <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg bg-background/80 border border-border/50 hover:bg-background transition-colors">
-              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl text-orange-600">{flaggedCount}</div>
-              <div className="text-muted-foreground font-medium text-xs sm:text-sm lg:text-base leading-tight">Flagged</div>
+            <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg" style={{ backgroundColor: '#BFBFBF20', border: '1px solid #BFBFBF40' }}>
+              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#BFBFBF' }}>{flaggedCount}</div>
+              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#BFBFBF' }}>Consultées</div>
             </div>
           </div>
         </div>
@@ -242,7 +250,7 @@ export function QuizSidebar() {
                         {originalIndex + 1}
                       </span>
                       {status === 'answered' ? (
-                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-green-600" />
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-chart-1" />
                       ) : (
                         <Circle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-muted-foreground" />
                       )}
@@ -261,10 +269,10 @@ export function QuizSidebar() {
                           <Star className="h-3 w-3 text-yellow-500 fill-current" />
                         )}
                         {flags.includes('difficult') && (
-                          <AlertTriangle className="h-3 w-3 text-red-500" />
+                          <AlertTriangle className="h-3 w-3 text-destructive" />
                         )}
                         {flags.includes('review_later') && (
-                          <Flag className="h-3 w-3 text-blue-500" />
+                          <Flag className="h-3 w-3 text-chart-2" />
                         )}
                       </div>
                     </div>

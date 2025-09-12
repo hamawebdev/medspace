@@ -112,6 +112,7 @@ export interface DetailedExamResponse {
 
 // Filters endpoint types
 export interface ExamSessionFilters {
+  totalQuestionCount?: number; // Optional field that might be provided by API
   unites: Array<{
     id: number;
     title: string;
@@ -134,7 +135,81 @@ export interface ExamSessionFilters {
 }
 
 export class ExamService {
-  static createMultiModuleSession: any;
+  /**
+   * Create exam session from multiple modules using the unified endpoint
+   * POST /api/v1/quizzes/create-session-by-questions
+   */
+  static async createMultiModuleSession(request: MultiModuleSessionRequest): Promise<MultiModuleSessionResponse> {
+    try {
+      // Step 1: Extract course IDs from the selected modules using content filters
+      const contentFiltersResponse = await apiClient.get<any>('/students/content/filters');
+
+      if (!contentFiltersResponse.success || !contentFiltersResponse.data) {
+        throw new Error('Failed to fetch content structure');
+      }
+
+      const contentFilters = contentFiltersResponse.data;
+      const courseIds: number[] = [];
+
+      // Extract course IDs from the selected modules
+      for (const moduleId of request.moduleIds) {
+        // Check modules within unites
+        contentFilters.unites?.forEach((unite: any) => {
+          unite.modules?.forEach((module: any) => {
+            if (module.id === moduleId && module.courses) {
+              module.courses.forEach((course: any) => {
+                courseIds.push(course.id);
+              });
+            }
+          });
+        });
+
+        // Check independent modules
+        contentFilters.independentModules?.forEach((module: any) => {
+          if (module.id === moduleId && module.courses) {
+            module.courses.forEach((course: any) => {
+              courseIds.push(course.id);
+            });
+          }
+        });
+      }
+
+      if (courseIds.length === 0) {
+        throw new Error('No courses found for the selected modules');
+      }
+
+      // Remove duplicates
+      const uniqueCourseIds = [...new Set(courseIds)];
+
+      // Step 2: Create session using new endpoint
+      const sessionData = {
+        title: request.title || `Exam Session - ${new Date().toLocaleDateString()}`,
+        questionCount: request.questionCount || 100,
+        courseIds: uniqueCourseIds,
+        sessionType: 'EXAM' as const,
+        ...(request.year && {
+          years: [request.year]
+        }),
+      };
+
+      console.debug('[ExamService] Creating exam session with new endpoint:', sessionData);
+      const sessionResponse = await apiClient.post<any>('/quizzes/sessions', sessionData);
+
+      if (!sessionResponse.success || !sessionResponse.data?.sessionId) {
+        throw new Error(sessionResponse.error || 'Failed to create exam session');
+      }
+
+      return {
+        sessionId: sessionResponse.data.sessionId,
+        message: 'Exam session created successfully',
+        examCount: request.moduleIds.length,
+        questionCount: sessionData.questionCount
+      };
+    } catch (error) {
+      console.error('Failed to create multi-module exam session:', error);
+      throw error;
+    }
+  }
   /**
    * Filter exams by module ID
    * GET /exams/available?moduleId=24
@@ -161,14 +236,43 @@ export class ExamService {
   }
 
   /**
-   * Create single exam session
-   * POST /api/v1/exams/exam-sessions
+   * Create single exam session from predefined exam
+   * Uses unified endpoint by first fetching exam questions then creating session
    */
   static async createExamSession(request: { examId: number }): Promise<MultiModuleSessionResponse> {
-    // Ensure we pass quizType: 'EXAM' per classification
-    const response = await apiClient.post<any>('/exams/exam-sessions', { examId: request.examId, quizType: 'EXAM' });
-    const data = response.data?.data?.data || response.data?.data || response.data;
-    return data;
+    try {
+      // First, get the exam questions
+      const examResponse = await apiClient.get<any>(`/exams/${request.examId}/questions`);
+
+      if (!examResponse.data?.questions || examResponse.data.questions.length === 0) {
+        throw new Error('No questions found for this exam');
+      }
+
+      const questionIds = examResponse.data.questions.map((q: any) => q.id);
+
+      // Get exam details for title
+      const examDetails = await apiClient.get<any>(`/exams/${request.examId}`);
+      const examTitle = examDetails.data?.title || `Exam Session ${request.examId}`;
+
+      // Create session using unified endpoint
+      const sessionResponse = await apiClient.post<any>('/quizzes/create-session-by-questions', {
+        type: 'EXAM',
+        questionIds,
+        title: examTitle
+      });
+
+      const sessionData = sessionResponse.data?.data || sessionResponse.data;
+
+      return {
+        sessionId: sessionData.id,
+        message: 'Exam session created successfully',
+        examCount: 1,
+        questionCount: questionIds.length
+      };
+    } catch (error) {
+      console.error('Failed to create exam session:', error);
+      throw error;
+    }
   }
 
   /**
@@ -216,10 +320,11 @@ export class ExamService {
 
   /**
    * Get Exam Session Filters (unite → module → university → year)
-   * GET /quizzes/exam-session-filters
+   * DEPRECATED: Use /quizzes/session-filters endpoint instead
    */
   static async getExamSessionFilters(): Promise<ExamSessionFilters> {
-    const res = await apiClient.get<ExamSessionFilters>('/quizzes/exam-session-filters');
+    console.warn('[DEPRECATED] ExamService.getExamSessionFilters() is deprecated. Use NewApiService.getQuizSessionFilters() instead.');
+    const res = await apiClient.get<ExamSessionFilters>('/quizzes/session-filters');
     // Our ApiResponse wraps payload in .data; backend may nest again under .data.data
     const anyRes = res as any;
     const payload = anyRes?.data?.data ?? anyRes?.data ?? anyRes;

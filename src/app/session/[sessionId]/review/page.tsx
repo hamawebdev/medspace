@@ -3,47 +3,30 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuizSession, useQuizAnswerSubmission } from '@/hooks/use-quiz-api';
+import { useQuizSession } from '@/hooks/use-quiz-api';
 import { FullPageLoading } from '@/components/loading-states';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { 
-  ArrowLeft, 
-  Edit3, 
-  Save, 
-  X, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  CheckCircle,
   XCircle,
-  Loader2,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
-interface QuestionState {
-  id: string;
-  isEditing: boolean;
-  isSaving: boolean;
-  originalAnswer: any;
-  currentAnswer: any;
-  hasUnsavedChanges: boolean;
-}
-
-export default function AnswerReviewPage() {
+export default function SessionReviewPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = parseInt(params.sessionId as string);
-  
+
   const { session: apiSession, loading, error } = useQuizSession(sessionId);
-  const { updateAnswer, submitting } = useQuizAnswerSubmission();
-  
+
   const [reviewData, setReviewData] = useState<any>(null);
-  const [questionStates, setQuestionStates] = useState<Record<string, QuestionState>>({});
 
   // Process review data when session is available
   useEffect(() => {
@@ -62,18 +45,18 @@ export default function AnswerReviewPage() {
       // Build detailed question data
       const questionsWithAnswers = questions.map((question: any, index: number) => {
         const userAnswer = answers.find((a: any) => String(a.questionId) === String(question.id));
-        
+
         // Handle both single and multiple choice answers
-        const selectedAnswerIds = userAnswer?.selectedAnswerIds || 
+        const selectedAnswerIds = userAnswer?.selectedAnswerIds ||
           (userAnswer?.selectedAnswerId ? [userAnswer.selectedAnswerId] : []);
-        
-        const selectedAnswers = question.answers?.filter((a: any) => 
+
+        const selectedAnswers = question.questionAnswers?.filter((a: any) =>
           selectedAnswerIds.includes(a.id)
         ) || [];
-        
-        const correctAnswers = question.answers?.filter((a: any) => a.isCorrect) || [];
+
+        const correctAnswers = question.questionAnswers?.filter((a: any) => a.isCorrect) || [];
         const isCorrect = userAnswer?.isCorrect || false;
-        
+
         return {
           ...question,
           questionNumber: index + 1,
@@ -82,7 +65,9 @@ export default function AnswerReviewPage() {
           selectedAnswers,
           correctAnswers,
           isCorrect,
-          questionType: question.type || (correctAnswers.length > 1 ? 'QCM' : 'QCS')
+          questionType: question.questionType || question.type || (correctAnswers.length > 1 ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE'),
+          // Ensure we have the answer options in the expected format
+          answers: question.questionAnswers || question.answers || []
         };
       });
 
@@ -90,142 +75,10 @@ export default function AnswerReviewPage() {
         sessionId: sessionData.id,
         title: sessionData.title || 'Quiz Session',
         type: sessionData.type || 'PRACTICE',
-        questions: questionsWithAnswers,
-        canEdit: true // TODO: Check edit permissions
+        questions: questionsWithAnswers
       });
-
-      // Initialize question states
-      const initialStates: Record<string, QuestionState> = {};
-      questionsWithAnswers.forEach((q: any) => {
-        initialStates[q.id] = {
-          id: q.id,
-          isEditing: false,
-          isSaving: false,
-          originalAnswer: q.selectedAnswerIds,
-          currentAnswer: q.selectedAnswerIds,
-          hasUnsavedChanges: false
-        };
-      });
-      setQuestionStates(initialStates);
     }
   }, [apiSession, sessionId, router]);
-
-  const handleEditToggle = (questionId: string) => {
-    setQuestionStates(prev => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        isEditing: !prev[questionId].isEditing,
-        currentAnswer: prev[questionId].originalAnswer, // Reset to original
-        hasUnsavedChanges: false
-      }
-    }));
-  };
-
-  const handleAnswerChange = (questionId: string, answerId: number, questionType: string) => {
-    setQuestionStates(prev => {
-      const currentState = prev[questionId];
-      let newAnswer;
-      
-      if (questionType === 'QCM') {
-        // Multiple choice - toggle selection
-        const current = currentState.currentAnswer || [];
-        newAnswer = current.includes(answerId) 
-          ? current.filter((id: number) => id !== answerId)
-          : [...current, answerId];
-      } else {
-        // Single choice
-        newAnswer = [answerId];
-      }
-      
-      return {
-        ...prev,
-        [questionId]: {
-          ...currentState,
-          currentAnswer: newAnswer,
-          hasUnsavedChanges: JSON.stringify(newAnswer) !== JSON.stringify(currentState.originalAnswer)
-        }
-      };
-    });
-  };
-
-  const handleSaveAnswer = async (questionId: string, questionType: string) => {
-    const state = questionStates[questionId];
-    if (!state.hasUnsavedChanges) return;
-
-    setQuestionStates(prev => ({
-      ...prev,
-      [questionId]: { ...prev[questionId], isSaving: true }
-    }));
-
-    try {
-      // Prepare answer data based on question type
-      const answerData = questionType === 'QCM' 
-        ? { selectedAnswerIds: state.currentAnswer }
-        : { selectedAnswerId: state.currentAnswer[0] };
-
-      await updateAnswer(sessionId, parseInt(questionId), answerData);
-      
-      // Update states on success
-      setQuestionStates(prev => ({
-        ...prev,
-        [questionId]: {
-          ...prev[questionId],
-          isEditing: false,
-          isSaving: false,
-          originalAnswer: state.currentAnswer,
-          hasUnsavedChanges: false
-        }
-      }));
-
-      // Update review data to reflect changes
-      setReviewData((prev: any) => ({
-        ...prev,
-        questions: prev.questions.map((q: any) => {
-          if (q.id === questionId) {
-            const newSelectedAnswers = q.answers?.filter((a: any) => 
-              state.currentAnswer.includes(a.id)
-            ) || [];
-            
-            // Recalculate if correct
-            const correctAnswerIds = q.correctAnswers.map((a: any) => a.id);
-            const isCorrect = state.currentAnswer.length === correctAnswerIds.length &&
-              state.currentAnswer.every((id: number) => correctAnswerIds.includes(id));
-            
-            return {
-              ...q,
-              selectedAnswerIds: state.currentAnswer,
-              selectedAnswers: newSelectedAnswers,
-              isCorrect
-            };
-          }
-          return q;
-        })
-      }));
-
-      toast.success('Answer updated successfully');
-    } catch (error) {
-      console.error('Failed to update answer:', error);
-      toast.error('Failed to update answer. Please try again.');
-      
-      setQuestionStates(prev => ({
-        ...prev,
-        [questionId]: { ...prev[questionId], isSaving: false }
-      }));
-    }
-  };
-
-  const handleCancelEdit = (questionId: string) => {
-    setQuestionStates(prev => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        isEditing: false,
-        currentAnswer: prev[questionId].originalAnswer,
-        hasUnsavedChanges: false
-      }
-    }));
-  };
 
   if (loading) {
     return <FullPageLoading message="Loading answer review..." />;
@@ -268,7 +121,7 @@ export default function AnswerReviewPage() {
             </Button>
             
             <div className="text-right">
-              <h1 className="text-2xl font-bold">Answer Review & Edit</h1>
+              <h1 className="text-2xl font-bold">Session Review</h1>
               <p className="text-muted-foreground">{reviewData.title}</p>
             </div>
           </div>
@@ -276,10 +129,6 @@ export default function AnswerReviewPage() {
           {/* Questions */}
           <div className="space-y-6">
             {reviewData.questions.map((question: any) => {
-              const state = questionStates[question.id] || {};
-              const isEditing = state.isEditing;
-              const isSaving = state.isSaving;
-              
               return (
                 <Card key={question.id} className="overflow-hidden">
                   <CardHeader className="pb-4">
@@ -290,7 +139,7 @@ export default function AnswerReviewPage() {
                           <Badge variant={question.isCorrect ? 'default' : 'destructive'}>
                             {question.isCorrect ? 'Correct' : 'Incorrect'}
                           </Badge>
-                          {question.questionType === 'QCM' && (
+                          {question.questionType === 'MULTIPLE_CHOICE' && (
                             <Badge variant="secondary">Multiple Choice</Badge>
                           )}
                         </div>
@@ -298,53 +147,66 @@ export default function AnswerReviewPage() {
                           {question.questionText || question.text || question.content}
                         </CardTitle>
                       </div>
-                      
-                      {reviewData.canEdit && !isEditing && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditToggle(question.id)}
-                          className="gap-2 flex-shrink-0"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                          Edit Answer
-                        </Button>
-                      )}
+
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="gap-1">
+                          <Eye className="h-3 w-3" />
+                          Review Mode
+                        </Badge>
+                      </div>
                     </div>
                   </CardHeader>
-                  
-                  <CardContent className="space-y-4">
+
+                  <CardContent className="space-y-6">
+                    {/* Question Images */}
+                    {question.questionImages && question.questionImages.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-muted-foreground">Question Images</h4>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {question.questionImages.map((img: any, idx: number) => (
+                            <div key={img.id || idx} className="space-y-2">
+                              <img
+                                src={img.imagePath || img.url}
+                                alt={img.altText || `Question image ${idx + 1}`}
+                                className="w-full h-auto rounded-lg border object-contain max-h-64"
+                              />
+                              {img.altText && (
+                                <p className="text-xs text-muted-foreground">{img.altText}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Answer Options */}
                     <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">Answer Options</h4>
                       {question.answers?.map((answer: any) => {
-                        const isSelected = isEditing 
-                          ? (state.currentAnswer || []).includes(answer.id)
-                          : question.selectedAnswerIds.includes(answer.id);
+                        const isSelected = question.selectedAnswerIds.includes(answer.id);
                         const isCorrect = answer.isCorrect;
-                        const showAsCorrect = !isEditing && isCorrect;
-                        const showAsIncorrect = !isEditing && isSelected && !isCorrect;
-                        
+                        const showAsCorrect = isCorrect;
+                        const showAsIncorrect = isSelected && !isCorrect;
+
                         return (
                           <div
                             key={answer.id}
                             className={cn(
                               "flex items-start gap-3 p-4 rounded-lg border-2 transition-all",
-                              isEditing && "cursor-pointer hover:bg-accent/50",
-                              showAsCorrect && "bg-chart-5/10 border-chart-5/20",
-                              showAsIncorrect && "bg-destructive/10 border-destructive/20",
-                              isSelected && isEditing && "bg-chart-2/10 border-chart-2/20",
-                              !isSelected && !showAsCorrect && !showAsIncorrect && "border-border"
+                              showAsCorrect && "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800/30",
+                              showAsIncorrect && "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800/30",
+                              !showAsCorrect && !showAsIncorrect && "border-border"
                             )}
-                            onClick={() => isEditing && handleAnswerChange(question.id, answer.id, question.questionType)}
                           >
                             {/* Selection Indicator */}
                             <div className="flex-shrink-0 mt-0.5">
-                              {question.questionType === 'QCM' ? (
-                                <Checkbox
-                                  checked={isSelected}
-                                  disabled={!isEditing}
-                                  className="pointer-events-none"
-                                />
+                              {question.questionType === 'MULTIPLE_CHOICE' ? (
+                                <div className={cn(
+                                  "w-4 h-4 rounded border-2 flex items-center justify-center",
+                                  isSelected ? "border-primary bg-primary" : "border-muted-foreground"
+                                )}>
+                                  {isSelected && <CheckCircle className="h-3 w-3 text-white" />}
+                                </div>
                               ) : (
                                 <div className={cn(
                                   "w-4 h-4 rounded-full border-2 flex items-center justify-center",
@@ -354,72 +216,100 @@ export default function AnswerReviewPage() {
                                 </div>
                               )}
                             </div>
-                            
+
                             {/* Answer Text */}
                             <div className="flex-1">
                               <p className="text-sm leading-relaxed">
                                 {answer.answerText || answer.text}
                               </p>
-                              
+
                               {/* Status Labels */}
-                              {!isEditing && (
-                                <div className="flex gap-2 mt-2">
-                                  {isSelected && (
-                                    <Badge variant="outline" className="text-xs bg-chart-2/10 text-chart-2">
-                                      Your Answer
-                                    </Badge>
-                                  )}
-                                  {isCorrect && (
-                                    <Badge variant="outline" className="text-xs bg-chart-5/10 text-chart-5">
-                                      Correct Answer
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Status Icons */}
-                            {!isEditing && (
-                              <div className="flex-shrink-0">
-                                {showAsCorrect && <CheckCircle className="h-5 w-5 text-chart-5" />}
-                                {showAsIncorrect && <XCircle className="h-5 w-5 text-destructive" />}
+                              <div className="flex gap-2 mt-2">
+                                {isSelected && (
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-800/30">
+                                    Your Answer
+                                  </Badge>
+                                )}
+                                {isCorrect && (
+                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-300 dark:border-green-800/30">
+                                    Correct Answer
+                                  </Badge>
+                                )}
                               </div>
-                            )}
+                            </div>
+
+                            {/* Status Icons */}
+                            <div className="flex-shrink-0">
+                              {showAsCorrect && <CheckCircle className="h-5 w-5 text-green-600" />}
+                              {showAsIncorrect && <XCircle className="h-5 w-5 text-red-600" />}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
-                    
-                    {/* Edit Mode Controls */}
-                    {isEditing && (
-                      <div className="flex items-center justify-between pt-4 border-t">
-                        <div className="text-sm text-muted-foreground">
-                          {state.hasUnsavedChanges ? "You have unsaved changes" : "No changes made"}
+
+                    {/* Explanation Section */}
+                    {question.explanation && (
+                      <div className="space-y-3 pt-4 border-t">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-primary" />
+                          <h4 className="text-sm font-medium text-primary">Explanation</h4>
                         </div>
-                        
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCancelEdit(question.id)}
-                            disabled={isSaving}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Cancel
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            onClick={() => handleSaveAnswer(question.id, question.questionType)}
-                            disabled={!state.hasUnsavedChanges || isSaving}
-                          >
-                            {isSaving ? (
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                            ) : (
-                              <Save className="h-4 w-4 mr-1" />
-                            )}
-                            {isSaving ? 'Saving...' : 'Save Changes'}
-                          </Button>
+                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                          <p className="text-sm leading-relaxed text-foreground">
+                            {question.explanation}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Explanation Images */}
+                    {question.questionExplanationImages && question.questionExplanationImages.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-muted-foreground">Explanation Images</h4>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {question.questionExplanationImages.map((img: any, idx: number) => (
+                            <div key={img.id || idx} className="space-y-2">
+                              <img
+                                src={img.imagePath || img.url}
+                                alt={img.altText || `Explanation image ${idx + 1}`}
+                                className="w-full h-auto rounded-lg border object-contain max-h-64"
+                              />
+                              {img.altText && (
+                                <p className="text-xs text-muted-foreground">{img.altText}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Answer-specific explanation images */}
+                    {question.answers?.some((answer: any) => answer.explanationImages && answer.explanationImages.length > 0) && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium text-muted-foreground">Answer Explanation Images</h4>
+                        <div className="space-y-4">
+                          {question.answers.filter((answer: any) => answer.explanationImages && answer.explanationImages.length > 0).map((answer: any) => (
+                            <div key={answer.id} className="space-y-2">
+                              <p className="text-xs font-medium text-muted-foreground">
+                                For answer: "{answer.answerText || answer.text}"
+                              </p>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                {answer.explanationImages.map((img: any, idx: number) => (
+                                  <div key={img.id || idx} className="space-y-2">
+                                    <img
+                                      src={img.imagePath || img.url}
+                                      alt={img.altText || `Answer explanation image ${idx + 1}`}
+                                      className="w-full h-auto rounded-lg border object-contain max-h-64"
+                                    />
+                                    {img.altText && (
+                                      <p className="text-xs text-muted-foreground">{img.altText}</p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}

@@ -2,6 +2,7 @@
   "name": "medcortex",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -35,7 +36,9 @@
     "test:admin:hierarchy": "node api-admin-tests/03-content-hierarchy.test.js",
     "test:admin:quiz-exam": "node api-admin-tests/04-quiz-exam-management.test.js",
     "test:admin:questions": "node api-admin-tests/05-unified-question-system.test.js",
-    "test:admin:auth": "node api-admin-tests/get-admin-token.js"
+    "test:admin:auth": "node api-admin-tests/get-admin-token.js",
+    "auth:login": "node auth-login-script.js",
+    "auth:test": "node test-auth.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

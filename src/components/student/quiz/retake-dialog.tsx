@@ -35,10 +35,21 @@ export function RetakeDialog({ open, onOpenChange, onConfirm, defaultTitle }: Re
 
   const handleConfirm = async () => {
     if (!canSubmit) return;
+
     try {
       setSubmitting(true);
+      console.log('🔄 [RetakeDialog] Submitting retake request:', {
+        retakeType,
+        title: title?.trim() || undefined
+      });
+
       await onConfirm({ retakeType, title: title?.trim() || undefined });
-      onOpenChange(false);
+
+      // Only close dialog if onConfirm doesn't throw an error
+      // The parent component will handle closing the dialog
+    } catch (error) {
+      console.error('💥 [RetakeDialog] Error in onConfirm:', error);
+      // Don't close dialog on error - let user try again
     } finally {
       setSubmitting(false);
     }

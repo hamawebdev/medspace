@@ -25,7 +25,7 @@ interface FilterState {
     from: Date | null;
     to: Date | null;
   };
-  sessionType: 'all' | 'PRACTICE' | 'EXAM';
+  sessionType: 'PRACTICE' | 'EXAM'; // Removed 'all' as sessionType is now required
   sortBy: 'date' | 'score' | 'duration';
   sortOrder: 'asc' | 'desc';
 }
@@ -87,7 +87,7 @@ export function SessionFilters({ filters, onFiltersChange, className }: SessionF
   const clearFilters = () => {
     onFiltersChange({
       dateRange: { from: null, to: null },
-      sessionType: 'all',
+      sessionType: 'PRACTICE', // Default to PRACTICE since sessionType is required
       sortBy: 'date',
       sortOrder: 'desc'
     });
@@ -98,7 +98,6 @@ export function SessionFilters({ filters, onFiltersChange, className }: SessionF
   const hasActiveFilters =
     filters.dateRange.from ||
     filters.dateRange.to ||
-    filters.sessionType !== 'all' ||
     searchTerm.length > 0;
 
   return (
@@ -169,13 +168,12 @@ export function SessionFilters({ filters, onFiltersChange, className }: SessionF
             </Label>
             <Select
               value={filters.sessionType}
-              onValueChange={(value) => onFiltersChange({ sessionType: value as any })}
+              onValueChange={(value) => onFiltersChange({ sessionType: value as 'PRACTICE' | 'EXAM' })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All types" />
+                <SelectValue placeholder="Select session type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="PRACTICE">Practice</SelectItem>
                 <SelectItem value="EXAM">Exam</SelectItem>
               </SelectContent>

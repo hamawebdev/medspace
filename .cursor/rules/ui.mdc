@@ -1,19 +1,6 @@
-
-
-agent rule that will guide UI component creation and enhancement based on design system in globals.css 
-
-## **Design System Agent Rule**
-
-### **DESIGN SYSTEM EXPANSION ALLOWED**
-
-The agent may:
-
-- **Create new styles in globals.css that strictly follow existing design system patterns**
-- **Only use existing styles, utilities, and design tokens as base**
-- **Extend the design system while maintaining consistency**
-
-### **MANDATORY PRE-COMPONENT PROCESS**
-
+---
+alwaysApply: false
+---
 Before creating or enhancing **ANY** UI components:
 
 1. **Read `src/app/globals.css` file completely**
@@ -21,49 +8,3 @@ Before creating or enhancing **ANY** UI components:
 3. **Review existing color schemes, typography, spacing, and component styles**
 4. **Understand the established patterns and naming conventions**
 5. **Only proceed using EXISTING styles or create new ones that follow established patterns**
-
-### **DESIGN SYSTEM EXPANSION CONSTRAINTS**
-
-**Color System**: 
-- Use existing CSS custom properties (--primary, --secondary, --muted, etc.)
-- When creating new colors, follow HSL format and naming conventions
-- Ensure both light and dark theme support with `.dark` class
-
-**Typography**: 
-- Follow predefined heading hierarchy (h1-h6) with exact font weights
-- Use Inter font family consistently
-- Maintain existing tracking and line-height patterns
-
-**Component Styling**: 
-- Use existing utility classes (.glass, .card-hover-lift, .btn-interactive, etc.)
-- When creating new utilities, follow established naming patterns
-- Ensure consistent hover states, transitions, and effects
-
-**Animations**: 
-- Use existing predefined animations (animate-float, animate-pulse-soft, etc.)
-- When creating new animations, follow @keyframes naming conventions
-- Maintain consistent timing and easing patterns
-
-**Spacing & Layout**: 
-- Use defined spacing system with --spacing base unit
-- Follow existing margin/padding utility patterns
-- Maintain responsive design principles
-
-### **NEW STYLE CREATION GUIDELINES**
-
-When creating new styles in globals.css:
-
-1. **Follow existing naming conventions** (kebab-case for classes, CSS custom properties pattern)
-2. **Maintain HSL color format** for all color values
-3. **Include dark theme variants** using `.dark` class
-4. **Use existing CSS custom properties** as base values
-5. **Follow established animation patterns** for @keyframes
-6. **Ensure accessibility** with proper contrast ratios and focus styles
-7. **Add comments** explaining the purpose of new styles
-
-### **CONSTRAINT ENFORCEMENT**
-
-- **Work within established design system patterns**
-- **Extend the system consistently with existing conventions**
-- **Test new styles in both light and dark themes**
-- **Ensure backward compatibility with existing components**

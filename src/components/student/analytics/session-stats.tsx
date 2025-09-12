@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Clock, FileText } from 'lucide-react';
@@ -17,9 +18,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription';
 
 const COLORS = {
-  correct: '#10b981', // green
-  incorrect: '#ef4444', // red
-  unanswered: '#3b82f6', // blue
+  correct: 'hsl(var(--chart-1))', // Using chart-1 for success/correct
+  incorrect: 'hsl(var(--destructive))', // Using destructive for errors/incorrect
+  unanswered: 'hsl(var(--chart-2))', // Using chart-2 for info/unanswered
 };
 
 // Format seconds as HH:MM:SS
@@ -71,6 +72,9 @@ export function SessionStats() {
     correctAnswers: number;
     accuracy: number; // percentage
     timeSpent: number; // seconds
+    courseCount: number; // number of courses in session
+    averageTimePerQuestion: number; // average time per question in minutes
+    completedAt?: string; // completion timestamp
   }>>([]);
   const [questionsBySession, setQuestionsBySession] = useState<Map<number, any[]>>(new Map());
 
@@ -94,7 +98,7 @@ export function SessionStats() {
 
     let fetchedSessions: any[] = [];
 
-    //  y Fetch quiz history for the selected type
+    // 1) Fetch quiz history for the selected type
     StudentService.getQuizHistory({ type, limit: 50, page: 1 })
       .then(historyRes => {
         if (cancelled) return;
@@ -107,11 +111,26 @@ export function SessionStats() {
         fetchedSessions = completed;
         setSessions(completed);
 
-        // 2) Fetch session results to aggregate per-question stats (no sessionIds filter, obey server limits)
-        return StudentService.getSessionResults({ page: 1, limit: 100 });
+        // 2) Fetch course analytics for enhanced session data
+        return StudentService.getCourseAnalytics({ sessionType: type as any, limit: 50, page: 1 });
       })
-      .then(resultsRes => {
+      .then(courseAnalyticsRes => {
         if (cancelled) return;
+
+        // 3) Also fetch session results to aggregate per-question stats (fallback for detailed question data)
+        return Promise.all([
+          Promise.resolve(courseAnalyticsRes),
+          StudentService.getSessionResults({ page: 1, limit: 100 })
+        ]);
+      })
+      .then(([courseAnalyticsRes, resultsRes]) => {
+        if (cancelled) return;
+
+        // Process course analytics data (new API)
+        const courseAnalyticsData = courseAnalyticsRes?.data?.data || courseAnalyticsRes?.data || {};
+        const courseAnalyticsSessions = courseAnalyticsData?.sessions || [];
+
+        // Process session results data (existing API for question details)
         const container = resultsRes?.data?.data || resultsRes?.data;
         const payload = container?.data || container;
         const questions = payload?.questions || payload?.data || [];
@@ -124,12 +143,18 @@ export function SessionStats() {
           map.get(q.sessionId)!.push(q);
         });
 
-        // Build metrics by merging quiz history + computed question aggregates
+        // Build metrics by merging quiz history + course analytics + computed question aggregates
         const summaries: any[] = [];
         (Array.isArray(fetchedSessions) ? fetchedSessions : []).forEach((s: any) => {
           const sid = s.id || s.sessionId;
           const qs = map.get(sid) || [];
-          const total = s.questionsCount ?? qs.length;
+
+          // Try to find enhanced data from course analytics API
+          const courseAnalyticsSession = Array.isArray(courseAnalyticsSessions)
+            ? courseAnalyticsSessions.find((cas: any) => cas.id === sid || cas.sessionId === sid)
+            : null;
+
+          const total = courseAnalyticsSession?.totalQuestions ?? s.questionsCount ?? qs.length;
           let answeredFromQs = 0; let correctFromQs = 0; let time = 0;
           qs.forEach((r: any) => {
             const isAnswered = r.selectedAnswerId !== undefined || (Array.isArray(r.userAnswerIds) && r.userAnswerIds.length > 0);
@@ -137,13 +162,33 @@ export function SessionStats() {
             if (r.isCorrect) correctFromQs += 1;
             time += typeof r.timeSpent === 'number' ? r.timeSpent : 0;
           });
-          const answered = s.answersCount ?? answeredFromQs;
-          const correct = (typeof s.score === 'number' ? s.score : undefined) ?? correctFromQs;
-          const accuracy = typeof s.percentage === 'number' ? Math.round(s.percentage) : (total > 0 ? Math.round((correct / total) * 100) : 0);
+
+          const answered = courseAnalyticsSession?.answered ?? s.answersCount ?? answeredFromQs;
+          const correct = courseAnalyticsSession?.correctAnswers ?? (typeof s.score === 'number' ? s.score : undefined) ?? correctFromQs;
+          const accuracy = courseAnalyticsSession?.percentage ?? (typeof s.percentage === 'number' ? Math.round(s.percentage) : (total > 0 ? Math.round((correct / total) * 100) : 0));
+          const timeSpent = courseAnalyticsSession?.timeSpent ?? time;
 
           // Enforce residency access at the data level if filtering is RESIDENCY and user lacks it
           const isRes = String(s.type || '').toUpperCase() === 'RESIDENCY';
           const blockedByFilter = residencyLocked && isRes;
+
+          // Calculate course count - prefer course analytics data, fallback to question analysis
+          let courseCount = 0;
+          if (courseAnalyticsSession?.courses) {
+            courseCount = Array.isArray(courseAnalyticsSession.courses) ? courseAnalyticsSession.courses.length : 0;
+          } else {
+            const uniqueCourses = new Set();
+            qs.forEach((q: any) => {
+              if (q.question?.course?.id) {
+                uniqueCourses.add(q.question.course.id);
+              }
+            });
+            courseCount = uniqueCourses.size;
+          }
+
+          // Calculate average time per question in minutes
+          const averageTimePerQuestion = courseAnalyticsSession?.averageTimePerQuestion ??
+            (total > 0 ? Math.round((timeSpent / 60 / total) * 10) / 10 : 0);
 
           summaries.push({
             sessionId: Number(sid),
@@ -153,7 +198,10 @@ export function SessionStats() {
             answered,
             correctAnswers: correct,
             accuracy,
-            timeSpent: time,
+            timeSpent,
+            courseCount,
+            averageTimePerQuestion,
+            completedAt: courseAnalyticsSession?.completedAt ?? s.completedAt,
             blocked: blockedByFilter,
           });
         });
@@ -210,11 +258,13 @@ export function SessionStats() {
         return {
           id: m.sessionId,
           title: m.title,
+          type: m.type || 'PRACTICE', // Add session type from API
           timeSpent: m.timeSpent || 0,
           avgPerQ: avgPerQuestion(m.timeSpent || 0, totalQ || 0),
           totalQuestions: totalQ,
           correct: m.correctAnswers || 0,
           incorrect,
+          courseCount: m.courseCount || 0, // Add course count from new API
           percentage: typeof m.accuracy === 'number' ? Math.round(m.accuracy) : 0,
         };
       });
@@ -230,33 +280,35 @@ export function SessionStats() {
   }, [detailCounts]);
 
   return (
-    <Card className="w-full h-[calc(100vh-140px)] flex flex-col">
+    <Card className="w-full min-h-[600px] lg:h-[calc(100vh-200px)] flex flex-col">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-        <CardHeader className="border-b">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold">Session Analytics</h2>
-              <div className="text-sm font-medium">Type session</div>
-              <Select value={type} onValueChange={(v: any) => { setType(v); setSelectedSessionId(null); }}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EXAM">Exam</SelectItem>
-                  <SelectItem value="PRACTICE">Practice</SelectItem>
-                  <SelectItem value="RESIDENCY">Residency</SelectItem>
-                </SelectContent>
-              </Select>
+        <CardHeader className="border-b p-4 sm:p-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <h2 className="text-lg sm:text-xl font-semibold">Session Analytics</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">Type:</span>
+                <Select value={type} onValueChange={(v: any) => { setType(v); setSelectedSessionId(null); }}>
+                  <SelectTrigger className="w-32 sm:w-40">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EXAM">Exam</SelectItem>
+                    <SelectItem value="PRACTICE">Practice</SelectItem>
+                    <SelectItem value="RESIDENCY">Residency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <TabsList>
-              <TabsTrigger value="table">Table</TabsTrigger>
-              <TabsTrigger value="graph">Graph</TabsTrigger>
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="table" className="flex-1 sm:flex-none">Table</TabsTrigger>
+              <TabsTrigger value="graph" className="flex-1 sm:flex-none">Graph</TabsTrigger>
             </TabsList>
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-hidden p-0">
           <TabsContent value="table" className="h-full m-0">
-            <div className="p-4 h-full overflow-auto">
+            <div className="p-4 sm:p-6 h-full overflow-auto">
               {sessionsLoading || metricsLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -270,47 +322,80 @@ export function SessionStats() {
                   </AlertDescription>
                 </Alert>
               ) : tableRows.length === 0 ? (
-                <div className="text-sm text-muted-foreground p-6">No completed sessions found for this type.</div>
+                <div className="text-sm text-muted-foreground p-6 text-center">No completed sessions found for this type.</div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Session Title</TableHead>
-                      <TableHead>
-                        <div className="inline-flex items-center gap-2"><Clock className="h-4 w-4" /> Session Time Spent</div>
-                      </TableHead>
-                      <TableHead>Time Average per Question</TableHead>
-                      <TableHead>Total Questions</TableHead>
-                      <TableHead>Correct Answers</TableHead>
-                      <TableHead>Incorrect Answers</TableHead>
-                      <TableHead>Consultation</TableHead>
-                      <TableHead className="text-right">Percentage</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tableRows.map(row => (
-                      <TableRow key={row.id} className={cn(selectedSessionId === row.id && 'bg-accent/30')} onClick={() => setSelectedSessionId(row.id)}>
-                        <TableCell className="font-medium">{row.title}</TableCell>
-                        <TableCell><div className="inline-flex items-center gap-2"><Clock className="h-4 w-4" /> {formatHMS(row.timeSpent)}</div></TableCell>
-                        <TableCell>{row.avgPerQ}</TableCell>
-                        <TableCell>{row.totalQuestions}</TableCell>
-                        <TableCell className="text-green-600 dark:text-green-400">{row.correct}</TableCell>
-                        <TableCell className="text-red-600 dark:text-red-400">{row.incorrect}</TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline" className="gap-2" onClick={(e) => { e.stopPropagation(); router.push(`/session/${row.id}/results`); }}>
-                            <FileText className="h-4 w-4" /> View
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">{row.percentage}%</TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[200px]">Session Title</TableHead>
+                        <TableHead className="min-w-[100px]">Type</TableHead>
+                        <TableHead className="min-w-[120px]">
+                          <div className="inline-flex items-center gap-2"><Clock className="h-4 w-4" /> Time</div>
+                        </TableHead>
+                        <TableHead className="min-w-[100px] hidden sm:table-cell">Avg/Q</TableHead>
+                        <TableHead className="min-w-[80px]">Questions</TableHead>
+                        <TableHead className="min-w-[80px]">Correct</TableHead>
+                        <TableHead className="min-w-[80px] hidden md:table-cell">Incorrect</TableHead>
+                        <TableHead className="min-w-[100px] hidden lg:table-cell">Courses</TableHead>
+                        <TableHead className="min-w-[100px] hidden xl:table-cell">Action</TableHead>
+                        <TableHead className="text-right min-w-[80px]">Score</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {tableRows.map(row => (
+                        <TableRow
+                          key={row.id}
+                          className={cn(
+                            "cursor-pointer hover:bg-accent/50",
+                            selectedSessionId === row.id && 'bg-accent/30'
+                          )}
+                          onClick={() => setSelectedSessionId(row.id)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="line-clamp-2 text-sm">{row.title}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={row.type === 'EXAM' ? 'destructive' : row.type === 'PRACTICE' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {row.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">{formatHMS(row.timeSpent)}</div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-sm">{row.avgPerQ}</TableCell>
+                          <TableCell className="text-sm">{row.totalQuestions}</TableCell>
+                          <TableCell className="text-chart-1 font-medium text-sm">{row.correct}</TableCell>
+                          <TableCell className="hidden md:table-cell text-destructive font-medium text-sm">{row.incorrect}</TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <Badge variant="outline" className="text-xs">
+                              {row.courseCount}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden xl:table-cell">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 text-xs h-8"
+                              onClick={(e) => { e.stopPropagation(); router.push(`/session/${row.id}/results`); }}
+                            >
+                              <FileText className="h-3 w-3" /> View
+                            </Button>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-sm">{row.percentage}%</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </div>
           </TabsContent>
           <TabsContent value="graph" className="h-full m-0">
-            <div className="p-4 h-full">
+            <div className="p-4 sm:p-6 h-full">
               {metricsLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-56 w-full" />
@@ -318,14 +403,14 @@ export function SessionStats() {
               ) : metricsError ? (
                 <Alert variant="destructive"><AlertDescription>{metricsError}</AlertDescription></Alert>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 h-full">
                   {/* Left: All Sessions list */}
                   <div className="lg:col-span-2 space-y-4">
-                    <div className="rounded-md border">
-                      <div className="px-4 py-3 font-medium border-b">All Sessions</div>
-                      <div className="max-h-[420px] overflow-auto divide-y">
+                    <div className="rounded-md border h-full flex flex-col">
+                      <div className="px-4 py-3 font-medium border-b text-sm sm:text-base">All Sessions</div>
+                      <div className="flex-1 overflow-auto divide-y min-h-0">
                         {sessionMetrics.length === 0 ? (
-                          <div className="p-4 text-sm text-muted-foreground">No completed sessions for this type.</div>
+                          <div className="p-4 text-xs sm:text-sm text-muted-foreground text-center">No completed sessions for this type.</div>
                         ) : (
                           sessionMetrics.map((m) => {
                             const pct = typeof m.accuracy === 'number' ? Math.round(m.accuracy) : 0;
@@ -339,18 +424,21 @@ export function SessionStats() {
                                 disabled={disabled}
                                 onClick={() => !disabled && setSelectedSessionId(m.sessionId)}
                                 className={cn(
-                                  'w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-accent/40 focus:outline-none',
+                                  'w-full text-left px-3 sm:px-4 py-3 flex items-center justify-between gap-3 hover:bg-accent/40 focus:outline-none transition-colors min-h-[60px]',
                                   selected && 'bg-accent/30',
                                   disabled && 'opacity-60 cursor-not-allowed'
                                 )}
                               >
-                                <div>
-                                  <div className="text-sm font-medium line-clamp-1">{m.title}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs sm:text-sm font-medium line-clamp-2">{m.title}</div>
                                   {disabled && (
-                                    <div className="text-xs text-muted-foreground">Only for residency subscribers</div>
+                                    <div className="text-xs text-muted-foreground mt-1">Only for residency subscribers</div>
                                   )}
                                 </div>
-                                <div className={cn('text-sm font-semibold', pct >= 50 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
+                                <div className={cn(
+                                  'text-xs sm:text-sm font-semibold flex-shrink-0',
+                                  pct >= 50 ? 'text-chart-1' : 'text-destructive'
+                                )}>
                                   {pct}%
                                 </div>
                               </button>
@@ -362,29 +450,53 @@ export function SessionStats() {
                   </div>
 
                   {/* Right: Pie chart */}
-                  <div className="lg:col-span-3">
+                  <div className="lg:col-span-3 flex flex-col">
                     {!detailCounts ? (
-                      <div className="text-sm text-muted-foreground">Select a session from the Table tab to see its distribution.</div>
-                    ) : (
-                      <div className="w-full h-full max-h-[420px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3}>
-                              {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                              ))}
-                            </Pie>
-                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 12 }} />
-                            <Tooltip formatter={(value: any, name: any) => [value, name]} />
-                          </PieChart>
-                        </ResponsiveContainer>
+                      <div className="text-xs sm:text-sm text-muted-foreground text-center p-4">
+                        Select a session from the list to see its distribution.
                       </div>
-                    )}
-                    {detailCounts && (
-                      <div className="mt-4 grid grid-cols-3 gap-3 text-xs px-2">
-                        <div className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded-sm" style={{ background: COLORS.correct }} /> Correct</div>
-                        <div className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded-sm" style={{ background: COLORS.incorrect }} /> Incorrect</div>
-                        <div className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded-sm" style={{ background: COLORS.unanswered }} /> Unanswered</div>
+                    ) : (
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <div className="flex-1 min-h-[300px] sm:min-h-[400px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={chartData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={80}
+                                paddingAngle={3}
+                              >
+                                {chartData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
+                              </Pie>
+                              <Legend
+                                verticalAlign="bottom"
+                                height={36}
+                                wrapperStyle={{ fontSize: '12px' }}
+                              />
+                              <Tooltip formatter={(value: any, name: any) => [value, name]} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3 text-xs px-2">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: COLORS.correct }} />
+                            <span className="truncate">Correct</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: COLORS.incorrect }} />
+                            <span className="truncate">Incorrect</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: COLORS.unanswered }} />
+                            <span className="truncate">Unanswered</span>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

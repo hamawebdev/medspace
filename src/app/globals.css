@@ -411,9 +411,386 @@ html body .modern-sidebar-nav::-webkit-scrollbar {
     overscroll-behavior: contain !important;
   }
 
-  /* Fix for iOS Safari */
-  .invisible-scrollbar {
-    -webkit-transform: translateZ(0) !important;
-    transform: translateZ(0) !important;
+  /* Quiz interface mobile optimizations - More aggressive with improved readability */
+  .quiz-question-container {
+    padding: 0.125rem !important;
+    padding-top: 0.0625rem !important;
+    padding-bottom: 0.0625rem !important;
   }
+
+  .quiz-option-card {
+    padding: 0.25rem !important;
+    margin-bottom: 0.125rem !important;
+  }
+
+  .quiz-option-text {
+    font-size: 1rem !important;
+    line-height: 1.15 !important;
+    font-weight: 600 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* Tablet optimizations - More aggressive with improved readability */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .quiz-question-container {
+    padding: 0.25rem !important;
+    padding-top: 0.125rem !important;
+    padding-bottom: 0.125rem !important;
+  }
+
+  .quiz-option-card {
+    padding: 0.375rem !important;
+  }
+
+  .quiz-option-text {
+    font-size: 1.125rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 1.375rem !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Desktop optimizations - More aggressive with improved readability */
+@media (min-width: 1024px) {
+  .quiz-question-container {
+    padding: 0.5rem !important;
+  }
+
+  .quiz-option-card {
+    padding: 0.5rem !important;
+  }
+
+  .quiz-option-text {
+    font-size: 1.25rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Large desktop optimizations - Enhanced readability */
+@media (min-width: 1280px) {
+  .quiz-option-text {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .quiz-question-text {
+    font-size: 2rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Compact mode overrides for large desktop */
+  .quiz-compact-mode .quiz-option-text {
+    font-size: 1.25rem !important;
+  }
+
+  .quiz-compact-mode .quiz-question-text {
+    font-size: 1.625rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 1.125rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Quiz-specific responsive utilities - NO SCROLLING */
+.quiz-options-container {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Handle long text gracefully */
+.quiz-option-text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.3 !important;
+}
+
+.quiz-question-text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.25 !important;
+}
+
+/* Compact mode for 3+ options - More aggressive with improved readability */
+.quiz-compact-mode .quiz-option-card {
+  padding: 0.25rem !important;
+  margin-bottom: 0.125rem !important;
+}
+
+.quiz-compact-mode .quiz-option-text {
+  font-size: 0.875rem !important;
+  line-height: 1.15 !important;
+}
+
+.quiz-compact-mode .quiz-question-text {
+  font-size: 1.125rem !important;
+  line-height: 1.15 !important;
+}
+
+/* Ultra compact mode for 4+ options - More aggressive with improved readability */
+.quiz-ultra-compact-mode .quiz-option-card {
+  padding: 0.125rem !important;
+  margin-bottom: 0.0625rem !important;
+}
+
+.quiz-ultra-compact-mode .quiz-option-text {
+  font-size: 0.75rem !important;
+  line-height: 1.1 !important;
+}
+
+.quiz-ultra-compact-mode .quiz-question-text {
+  font-size: 1rem !important;
+  line-height: 1.1 !important;
+}
+
+@media (min-width: 768px) {
+  .quiz-compact-mode .quiz-option-text {
+    font-size: 1rem !important;
+  }
+
+  .quiz-compact-mode .quiz-question-text {
+    font-size: 1.25rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 0.875rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1.125rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .quiz-compact-mode .quiz-option-text {
+    font-size: 1.125rem !important;
+  }
+
+  .quiz-compact-mode .quiz-question-text {
+    font-size: 1.375rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 1rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* Viewport fitting utilities */
+.quiz-viewport-fit {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.quiz-no-scroll {
+  overflow: hidden !important;
+  max-height: 100%;
+}
+
+/* Ensure options container distributes space evenly */
+.quiz-options-distributed > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Mobile viewport adjustments - Enhanced readability */
+@media (max-width: 767px) {
+  .quiz-question-container {
+    padding: 0.125rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-card {
+    padding: 0.125rem !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-option-text {
+    font-size: 0.75rem !important;
+    line-height: 1.05 !important;
+  }
+
+  .quiz-ultra-compact-mode .quiz-question-text {
+    font-size: 1rem !important;
+    line-height: 1.05 !important;
+  }
+}
+
+/* Additional space optimization rules - Optimized visual hierarchy */
+.quiz-space-optimized {
+  gap: 0rem !important;
+}
+
+.quiz-space-optimized .quiz-option-card {
+  margin-bottom: 0.0625rem !important;
+}
+
+/* Question to answer spacing optimization */
+.quiz-space-optimized > .border-primary\/20 + div {
+  margin-top: 0.125rem !important;
+}
+
+/* Force minimal spacing for all quiz cards */
+.quiz-option-card {
+  margin-bottom: 0.125rem !important;
+}
+
+.quiz-compact-mode .quiz-option-card,
+.quiz-ultra-compact-mode .quiz-option-card {
+  margin-bottom: 0.0625rem !important;
+}
+
+/* Override default Card component padding for quiz interface */
+.quiz-space-optimized .quiz-option-card .card-content,
+.quiz-space-optimized .quiz-option-card [data-card-content] {
+  padding: 0.25rem !important;
+}
+
+.quiz-compact-mode .quiz-option-card .card-content,
+.quiz-compact-mode .quiz-option-card [data-card-content] {
+  padding: 0.25rem !important;
+}
+
+.quiz-ultra-compact-mode .quiz-option-card .card-content,
+.quiz-ultra-compact-mode .quiz-option-card [data-card-content] {
+  padding: 0.125rem !important;
+}
+
+/* Override Card default padding for question container */
+.quiz-question-container {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+
+.quiz-compact-mode .quiz-question-container {
+  padding-top: 0.125rem !important;
+  padding-bottom: 0.125rem !important;
+}
+
+.quiz-ultra-compact-mode .quiz-question-container {
+  padding-top: 0.0625rem !important;
+  padding-bottom: 0.0625rem !important;
+}
+
+/* Ensure text doesn't overflow and maintains readability */
+.quiz-option-text, .quiz-question-text {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Prevent excessive line spacing in compact modes */
+.quiz-compact-mode p, .quiz-ultra-compact-mode p {
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Force minimal spacing for all quiz text elements */
+.quiz-question-text, .quiz-option-text {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure minimal spacing between question elements */
+.quiz-space-optimized > * {
+  margin-bottom: 0.125rem !important;
+}
+
+.quiz-compact-mode > *,
+.quiz-ultra-compact-mode > * {
+  margin-bottom: 0.0625rem !important;
+}
+
+/* Visual hierarchy spacing - responsive */
+@media (max-width: 767px) {
+  /* Mobile: Tighter spacing */
+  .quiz-space-optimized {
+    gap: 0rem !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Tablet: Slightly more breathing room */
+  .quiz-space-optimized {
+    gap: 0rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Desktop: Maintain minimal spacing */
+  .quiz-space-optimized {
+    gap: 0rem !important;
+  }
+}
+
+/* Optimize button and prefix sizes in compact modes */
+.quiz-ultra-compact-mode .quiz-option-prefix {
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  font-size: 0.625rem !important;
+}
+
+.quiz-compact-mode .quiz-option-prefix {
+  min-width: 1.25rem !important;
+  min-height: 1.25rem !important;
+  font-size: 0.75rem !important;
+}
+
+/* Question layout visual hierarchy */
+.quiz-question-metadata {
+  margin-bottom: 0.5rem !important;
+}
+
+@media (max-width: 767px) {
+  .quiz-question-metadata {
+    margin-bottom: 0.375rem !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .quiz-question-metadata {
+    margin-bottom: 0.5rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .quiz-question-metadata {
+    margin-bottom: 0.625rem !important;
+  }
+}
+
+/* Question text to answer spacing */
+.quiz-question-text {
+  margin-bottom: 0 !important;
+}
+
+/* Fix for iOS Safari */
+.invisible-scrollbar {
+  -webkit-transform: translateZ(0) !important;
+  transform: translateZ(0) !important;
 }

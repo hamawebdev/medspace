@@ -19,9 +19,12 @@ function AppSidebarHeader() {
 
   return (
     <div className='flex h-full items-center gap-3 px-1'>
-      {/* Logo Icon - Always visible, no background */}
+      {/* Logo Icon - Always visible, adapts size based on sidebar state */}
       <Logo
-        className="h-14 w-14 object-contain transition-all duration-200 hover:scale-105"
+        className={cn(
+          "object-contain transition-all duration-200 hover:scale-105",
+          state === 'expanded' ? "h-14 w-14" : "h-8 w-8"
+        )}
       />
 
       {/* Logo Text - Only visible when expanded */}

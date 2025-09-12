@@ -310,13 +310,13 @@ export function ApiQuizResults() {
             Review Results
           </Button>
 
-          {/* Edit: reuse the original session UI in review/edit mode */}
+          {/* Review: detailed review of answers and explanations */}
           <Button
             onClick={() => router.push(`/session/${state.apiSessionId}/review`)}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
-            Review & Edit Answers
+            Review Answers
           </Button>
 
           {/* Practice More or Exam Create based on session type */}

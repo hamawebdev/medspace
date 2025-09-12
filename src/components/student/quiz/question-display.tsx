@@ -20,10 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useQuiz } from './quiz-api-context';
-import { QCMQuestion } from './question-types/qcm-question';
-import { QCSQuestion } from './question-types/qcs-question';
-import { QROCQuestion } from './question-types/qroc-question';
-import { CASQuestion } from './question-types/cas-question';
+import { UnifiedQuestion } from './unified-question';
 import { QuestionActions } from './question-actions';
 import { AnswerExplanation } from './answer-explanation';
 import { useApiQuiz } from './quiz-api-context';
@@ -119,29 +116,50 @@ export function QuestionDisplay() {
 
   // Transform API question to match component expectations
   const transformQuestion = (question: any) => {
+    // According to session-doc.md, answers are in questionAnswers array
+    const answers = question.questionAnswers || question.answers || [];
+
     return {
       ...question,
       // Ensure content property exists
       content: question.content || question.questionText,
-      // Transform answers to options format
-      options: question.answers ? question.answers.map((answer: any) => ({
+      // Transform answers to options format using documented structure
+      options: answers.map((answer: any) => ({
         id: String(answer.id),
         text: answer.answerText,
         isCorrect: answer.isCorrect,
-        explanation: answer.explanation
-      })) : question.options || [],
+        explanation: answer.explanation,
+        explanationImages: answer.explanationImages || []
+      })),
       // Ensure other required properties exist
       title: question.title || question.questionText || `Question ${question.id}`,
       difficulty: question.difficulty || 'intermediate',
       source: question.source || 'API',
       tags: question.tags || [],
-      type: question.type || 'QCS' // Will be overridden by getQuestionType
+      type: question.questionType || question.type || 'SINGLE_CHOICE', // Use documented field
+      // Additional metadata fields from API
+      questionType: question.questionType,
+      yearLevel: question.yearLevel,
+      examYear: question.examYear,
+      metadata: question.metadata,
+      questionImages: question.questionImages || [],
+      university: question.university,
+      course: question.course
     };
   };
 
   // Determine question type from API response structure or use default
   const getQuestionType = (question: any) => {
-    // Normalize explicit type if provided
+    // Use documented questionType field first
+    if (question.questionType) {
+      const t = String(question.questionType).toUpperCase();
+      if (t === 'SINGLE_CHOICE' || t === 'QCS' || t === 'SINGLE') return 'QCS';
+      if (t === 'MULTIPLE_CHOICE' || t === 'QCM' || t === 'MULTIPLE') return 'QCM';
+      if (t === 'QROC') return 'QROC';
+      if (t === 'CAS') return 'CAS';
+    }
+
+    // Fallback to legacy type field
     if (question.type) {
       const t = String(question.type).toUpperCase();
       if (t === 'SINGLE_CHOICE' || t === 'QCS' || t === 'SINGLE') return 'QCS';
@@ -150,9 +168,10 @@ export function QuestionDisplay() {
       if (t === 'CAS') return 'CAS';
     }
 
-    // Determine type based on answer structure
-    if (question.answers && Array.isArray(question.answers)) {
-      const correctAnswers = question.answers.filter((answer: any) => answer.isCorrect);
+    // Determine type based on answer structure using documented questionAnswers
+    const answers = question.questionAnswers || question.answers || [];
+    if (Array.isArray(answers)) {
+      const correctAnswers = answers.filter((answer: any) => answer.isCorrect);
       return correctAnswers.length > 1 ? 'QCM' : 'QCS';
     }
 
@@ -171,45 +190,32 @@ export function QuestionDisplay() {
   const questionTypeInfo = getQuestionTypeInfo(questionType);
 
   const renderQuestionComponent = () => {
-    switch (questionType) {
-      case 'QCM':
-        return <QCMQuestion question={transformedQuestion} />;
-      case 'QCS':
-        return <QCSQuestion question={transformedQuestion} />;
-      case 'QROC':
-        return <QROCQuestion question={transformedQuestion} />;
-      case 'CAS':
-        return <CASQuestion question={transformedQuestion} />;
-      default:
-        return <QCSQuestion question={transformedQuestion} />; // Default to QCS instead of error
-    }
+    return <UnifiedQuestion question={transformedQuestion} type={questionType} />;
   };
 
   return (
     <div className="h-full flex flex-col">
+      {/* Question Content - No scrolling, fit to viewport */}
+      <div className={`flex-1 ${(isAnswerRevealed || showExplanation) ? 'overflow-y-auto scroll-smooth' : 'overflow-hidden'}`}>
+        <div className={`${(isAnswerRevealed || showExplanation) ? 'min-h-full' : 'h-full'} flex flex-col p-0.5 sm:p-1 lg:p-1.5 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto quiz-question-container`}>
 
-
-      {/* Question Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-3 sm:p-4 md:p-4 lg:p-5 space-y-3 sm:space-y-3 lg:space-y-4 max-w-4xl mx-auto">
-
-          {/* Status Badge in review */}
+          {/* Status Badge in review - Ultra Compact */}
           {autoReveal && (
-            <div className="flex justify-center">
-              <Badge variant={userAnswer?.isCorrect ? 'success' as any : 'destructive' as any} className={userAnswer?.isCorrect ? 'bg-green-600' : 'bg-red-600'}>
+            <div className="flex justify-center mb-1">
+              <Badge variant={userAnswer?.isCorrect ? 'success' as any : 'destructive' as any} className={`${userAnswer?.isCorrect ? 'bg-green-600' : 'bg-red-600'} text-xs font-semibold px-2 py-0.5`}>
                 {userAnswer?.isCorrect ? 'Correct' : 'Incorrect'}
               </Badge>
             </div>
           )}
 
-          {/* Status Badge + Question Component */}
-          <div className="animate-fade-in-up animate-delay-100">
+          {/* Question Component - Main Content - Fills available space */}
+          <div className="flex-1 min-h-0 animate-fade-in-up animate-delay-100">
             {renderQuestionComponent()}
           </div>
 
-          {/* In review mode, always reveal; remove Show Answer button */}
+          {/* Explanation - Only when revealed, compact */}
           {(isAnswerRevealed || showExplanation) && (
-            <div className="animate-fade-in-up animate-delay-200">
+            <div className="flex-shrink-0 animate-fade-in-up animate-delay-200 max-h-32 overflow-y-auto">
               <AnswerExplanation
                 question={transformedQuestion}
                 userAnswer={userAnswer}

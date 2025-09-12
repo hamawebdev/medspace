@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,13 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Slider } from "@/components/ui/slider";
-import { ChevronLeft, ChevronRight, CheckCircle2, X, CheckSquare, Square } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, X, CheckSquare, Square, RefreshCw } from "lucide-react";
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from "@/hooks/use-subscription";
 import { ContentService } from "@/lib/api-services";
-import { useAvailableQuestionCounts } from "@/hooks/use-available-questions";
+
 import { useQuizFilters } from "@/hooks/use-quiz-api";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useContentFilters, useQuizSessionFilters, useQuestionCount } from "@/hooks/use-content-filters";
 
 export type PracticeSessionPayload = {
   title: string;
@@ -44,43 +45,12 @@ export function SessionWizard({
 }) {
   const [step, setStep] = useState(1);
 
-  // Load user's active subscription and fetch its study pack details (units/modules/courses)
+  // Load user's active subscription and fetch content filters
   const { subscriptions, loading: subsLoading } = useUserSubscriptions();
   const { filters: quizFilters } = useQuizFilters();
-  const [pack, setPack] = useState<any | null>(null);
-  const [packLoading, setPackLoading] = useState<boolean>(true);
-  const [packError, setPackError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchPack() {
-      try {
-        if (subsLoading) return;
-        // Determine a single effective subscription (residency takes precedence; otherwise latest endDate)
-        const { effective } = selectEffectiveActiveSubscription(subscriptions);
-        const studyPackId = effective?.studyPackId || effective?.studyPack?.id;
-        if (!studyPackId) {
-          setPack(null);
-          setPackLoading(false);
-          setPackError('No active subscription found');
-          return;
-        }
-        setPackLoading(true);
-        const res = await ContentService.getStudyPackDetails(Number(studyPackId));
-        if (res.success) {
-          const data = (res.data as any)?.data?.data || (res.data as any)?.data || res.data;
-          setPack(data);
-          setPackError(null);
-        } else {
-          setPackError(typeof res.error === 'string' ? res.error : 'Failed to load study pack');
-        }
-      } catch (e: any) {
-        setPackError(e?.message || 'Failed to load study pack');
-      } finally {
-        setPackLoading(false);
-      }
-    }
-    fetchPack();
-  }, [subsLoading, subscriptions]);
+  const { filters: contentFilters, loading: contentLoading, error: contentError } = useContentFilters();
+  const { filters: sessionFilters, loading: sessionFiltersLoading, error: sessionFiltersError } = useQuizSessionFilters();
+  const { questionCount: availableQuestionCount, totalQuestionCount, loading: questionCountLoading, error: questionCountError, refetch: refetchQuestionCount } = useQuestionCount();
 
   // Step 1
   const [title, setTitle] = useState("");
@@ -103,51 +73,167 @@ export function SessionWizard({
   const next = () => setStep((s) => Math.min(3, s + 1));
   const prev = () => setStep((s) => Math.max(1, s - 1));
 
-  // Build options from study pack
-  const unitOptions = useMemo(() => (
-    pack?.unites?.map((u: any) => ({ value: String(u.id), label: u.name })) || []
-  ), [pack]);
+  // Build options from content filters
+  const unitOptions = useMemo(() => {
+    console.log('🔍 [Practice Session Wizard] Content Filters Data:', contentFilters);
+    console.log('🔍 [Practice Session Wizard] Unites from backend:', contentFilters?.unites);
+    console.log('🔍 [Practice Session Wizard] Independent Modules from backend:', contentFilters?.independentModules);
+
+    const units = contentFilters?.unites?.map((u: any) => ({ value: String(u.id), label: u.name })) || [];
+    console.log('🔍 [Practice Session Wizard] Processed Unit Options:', units);
+
+    return units;
+  }, [contentFilters]);
 
   const moduleOptions = useMemo(() => {
     const modules: any[] = [];
-    (pack?.unites || []).forEach((u: any) => {
-      (u.modules || []).forEach((m: any) => {
-        modules.push({ value: String(m.id), label: m.name, unitId: String(u.id), unitName: u.name });
-      });
-    });
-    return modules;
-  }, [pack]);
 
-  const courseOptions = useMemo(() => {
-    const courses: any[] = [];
-    (pack?.unites || []).forEach((u: any) => {
-      (u.modules || []).forEach((m: any) => {
-        (m.courses || []).forEach((c: any) => {
-          courses.push({
-            value: String(c.id),
-            label: `${c.name} (${m.name})`,
-            moduleId: String(m.id),
-            moduleName: m.name,
-            unitId: String(u.id),
-            unitName: u.name,
-            questionCount: c.statistics?.questionsCount || 0,
-          });
+    console.log('🔍 [Practice Session Wizard] Building module options...');
+
+    // Add modules from unites
+    (contentFilters?.unites || []).forEach((u: any, uniteIndex: number) => {
+      console.log(`🔍 [Practice Session Wizard] Processing Unite ${uniteIndex + 1}:`, u);
+      console.log(`🔍 [Practice Session Wizard] Unite ${u.name} has ${u.modules?.length || 0} modules:`, u.modules);
+
+      (u.modules || []).forEach((m: any, moduleIndex: number) => {
+        console.log(`🔍 [Practice Session Wizard] Adding module ${moduleIndex + 1} from unite ${u.name}:`, m);
+        modules.push({
+          value: String(m.id),
+          label: m.name,
+          unitId: String(u.id),
+          unitName: u.name,
+          description: m.description
         });
       });
     });
+
+    // Add independent modules
+    (contentFilters?.independentModules || []).forEach((m: any, moduleIndex: number) => {
+      console.log(`🔍 [Practice Session Wizard] Adding independent module ${moduleIndex + 1}:`, m);
+      modules.push({
+        value: String(m.id),
+        label: `${m.name} (Independent)`,
+        unitId: null,
+        unitName: null,
+        description: m.description,
+        isIndependent: true
+      });
+    });
+
+    console.log('🔍 [Practice Session Wizard] Final Module Options:', modules);
+    console.log('🔍 [Practice Session Wizard] Total modules found:', modules.length);
+
+    return modules;
+  }, [contentFilters]);
+
+  // Extract courses from content filters based on selected modules or unit
+  const courseOptions = useMemo(() => {
+    if (!contentFilters) return [];
+
+    const courses: any[] = [];
+
+    console.log('🔍 [Practice Session Wizard] Extracting courses from content filters...');
+
+    // If a unit is selected, get all courses from that unit's modules
+    if (unitId && unitId !== "") {
+      const selectedUnit = contentFilters.unites?.find((u: any) => String(u.id) === unitId);
+      if (selectedUnit) {
+        console.log(`🔍 [Practice Session Wizard] Found selected unit: ${selectedUnit.name}`);
+        (selectedUnit.modules || []).forEach((module: any) => {
+          console.log(`🔍 [Practice Session Wizard] Processing module: ${module.name} with ${module.courses?.length || 0} courses`);
+          (module.courses || []).forEach((course: any) => {
+            courses.push({
+              value: String(course.id),
+              label: course.name,
+              description: course.description,
+              moduleId: String(module.id),
+              unitId: unitId,
+              questionCount: 0 // Will be updated via question count API
+            });
+          });
+        });
+      }
+    }
+    // If specific modules are selected, get courses from those modules
+    else if (moduleIds.length > 0) {
+      console.log(`🔍 [Practice Session Wizard] Processing ${moduleIds.length} selected modules`);
+
+      // Check modules within units
+      (contentFilters.unites || []).forEach((unit: any) => {
+        (unit.modules || []).forEach((module: any) => {
+          if (moduleIds.includes(String(module.id))) {
+            console.log(`🔍 [Practice Session Wizard] Found selected module in unit: ${module.name}`);
+            (module.courses || []).forEach((course: any) => {
+              courses.push({
+                value: String(course.id),
+                label: course.name,
+                description: course.description,
+                moduleId: String(module.id),
+                unitId: String(unit.id),
+                questionCount: 0 // Will be updated via question count API
+              });
+            });
+          }
+        });
+      });
+
+      // Check independent modules
+      (contentFilters.independentModules || []).forEach((module: any) => {
+        if (moduleIds.includes(String(module.id))) {
+          console.log(`🔍 [Practice Session Wizard] Found selected independent module: ${module.name}`);
+          (module.courses || []).forEach((course: any) => {
+            courses.push({
+              value: String(course.id),
+              label: course.name,
+              description: course.description,
+              moduleId: String(module.id),
+              unitId: null, // Independent modules don't belong to a unit
+              questionCount: 0 // Will be updated via question count API
+            });
+          });
+        }
+      });
+    }
+
+    console.log(`🔍 [Practice Session Wizard] Total courses extracted: ${courses.length}`);
     return courses;
-  }, [pack]);
+  }, [contentFilters, unitId, moduleIds]);
 
   // Filter options by current selections
   const availableUnits = unitOptions;
   const availableModules = useMemo(() => {
-    return moduleOptions.filter((m: any) => !unitId || unitId === "" || m.unitId === unitId);
+    // When a unit is selected, show only modules from that unit
+    if (unitId && unitId !== "") {
+      return moduleOptions.filter((m: any) => m.unitId === unitId);
+    }
+    // When no unit is selected, show only independent modules
+    else {
+      return moduleOptions.filter((m: any) => m.isIndependent === true);
+    }
   }, [moduleOptions, unitId]);
 
   const availableCourses = useMemo(() => {
-    const selectedModules = new Set(moduleIds);
-    return courseOptions.filter((c: any) => (!unitId || unitId === "" || c.unitId === unitId) && (selectedModules.size === 0 || selectedModules.has(c.moduleId)));
-  }, [courseOptions, unitId, moduleIds]);
+    // If we're loading content filters or have an error, return empty array
+    if (contentLoading || contentError || !courseOptions.length) {
+      return [];
+    }
+
+    // If a unit is selected, all courses from that unit are available
+    if (unitId && unitId !== "") {
+      return courseOptions;
+    }
+
+    // If modules are selected, filter courses by those modules
+    if (moduleIds.length > 0) {
+      const selectedModules = new Set(moduleIds);
+      return courseOptions.filter((c: any) =>
+        !c.moduleId || selectedModules.has(c.moduleId)
+      );
+    }
+
+    // No selection, no courses available
+    return [];
+  }, [courseOptions, unitId, moduleIds, contentLoading, contentError]);
 
   // Handle removing individual courses
   const removeCourse = (courseIdToRemove: string) => {
@@ -166,6 +252,57 @@ export function SessionWizard({
 
   const areAllCoursesSelected = availableCourses.length > 0 && courseIds.length === availableCourses.length;
 
+  // Helper function to extract course IDs from content filters based on selections
+  const extractCourseIdsFromContentFilters = (): number[] => {
+    if (!contentFilters) return [];
+
+    const courseIds: number[] = [];
+
+    // If a unit is selected, collect all course IDs from that unit's modules
+    if (unitId && unitId !== "") {
+      const selectedUnit = contentFilters.unites?.find((u: any) => u.id === Number(unitId));
+      if (selectedUnit?.modules) {
+        selectedUnit.modules.forEach((module: any) => {
+          if (module.courses) {
+            module.courses.forEach((course: any) => {
+              courseIds.push(course.id);
+            });
+          }
+        });
+      }
+    }
+    // If specific modules are selected, collect course IDs from those modules
+    else if (moduleIds.length > 0) {
+      const selectedModuleIds = moduleIds.map(Number);
+
+      // Check modules within unites
+      contentFilters.unites?.forEach((unite: any) => {
+        unite.modules?.forEach((module: any) => {
+          if (selectedModuleIds.includes(module.id) && module.courses) {
+            module.courses.forEach((course: any) => {
+              courseIds.push(course.id);
+            });
+          }
+        });
+      });
+
+      // Check independent modules
+      contentFilters.independentModules?.forEach((module: any) => {
+        if (selectedModuleIds.includes(module.id) && module.courses) {
+          module.courses.forEach((course: any) => {
+            courseIds.push(course.id);
+          });
+        }
+      });
+    }
+    // If specific courses are selected, use those
+    else if (courseIds.length > 0) {
+      return courseIds.map(Number);
+    }
+
+    return [...new Set(courseIds)]; // Remove duplicates
+  };
+
   // Handle selecting/deselecting all modules
   const selectAllModules = () => {
     const allModuleIds = availableModules.map((m: any) => m.value);
@@ -181,7 +318,7 @@ export function SessionWizard({
   const areAllModulesSelected = availableModules.length > 0 && moduleIds.length === availableModules.length;
 
   // Handle selecting/deselecting all exam years
-  const availableYearOptions = (quizFilters?.availableQuizYears || quizFilters?.availableYears || []);
+  const availableYearOptions = (sessionFilters?.questionYears || []);
   const selectAllYears = () => {
     setQuizYears([...availableYearOptions]);
   };
@@ -193,7 +330,7 @@ export function SessionWizard({
   const areAllYearsSelected = availableYearOptions.length > 0 && quizYears.length === availableYearOptions.length;
 
   // Handle selecting/deselecting all sources
-  const availableSourceOptions = (quizFilters?.quizSources || []);
+  const availableSourceOptions = (sessionFilters?.questionSources || []);
   const selectAllSources = () => {
     const allSourceIds = availableSourceOptions.map((s: any) => Number(s.id));
     setQuizSourceIds(allSourceIds);
@@ -224,60 +361,146 @@ export function SessionWizard({
     const firstModule = availableModules.find((m: any) => moduleIds.includes(m.value));
     const moduleName = firstModule?.label;
     const courseLabels = courseOptions.filter((c: any) => courseIds.includes(c.value)).map((c: any) => c.label.split(' (')[0]);
-    const base = courseLabels.slice(0, 2).join(', ') || moduleName || unitName || pack?.name || 'Practice Session';
+    const base = courseLabels.slice(0, 2).join(', ') || moduleName || unitName || 'Practice Session';
     return base;
-  }, [title, unitId, moduleIds, courseIds, availableUnits, availableModules, courseOptions, pack?.name]);
+  }, [title, unitId, moduleIds, courseIds, availableUnits, availableModules, courseOptions]);
 
   // Compute allowed yearLevels from subscriptions
   const allowedYearLevels = useMemo(() => {
     return selectEffectiveActiveSubscription(subscriptions).allowedYearLevels;
   }, [subscriptions]);
 
-  // Real-time counts via API with 300ms debounce
-  const selectedCourseIdsNum = useMemo(() => courseIds.map(Number), [courseIds]);
-  const mappedTypes = useMemo(() => types.map(t => t.toUpperCase() === 'QCM' ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE'), [types]);
-  const filtersForCounts = useMemo(() => ({
-    yearLevels: allowedYearLevels,
-    courseIds: selectedCourseIdsNum,
-    moduleIds: moduleIds.length ? moduleIds.map(Number) : undefined,
-    uniteIds: unitId && unitId !== "" ? [Number(unitId)] : undefined,
-    questionTypes: mappedTypes,
-    quizSourceIds,
-    // Prefer explicit list of years; backend supports this
-    quizYears: quizYears.length ? quizYears : undefined,
-  }), [allowedYearLevels, selectedCourseIdsNum, moduleIds, unitId, mappedTypes, quizSourceIds, quizYears]);
-  const debouncedFilters = useDebounce(filtersForCounts, 300);
-  const courseCountsById = useMemo(() => Object.fromEntries(courseOptions.map((c: any) => [Number(c.value), c.questionCount || 0])), [courseOptions]);
-  const { data: counts, isLoading: countsLoading, error: countsError, refetch: refetchCounts } = useAvailableQuestionCounts(
-    debouncedFilters,
-    !!allowedYearLevels.length && ((moduleIds && moduleIds.length > 0) || selectedCourseIdsNum.length > 0),
-    { courseCountsById }
-  );
+  // Real-time counts via API with 300ms debounce using new endpoint
+  const selectedCourseIdsNum = useMemo(() => {
+    // If specific courses are selected, use those
+    if (courseIds.length > 0) {
+      return courseIds.map(Number);
+    }
+    // Otherwise, extract course IDs from unit/module selections
+    return extractCourseIdsFromContentFilters();
+  }, [courseIds, unitId, moduleIds, contentFilters]);
 
-  // Use only server-reported counts to avoid overcounting; default to 0 until available
-  const totalAvailable = typeof counts?.total === 'number' ? counts.total : 0;
+  const mappedTypes = useMemo(() => types.map(t => t.toUpperCase() === 'QCM' ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE'), [types]);
+
+  // Validate if all required filters are present for practice sessions
+  const areRequiredFiltersComplete = useMemo(() => {
+    // For practice sessions, the minimum requirement is having courses selected
+    const hasCourses = selectedCourseIdsNum.length > 0;
+
+    // Additional validation: ensure we have a valid unit or module selection
+    const hasValidSelection = (unitId && unitId !== "") || moduleIds.length > 0;
+
+    console.log('🔍 [Practice Session Wizard] Filter validation:', {
+      hasCourses,
+      hasValidSelection,
+      courseCount: selectedCourseIdsNum.length,
+      unitId,
+      moduleCount: moduleIds.length,
+      isComplete: hasCourses && hasValidSelection
+    });
+
+    return hasCourses && hasValidSelection;
+  }, [selectedCourseIdsNum, unitId, moduleIds]);
+
+  const filtersForCounts = useMemo(() => ({
+    courseIds: selectedCourseIdsNum,
+    questionTypes: mappedTypes.length > 0 ? mappedTypes as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'> : undefined,
+    years: quizYears.length > 0 ? quizYears : undefined,
+    questionSourceIds: quizSourceIds.length > 0 ? quizSourceIds : undefined,
+  }), [selectedCourseIdsNum, mappedTypes, quizYears, quizSourceIds]);
+
+  const debouncedFilters = useDebounce(filtersForCounts, 300);
+
+  // Track last filters to prevent duplicate calls
+  const lastFiltersRef = useRef<string>('');
+
+  // Fetch question count only when all required filters are complete AND we're in Step 2 or later
+  useEffect(() => {
+    if (areRequiredFiltersComplete && step >= 2) {
+      // Create a stable key for comparison
+      const filtersKey = JSON.stringify(debouncedFilters);
+
+      // Only fetch if filters have actually changed
+      if (filtersKey !== lastFiltersRef.current) {
+        console.log('🚀 [Practice Session Wizard] Fetching question count with complete filters:', debouncedFilters);
+        lastFiltersRef.current = filtersKey;
+        refetchQuestionCount(debouncedFilters);
+      } else {
+        console.log('⏸️ [Practice Session Wizard] Skipping question count fetch - filters unchanged');
+      }
+    } else {
+      console.log('⏸️ [Practice Session Wizard] Skipping question count fetch - incomplete filters or not in Step 2+');
+      // Reset the ref when conditions are not met
+      lastFiltersRef.current = '';
+    }
+  }, [debouncedFilters, areRequiredFiltersComplete, step]);
+
+  // Use the new question count from the API
+  const totalAvailable = availableQuestionCount;
+
+  // Provide a simple breakdown for UI display (since the new API doesn't provide type breakdown)
+  const counts = useMemo(() => {
+    if (!totalAvailable) return null;
+
+    // Simple fallback - we don't have actual breakdown from the new API
+    // This is just for UI display purposes
+    return {
+      MULTIPLE_CHOICE: totalAvailable, // Show total for now
+      SINGLE_CHOICE: totalAvailable,   // Show total for now
+    };
+  }, [totalAvailable]);
 
   useEffect(() => {
     // Update questionCount when available total changes
     if (totalAvailable > 0) {
-      setQuestionCount((prev) => Math.min(Math.max(prev || Math.min(10, totalAvailable), 1), totalAvailable));
+      // Only set question count if we don't have a previous value
+      // Use a reasonable default based on available questions (no hardcoded fallbacks)
+      setQuestionCount((prev) => {
+        if (prev && prev > 0) {
+          // Keep existing value but ensure it's within bounds
+          return Math.min(prev, totalAvailable);
+        } else {
+          // Set initial value to a reasonable percentage of available questions
+          const initialCount = Math.min(Math.max(Math.floor(totalAvailable * 0.1), 1), 20);
+          return Math.min(initialCount, totalAvailable);
+        }
+      });
     } else {
       setQuestionCount(0);
     }
   }, [totalAvailable]);
 
-  const step1Valid = !!suggestedTitle && unitId && unitId !== "" && moduleIds.length > 0 && courseIds.length > 0;
-  const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= totalAvailable;
+  // Step 1 validation: only requires title and unit/module selection (no question count needed)
+  const step1Valid = !!suggestedTitle && ((unitId && unitId !== "") || moduleIds.length > 0);
+  const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= totalAvailable && !questionCountError;
 
   const canNext = useMemo(() => {
-    if (step === 1) return step1Valid && !packLoading && !packError;
-    if (step === 2) return step2Valid;
+    if (step === 1) return step1Valid && !contentLoading && !contentError;
+    if (step === 2) return step2Valid && !questionCountLoading;
     return true;
-  }, [step, step1Valid, step2Valid, packLoading, packError]);
+  }, [step, step1Valid, step2Valid, contentLoading, contentError, questionCountLoading, questionCountError]);
 
   const handleCreate = () => {
     const finalTitle = (title.trim() || suggestedTitle || 'Practice Session').slice(0, 200);
     if (finalTitle.length < 3) return; // enforce min 3 chars
+
+    // Extract course IDs based on current selections
+    let finalCourseIds: number[] = [];
+
+    // If specific courses are selected, use those
+    if (courseIds.length > 0) {
+      finalCourseIds = courseIds.map(Number);
+    } else {
+      // Otherwise, extract course IDs from unit/module selections
+      finalCourseIds = extractCourseIdsFromContentFilters();
+    }
+
+    // Prepare filters for the new API format
+    const sessionFilters = {
+      questionTypes: types.map(t => t.toUpperCase() === 'QCM' ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE') as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>,
+      questionSourceIds: quizSourceIds,
+      years: quizYears.length ? quizYears : undefined,
+    };
 
     onCreate({
       title: finalTitle,
@@ -285,13 +508,15 @@ export function SessionWizard({
       unitId: unitId && unitId !== "" ? Number(unitId) : undefined,
       // expose moduleIds for multi-select
       ...(moduleIds.length ? { moduleIds: moduleIds.map(Number) } : {} as any),
-      courseIds: courseIds.map((id) => Number(id)),
+      courseIds: finalCourseIds, // Use extracted course IDs
       availableCount: totalAvailable,
       filters: {
         types,
         quizSourceIds,
         quizYears: quizYears.length ? quizYears : undefined,
       },
+      // New API format filters
+      sessionFilters,
       questionCount: questionCount || undefined,
       timeLimit: timeLimit,
     } as any);
@@ -305,12 +530,18 @@ export function SessionWizard({
             <CardTitle>Create Practice Session</CardTitle>
             <p className="text-sm text-muted-foreground">3 steps • no data connected yet</p>
           </div>
-          <div className="min-w-[200px]">
-            <Progress value={progressPct} className="progress-animated" />
-          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6 p-4 sm:p-6">
+        {/* Error handling */}
+        {contentError && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <p className="text-sm text-destructive">
+              Failed to load content: {contentError}
+            </p>
+          </div>
+        )}
+
         {/* Stepper */}
         <div className="flex items-center gap-3">
           {[1, 2, 3].map((i) => (
@@ -339,7 +570,6 @@ export function SessionWizard({
                   onChange={(e) => setTitle(e.target.value)}
                   className="quiz-input-enhanced w-full"
                 />
-                <p className="text-xs text-muted-foreground">Default from API/context; you can modify it.</p>
               </div>
             </div>
 
@@ -359,7 +589,7 @@ export function SessionWizard({
                       }
                     }}>
                       <SelectTrigger className="pr-16 overflow-hidden">
-                        <SelectValue placeholder={packLoading ? "Loading units..." : "Select unit"} className="truncate block w-full" />
+                        <SelectValue placeholder={contentLoading ? "Loading units..." : "Select unit"} className="truncate block w-full" />
                       </SelectTrigger>
                       <SelectContent>
                         {availableUnits.map((u: any) => (
@@ -424,7 +654,7 @@ export function SessionWizard({
                     options={availableModules}
                     value={moduleIds}
                     onChange={(vals) => { setModuleIds(vals); setCourseIds([]); }}
-                    placeholder={!unitId || unitId === "" ? "Select unit first" : (packLoading ? "Loading modules..." : "Select modules")}
+                    placeholder={!unitId || unitId === "" ? "Select unit first" : (contentLoading ? "Loading modules..." : "Select modules")}
                   />
                 </div>
               </div>
@@ -441,7 +671,7 @@ export function SessionWizard({
                         </span>
                       )}
                     </Label>
-                    {moduleIds.length > 0 && availableCourses.length > 0 && (
+                    {(unitId || moduleIds.length > 0) && availableCourses.length > 0 && !contentLoading && (
                       <Button
                         type="button"
                         variant="outline"
@@ -464,11 +694,28 @@ export function SessionWizard({
                     )}
                   </div>
                   <MultiSelect
-                    options={moduleIds.length ? availableCourses : []}
+                    options={availableCourses}
                     value={courseIds}
                     onChange={setCourseIds}
-                    placeholder={!moduleIds.length ? "Select modules first" : (packLoading ? "Loading courses..." : "Select courses")}
+                    placeholder={
+                      !unitId && !moduleIds.length
+                        ? "Select unit or modules first"
+                        : contentLoading
+                          ? "Loading courses..."
+                          : contentError
+                            ? "Error loading courses"
+                            : availableCourses.length === 0
+                              ? "No courses available"
+                              : "Select courses"
+                    }
                   />
+
+                  {/* Course Loading/Error States */}
+                  {contentError && (
+                    <div className="text-sm text-red-600 mt-1">
+                      Error loading courses: {contentError}
+                    </div>
+                  )}
                 </div>
 
                 {/* Selected Courses Display */}
@@ -496,27 +743,6 @@ export function SessionWizard({
                 )}
               </div>
             </div>
-
-            {!!courseIds.length && (
-              <div className="space-y-2">
-                <Label>Available Questions</Label>
-                <div className="flex items-center gap-4">
-                  <Progress value={Math.min(100, totalAvailable > 0 ? 100 : 0)} className="flex-1" />
-                  <div className="text-sm text-muted-foreground whitespace-nowrap">
-                    {countsLoading ? 'Loading...' : `${totalAvailable} total`}
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {mappedTypes.length === 2
-                    ? `${counts?.MULTIPLE_CHOICE ?? '—'} QCM, ${counts?.SINGLE_CHOICE ?? '—'} QCS available`
-                    : mappedTypes[0] === 'MULTIPLE_CHOICE'
-                      ? `${counts?.MULTIPLE_CHOICE ?? '—'} QCM available`
-                      : mappedTypes[0] === 'SINGLE_CHOICE'
-                        ? `${counts?.SINGLE_CHOICE ?? '—'} QCS available`
-                        : 'Breakdown appears once you select a type.'}
-                </p>
-              </div>
-            )}
 
 
           </div>
@@ -682,36 +908,84 @@ export function SessionWizard({
                     max={Math.max(1, totalAvailable)}
                     value={[Math.min(Math.max(1, questionCount), Math.max(1, totalAvailable))]}
                     onValueChange={([v]) => setQuestionCount(v)}
-                    disabled={countsLoading || totalAvailable === 0}
+                    disabled={questionCountLoading || totalAvailable === 0 || !!questionCountError}
                     aria-valuetext={`${questionCount} questions`}
                   />
                 </div>
-                <div className="w-14 text-right text-sm">{countsLoading ? '...' : questionCount}</div>
+                <div className="w-14 text-right text-sm">
+                  {questionCountLoading ? '...' : questionCountError ? '—' : questionCount}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">Max available: {countsLoading ? '...' : totalAvailable}</p>
+              <p className="text-xs text-muted-foreground">
+                Max available: {questionCountLoading ? '...' : questionCountError ? 'Error loading' : totalAvailable}
+              </p>
             </div>
 
-            {!!courseIds.length && (
+            {/* Question Count Error Handling */}
+            {questionCountError && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-destructive font-medium">Failed to load question count</p>
+                    <p className="text-xs text-destructive/80 mt-1">{questionCountError}</p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (areRequiredFiltersComplete) {
+                        refetchQuestionCount(debouncedFilters);
+                      }
+                    }}
+                    variant="outline"
+                    size="sm"
+                    disabled={questionCountLoading}
+                    className="text-destructive border-destructive/20 hover:bg-destructive/10"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${questionCountLoading ? 'animate-spin' : ''}`} />
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {areRequiredFiltersComplete && !questionCountError ? (
               <div className="space-y-2">
                 <Label>Available Questions</Label>
-                <div className="flex items-center gap-4">
-                  <Progress value={Math.min(100, totalAvailable > 0 ? 100 : 0)} className="flex-1" />
-                  <div className="text-sm text-muted-foreground whitespace-nowrap">
-                    {countsLoading ? 'Loading...' : `${totalAvailable} total`}
+                {questionCountLoading ? (
+                  <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <div className="text-sm text-muted-foreground">
+                      Fetching question count...
+                    </div>
                   </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {mappedTypes.length === 2
-                    ? `${counts?.MULTIPLE_CHOICE ?? '—'} QCM, ${counts?.SINGLE_CHOICE ?? '—'} QCS available`
-                    : mappedTypes[0] === 'MULTIPLE_CHOICE'
-                      ? `${counts?.MULTIPLE_CHOICE ?? totalAvailable} QCM available`
-                      : mappedTypes[0] === 'SINGLE_CHOICE'
-                        ? `${counts?.SINGLE_CHOICE ?? totalAvailable} QCS available`
-                        : 'Counts update with your selections.'}
-                </p>
-                {totalAvailable === 0 && (
-                  <p className="text-xs text-red-600">0 questions available with current filters. Please adjust your filters.</p>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4">
+                      <Progress value={Math.min(100, totalAvailable > 0 ? 100 : 0)} className="flex-1" />
+                      <div className="text-sm text-muted-foreground whitespace-nowrap">
+                        {`${totalAvailable} total`}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {mappedTypes.length === 2
+                        ? `${counts?.MULTIPLE_CHOICE ?? '—'} QCM, ${counts?.SINGLE_CHOICE ?? '—'} QCS available`
+                        : mappedTypes[0] === 'MULTIPLE_CHOICE'
+                          ? `${counts?.MULTIPLE_CHOICE ?? totalAvailable} QCM available`
+                          : mappedTypes[0] === 'SINGLE_CHOICE'
+                            ? `${counts?.SINGLE_CHOICE ?? totalAvailable} QCS available`
+                            : 'Counts update with your selections.'}
+                    </p>
+                    {totalAvailable === 0 && (
+                      <p className="text-xs text-red-600">0 questions available with current filters. Please adjust your filters.</p>
+                    )}
+                  </>
                 )}
+              </div>
+            ) : areRequiredFiltersComplete && questionCountError ? null : (
+              <div className="space-y-2">
+                <Label>Available Questions</Label>
+                <div className="text-sm text-muted-foreground p-4 border rounded-lg bg-muted/50">
+                  <p>Complete your selection to see available questions.</p>
+                </div>
               </div>
             )}
           </div>
@@ -795,7 +1069,12 @@ export function SessionWizard({
                 Next <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             ) : (
-              <Button onClick={handleCreate} disabled={!(step1Valid && step2Valid) || totalAvailable === 0} className="practice-button" aria-disabled={!(step1Valid && step2Valid) || totalAvailable === 0}>
+              <Button
+                onClick={handleCreate}
+                disabled={!(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError}
+                className="practice-button"
+                aria-disabled={!(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError}
+              >
                 Create Session
               </Button>
             )}

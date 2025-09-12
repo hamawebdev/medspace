@@ -9,6 +9,7 @@ export interface QuizAnswer {
   questionId: number;
   selectedAnswerId?: number;
   selectedAnswerIds?: number[];
+  selectedOptions?: string[]; // For backward compatibility
   textAnswer?: string;
   isCorrect?: boolean;
   timeSpent: number;

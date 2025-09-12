@@ -33,22 +33,23 @@ export default function StudentSessionRunnerPage() {
 
   useEffect(() => {
     if (apiSession) {
-      const sessionData = apiSession.data?.data || apiSession.data || apiSession;
-      const sessionType = sessionData.type || 'PRACTICE';
+      // Parse response according to session-doc.md structure
+      // Expected structure: { success: true, data: { id, title, type, status, questions, answers, ... } }
+      const responseData = apiSession.data || apiSession;
+      const sessionData = responseData.data || responseData;
 
-      const totalQ = sessionData.questions?.length || 0;
-      const answeredCount = Array.isArray(sessionData.answers) ? sessionData.answers.length : 0;
+      // Validate we have the expected session data structure
+      if (!sessionData || typeof sessionData.id !== 'number') {
+        console.error('Invalid session data structure:', sessionData);
+        return;
+      }
+
+      const sessionType = sessionData.type || 'PRACTICE';
       const serverStatus = sessionData.status;
       const isServerCompleted = serverStatus === 'COMPLETED';
 
-      // Extract questions early so subsequent logic can reference it safely
-      const extractedQuestions = Array.isArray(sessionData.questions)
-        ? sessionData.questions
-        : (Array.isArray(sessionData?.data?.questions)
-            ? sessionData.data.questions
-            : (Array.isArray(sessionData?.session?.questions)
-                ? sessionData.session.questions
-                : []));
+      // Extract questions from the documented structure
+      const extractedQuestions = Array.isArray(sessionData.questions) ? sessionData.questions : [];
 
       if (!extractedQuestions.length) {
         console.debug('[SessionRunner] No questions extracted from API payload', {
@@ -59,53 +60,39 @@ export default function StudentSessionRunnerPage() {
         });
       }
 
-      // Build userAnswers map from API answers for proper review highlighting (supports QCS and QCM)
+      // Build userAnswers map from API answers according to session-doc.md structure
+      // The answers array contains objects with questionId only (no selected answers in this structure)
       const answersArr = Array.isArray(sessionData.answers) ? sessionData.answers : [];
       const builtUserAnswers = (() => {
         const map: Record<string, any> = {};
 
-        // Prefer server-provided userAnswers if present; we'll merge with answersArr data
-        if (sessionData.userAnswers && typeof sessionData.userAnswers === 'object') {
-          for (const [qidStr, ua] of Object.entries(sessionData.userAnswers)) {
-            const qid = String(qidStr);
-            const selectedIds = Array.isArray((ua as any).selectedAnswerIds)
-              ? (ua as any).selectedAnswerIds.map((n: any) => String(n))
-              : Array.isArray((ua as any).selectedOptions)
-                ? (ua as any).selectedOptions.map((s: any) => String(s))
-                : (typeof (ua as any).selectedAnswerId !== 'undefined' ? [String((ua as any).selectedAnswerId)] : []);
+        // According to session-doc.md, answers array contains objects like { "questionId": 1 }
+        // This indicates which questions have been answered, but not the actual selected answers
+        // The actual selected answers would be stored separately or retrieved from submission history
+        for (const answer of answersArr) {
+          const qid = String(answer.questionId);
+          if (qid) {
             map[qid] = {
               questionId: qid,
-              selectedOptions: selectedIds,
+              selectedOptions: [], // Will be populated from local storage or submission data
             };
           }
         }
 
-        // Merge in selections from answers array
-        for (const a of answersArr) {
-          const qid = String(a.questionId || a.question?.id || a.id);
-          if (!qid) continue;
-          const ids: string[] = Array.isArray(a.selectedAnswerIds) && a.selectedAnswerIds.length
-            ? a.selectedAnswerIds.map((n: any) => String(n))
-            : (typeof a.selectedAnswerId !== 'undefined' || typeof a.answerId !== 'undefined' || typeof a.selectedOptionId !== 'undefined')
-              ? [String(a.selectedAnswerId ?? a.answerId ?? a.selectedOptionId)]
-              : [];
-          if (!ids.length) continue;
-          if (!map[qid]) map[qid] = { questionId: qid, selectedOptions: [] as string[] };
-          const arr = map[qid].selectedOptions as string[];
-          ids.forEach(id => { if (!arr.includes(id)) arr.push(id); });
-        }
-
-        // Compute isCorrect per question when possible
+        // Compute isCorrect per question when possible using documented structure
         const questionById: Record<string, any> = {};
         (extractedQuestions || []).forEach((q: any) => { questionById[String(q.id)] = q; });
         for (const [qid, entry] of Object.entries(map)) {
           const q = questionById[qid];
           const selected = new Set((entry as any).selectedOptions || []);
+
+          // According to session-doc.md, answers are in questionAnswers array
           const correctIds = new Set(
-            (q?.answers || q?.options || [])
+            (q?.questionAnswers || [])
               .filter((ans: any) => ans.isCorrect)
               .map((ans: any) => String(ans.id))
           );
+
           if (correctIds.size > 0) {
             const sameSize = selected.size === correctIds.size;
             const allMatch = sameSize && Array.from(selected).every(id => correctIds.has(id));
@@ -120,9 +107,21 @@ export default function StudentSessionRunnerPage() {
 
       const isReview = searchParams?.get('review') === '1';
       const transformedSession = {
-        ...sessionData,
+        // Use documented session structure from session-doc.md
+        id: sessionData.id,
+        title: sessionData.title || 'Quiz Session',
+        type: sessionData.type || 'PRACTICE',
+        status: isReview ? 'COMPLETED' : (sessionData.status || 'NOT_STARTED'),
+        score: sessionData.score || 0,
+        percentage: sessionData.percentage || 0,
+        questions: extractedQuestions,
+        answers: sessionData.answers || [],
+        createdAt: sessionData.createdAt,
+        updatedAt: sessionData.updatedAt,
+
+        // Additional fields for quiz functionality
         settings: {
-          showTimer: !isReview, // hide timer in review by default
+          showTimer: !isReview,
           allowPause: !isReview,
           showProgress: true,
           randomizeOptions: false,
@@ -133,10 +132,7 @@ export default function StudentSessionRunnerPage() {
         userAnswers: builtUserAnswers,
         subject: sessionData.subject || (sessionType === 'EXAM' ? 'Exam' : 'General'),
         unit: sessionData.unit || (sessionType === 'EXAM' ? 'Exam Session' : 'Practice'),
-        status: isReview ? 'COMPLETED' : (serverStatus || 'active'),
-        questions: extractedQuestions,
-        type: sessionType,
-        timeLimit: sessionData.settings?.timeLimit, // Pass through time limit from settings
+        timeLimit: sessionData.settings?.timeLimit,
       };
 
       setQuizSession(transformedSession);

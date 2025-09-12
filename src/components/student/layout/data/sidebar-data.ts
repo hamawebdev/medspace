@@ -11,7 +11,8 @@ import {
   ClipboardCheck,
   CreditCard,
   Settings,
-  Stethoscope
+  Stethoscope,
+  Target
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -51,6 +52,11 @@ export const sidebarData: SidebarData = {
     {
       title: 'Organization',
       items: [
+        {
+          title: 'Suivi Cours',
+          url: '/student/suivi-cours',
+          icon: Target,
+        },
         {
           title: 'Notes',
           url: '/student/notes',

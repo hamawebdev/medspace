@@ -59,7 +59,8 @@ type ApiQuizAction =
   | { type: 'LOAD_LOCAL_ANSWERS'; answers: Record<number, QuizAnswer> }
   | { type: 'SAVE_LOCAL_ANSWER'; answer: QuizAnswer }
   | { type: 'SET_PENDING_SUBMISSION'; pending: boolean }
-  | { type: 'TRIGGER_EDIT'; at: number };
+  | { type: 'TRIGGER_EDIT'; at: number }
+  | { type: 'UPDATE_SESSION_RESULTS'; results: { score: number; percentage: number; timeSpent: number; answeredQuestions: number; totalQuestions: number } };
 
 // Enhanced quiz reducer with API integration
 function apiQuizReducer(state: ApiQuizState, action: ApiQuizAction): ApiQuizState {
@@ -319,8 +320,8 @@ function apiQuizReducer(state: ApiQuizState, action: ApiQuizAction): ApiQuizStat
           isRunning: false,
           isPaused: false,
         },
-        showExplanation: true,
-        isAnswerRevealed: true,
+        // Don't auto-reveal answers when completing quiz
+        // Users should explicitly click "Show Answer" to see explanations
       };
 
     case 'SET_AUTO_SAVE':
@@ -360,6 +361,19 @@ function apiQuizReducer(state: ApiQuizState, action: ApiQuizAction): ApiQuizStat
       return {
         ...state,
         editTriggerAt: action.at,
+      };
+
+    case 'UPDATE_SESSION_RESULTS':
+      return {
+        ...state,
+        session: {
+          ...state.session,
+          score: action.results.score,
+          percentage: action.results.percentage,
+          timeSpent: action.results.timeSpent,
+          answeredQuestions: action.results.answeredQuestions,
+          totalQuestions: action.results.totalQuestions,
+        },
       };
 
     default:
@@ -419,8 +433,8 @@ export function ApiQuizProvider({
       isRunning: initialSession.status !== 'COMPLETED',
     },
     currentQuestion: initialSession.questions?.[initialSession.currentQuestionIndex] || null,
-    isAnswerRevealed: initialSession.status === 'COMPLETED',
-    showExplanation: initialSession.status === 'COMPLETED',
+    isAnswerRevealed: false, // Only reveal when user explicitly clicks "Show Answer" button
+    showExplanation: false, // Only show when user explicitly requests it
     sidebarOpen: true,
     apiSessionId,
     submittingAnswer: false,
@@ -536,8 +550,15 @@ export function ApiQuizProvider({
       const quizAnswer: QuizAnswer = {
         questionId: Number(questionId),
         ...(Array.isArray(selected)
-          ? { selectedAnswerIds: selected.map(Number) as number[] }
-          : { selectedAnswerId: Number(selected), selectedAnswerIds: [Number(selected)] as number[] }),
+          ? {
+              selectedAnswerIds: selected.map(Number) as number[],
+              selectedOptions: selected.map(String)
+            }
+          : {
+              selectedAnswerId: Number(selected),
+              selectedAnswerIds: [Number(selected)] as number[],
+              selectedOptions: [String(selected)]
+            }),
         timeSpent: state.timer.questionTime,
         timestamp: new Date(),
         isCorrect: undefined,
@@ -600,13 +621,14 @@ export function ApiQuizProvider({
         questionId: parseInt(state.currentQuestion.id),
         selectedAnswerId: selectedAnswerId ? parseInt(selectedAnswerId) : undefined,
         selectedAnswerIds: answer.selectedOptions?.map((id: string) => parseInt(id)),
+        selectedOptions: answer.selectedOptions, // Keep for backward compatibility
         textAnswer: answer.textAnswer,
         isCorrect: answer.isCorrect,
         timeSpent: state.timer.questionTime,
         timestamp: new Date(),
         flags: answer.flags || [],
         notes: answer.notes,
-      };
+      } as any;
 
       // Mark the session as IN_PROGRESS locally the first time an answer is saved
       if (quizStorage.loadSessionState(apiSessionId)?.status === 'NOT_STARTED') {
@@ -627,15 +649,106 @@ export function ApiQuizProvider({
 
   const revealAnswer = useCallback(() => {
     dispatch({ type: 'REVEAL_ANSWER' });
+
+    // Scroll to explanation after a short delay to allow DOM update
+    setTimeout(() => {
+      const explanationElement = document.getElementById('answer-explanation');
+      if (explanationElement) {
+        explanationElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+      }
+    }, 100);
   }, []);
 
   const toggleExplanation = useCallback(() => {
     dispatch({ type: 'TOGGLE_EXPLANATION' });
   }, []);
 
-  const pauseQuiz = useCallback(() => {
+  const pauseQuiz = useCallback(async () => {
+    try {
+      // First submit all answered questions to the API
+      if (apiSessionId && enableApiSubmission) {
+        const answersToSubmit = Object.keys(state.session.userAnswers).filter(
+          questionId => {
+            const answer = state.session.userAnswers[questionId];
+            return answer && (answer.selectedOptions?.length || answer.textAnswer);
+          }
+        );
+
+        if (answersToSubmit.length > 0) {
+          console.log(`📤 Auto-submitting ${answersToSubmit.length} answers on pause...`);
+
+          // Submit answers using existing submitAllAnswers logic but only for answered questions
+          const answersForSubmission = answersToSubmit.map(questionId => {
+            const answer = state.session.userAnswers[questionId];
+            return {
+              questionId: Number(questionId),
+              selectedAnswerId: answer.selectedOptions?.[0],
+              selectedAnswerIds: answer.selectedOptions,
+              textAnswer: answer.textAnswer,
+              timeSpent: answer.timeSpent || 0
+            };
+          });
+
+          // Build question type lookup
+          const questionTypeById: Record<number, string> = {};
+          (state.session.questions || []).forEach((q: any) => {
+            const qt = (q.questionType || q.type || '').toString().toUpperCase();
+            questionTypeById[Number(q.id)] = qt || 'SINGLE_CHOICE';
+          });
+
+          // Convert to API format
+          const apiAnswers = answersForSubmission.map(answer => {
+            const qType = questionTypeById[Number(answer.questionId)] || 'SINGLE_CHOICE';
+            const isSingle = qType === 'SINGLE_CHOICE' || qType === 'QCS';
+            const isMulti = qType === 'MULTIPLE_CHOICE' || qType === 'QCM';
+
+            if (isSingle) {
+              const selectedId = typeof answer.selectedAnswerId === 'number'
+                ? answer.selectedAnswerId
+                : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? Number(answer.selectedAnswerIds[0]) : undefined);
+              return {
+                questionId: Number(answer.questionId),
+                ...(Number.isFinite(selectedId as number) ? { selectedAnswerId: Number(selectedId) } : {}),
+                timeSpent: answer.timeSpent,
+              };
+            }
+
+            if (isMulti) {
+              const ids = Array.isArray(answer.selectedAnswerIds) ? answer.selectedAnswerIds.map(Number).filter(n => Number.isFinite(n)) : [];
+              return {
+                questionId: Number(answer.questionId),
+                ...(ids.length ? { selectedAnswerIds: ids } : {}),
+                timeSpent: answer.timeSpent,
+              };
+            }
+
+            return {
+              questionId: Number(answer.questionId),
+              ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
+                : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
+              timeSpent: answer.timeSpent,
+            };
+          }).filter(entry => entry.selectedAnswerId || entry.selectedAnswerIds);
+
+          if (apiAnswers.length > 0) {
+            const totalTimeSpent = state.timer.totalTime || 0;
+            await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
+            console.log(`✅ Successfully submitted ${apiAnswers.length} answers on pause`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to submit answers on pause:', error);
+      // Continue with pause even if submission fails
+    }
+
+    // Then pause the quiz
     dispatch({ type: 'PAUSE_QUIZ' });
-  }, []);
+  }, [apiSessionId, enableApiSubmission, state.session.userAnswers, state.session.questions, state.timer.totalTime]);
 
   const resumeQuiz = useCallback(() => {
     dispatch({ type: 'RESUME_QUIZ' });
@@ -733,8 +846,36 @@ export function ApiQuizProvider({
       }).filter(entry => (entry as any).selectedAnswerId || (entry as any).selectedAnswerIds);
 
       if (apiAnswers.length > 0) {
-        const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers);
+        // Get total time spent for the session according to session-doc.md
+        const totalTimeSpent = state.timer.totalTime || 0;
+        const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
         if (!response.success) throw new Error(response.error || 'Failed to submit answers');
+
+        // Handle new response schema from session-doc.md
+        const submissionResult = response.data;
+        if (submissionResult) {
+          console.log('📊 Submission result:', {
+            sessionId: submissionResult.sessionId,
+            scoreOutOf20: submissionResult.scoreOutOf20,
+            percentageScore: submissionResult.percentageScore,
+            timeSpent: submissionResult.timeSpent,
+            answeredQuestions: submissionResult.answeredQuestions,
+            totalQuestions: submissionResult.totalQuestions,
+            status: submissionResult.status
+          });
+
+          // Update session with submission results
+          dispatch({
+            type: 'UPDATE_SESSION_RESULTS',
+            results: {
+              score: submissionResult.scoreOutOf20 || 0,
+              percentage: submissionResult.percentageScore || 0,
+              timeSpent: submissionResult.timeSpent || totalTimeSpent,
+              answeredQuestions: submissionResult.answeredQuestions || apiAnswers.length,
+              totalQuestions: submissionResult.totalQuestions || state.session.totalQuestions
+            }
+          });
+        }
       }
 
       // Mark completed on server and locally

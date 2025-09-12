@@ -28,31 +28,18 @@ import {
   Globe,
   Trophy,
   Play,
-  ChevronRight,
-  Quote,
-  Check
+  Check,
+  HelpCircle,
+  Layers,
+  RefreshCw,
+  Rocket,
+  BarChart
 } from 'lucide-react';
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
-
   useEffect(() => {
     setIsVisible(true);
-
-    const testimonialInterval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 4000);
-
-    const stepInterval = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % howItWorksSteps.length);
-    }, 3000);
-
-    return () => {
-      clearInterval(testimonialInterval);
-      clearInterval(stepInterval);
-    };
   }, []);
 
 
@@ -95,6 +82,40 @@ export default function Home() {
     },
   ];
 
+  // Caractéristiques section data - matching the provided design
+  const characteristics = [
+    {
+      icon: HelpCircle,
+      title: 'Questions',
+      description: 'Questions diverses conformes au programme de la Faculté de Médecine d\'Alger.',
+    },
+    {
+      icon: Layers,
+      title: 'Structure',
+      description: 'Questions organisées par module, par cours, par année, et par périodes d\'examens.',
+    },
+    {
+      icon: CheckCircle,
+      title: 'Fiabilité',
+      description: 'Questions dûment corrigées et vérifiées selon les dernières recommandations.',
+    },
+    {
+      icon: RefreshCw,
+      title: 'Mise à jour',
+      description: 'Plateforme interactive et régulièrement mise à jour.',
+    },
+    {
+      icon: Rocket,
+      title: 'Explications',
+      description: 'Réponses commentées et illustrées par des schémas, images radiologiques, tableaux récapitulatifs, mindmaps.',
+    },
+    {
+      icon: BarChart,
+      title: 'Analyse de l\'apprentissage',
+      description: 'QUIZY offre une visualisation de toutes les données liées à ton apprentissage pour te permettre d\'optimiser tes révisions.',
+    },
+  ];
+
   const features = [
     {
       icon: Brain,
@@ -134,71 +155,6 @@ export default function Home() {
     },
   ];
 
-  const testimonials = [
-    {
-      name: "Sarah Ahmed",
-      role: "4th Year Medical Student",
-      university: "Harvard Medical School",
-      content: "MedCortex transformed my study routine completely. The AI-powered recommendations helped me focus on my weak areas, and I improved my test scores by 40% in just 3 months!",
-      rating: 5,
-      avatar: "🩺"
-    },
-    {
-      name: "Dr. Michael Chen",
-      role: "Resident Physician",
-      university: "Johns Hopkins Hospital",
-      content: "Even as a resident, I still use MedCortex for continuous learning. The clinical cases are incredibly realistic and have enhanced my diagnostic skills significantly.",
-      rating: 5,
-      avatar: "👨‍⚕️"
-    },
-    {
-      name: "Emma Rodriguez",
-      role: "3rd Year Medical Student",
-      university: "Stanford University",
-      content: "The collaborative features are amazing! Being able to study with peers and get instant feedback from experts has made medical school so much more manageable.",
-      rating: 5,
-      avatar: "👩‍⚕️"
-    },
-    {
-      name: "James Thompson",
-      role: "Medical Graduate",
-      university: "Oxford University",
-      content: "I used MedCortex throughout my 6 years of medical school. The comprehensive question bank and detailed explanations were instrumental in my success.",
-      rating: 5,
-      avatar: "🎓"
-    }
-  ];
-
-  const howItWorksSteps = [
-    {
-      step: 1,
-      title: "Sign Up & Assessment",
-      description: "Create your account and take our comprehensive assessment to understand your current knowledge level.",
-      icon: GraduationCap,
-      color: "from-primary to-chart-2"
-    },
-    {
-      step: 2,
-      title: "Structured Study Plan",
-      description: "Get a customized study plan based on your assessment results, academic goals, and preferred learning approach.",
-      icon: Target,
-      color: "from-blue-500 to-cyan-500"
-    },
-    {
-      step: 3,
-      title: "Interactive Learning",
-      description: "Engage with our comprehensive question bank, clinical cases, and multimedia content.",
-      icon: BookOpen,
-      color: "from-cyan-500 to-emerald-500"
-    },
-    {
-      step: 4,
-      title: "Track Progress & Excel",
-      description: "Monitor your improvement with detailed analytics and achieve your medical education goals.",
-      icon: TrendingUp,
-      color: "from-chart-5 to-primary"
-    }
-  ];
 
   const pricingPlans = [
     {
@@ -208,7 +164,7 @@ export default function Home() {
       price: '12,000 DA',
       features: ['Basic Sciences Q&A', 'Anatomy & Physiology', '24/7 Support', 'Mobile Access'],
       popular: false,
-      gradient: 'from-blue-500 to-blue-600'
+      gradient: 'from-primary to-primary'
     },
     {
       year: 2,
@@ -226,7 +182,7 @@ export default function Home() {
       price: '12,000 DA',
       features: ['Clinical Cases', 'OSCE Preparation', 'Mentorship Program', 'Advanced Analytics'],
       popular: true,
-      gradient: 'from-pink-500 to-rose-500'
+      gradient: 'from-primary to-primary'
     },
     {
       year: 4,
@@ -235,7 +191,7 @@ export default function Home() {
       price: '12,000 DA',
       features: ['Specialty Modules', 'Research Tools', 'Publication Guidance', 'Career Planning'],
       popular: false,
-      gradient: 'from-emerald-500 to-teal-500'
+      gradient: 'from-primary to-primary'
     },
     {
       year: 5,
@@ -244,7 +200,7 @@ export default function Home() {
       price: '12,000 DA',
       features: ['Advanced Diagnostics', 'Treatment Planning', 'Leadership Skills', 'Quality Improvement'],
       popular: false,
-      gradient: 'from-orange-500 to-red-500'
+      gradient: 'from-primary to-primary'
     },
     {
       year: 6,
@@ -262,7 +218,7 @@ export default function Home() {
       price: '15,000 DA',
       features: ['Specialty Training', 'Research Methods', 'Teaching Skills', 'Board Certification'],
       popular: false,
-      gradient: 'from-indigo-500 to-blue-500'
+      gradient: 'from-primary to-primary'
     },
   ];
 
@@ -298,255 +254,236 @@ export default function Home() {
       <Header />
       <Hero />
 
-      {/* Modern Impact Statistics */}
-      <section className="container px-4 py-32 mx-auto relative">
-        <div className="max-w-7xl mx-auto">
+      {/* Caractéristiques Section - Replicating the provided design */}
+      <section className="container px-4 py-20 mx-auto bg-background">
+        <div className="max-w-6xl mx-auto">
           {/* Section Header */}
-          <div className="text-center space-y-6 mb-20">
-            <Badge className="px-6 py-2 bg-primary text-primary-foreground border-0">
-              📊 Our Global Impact
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold">
-              Transforming Medical Education
-              <span className="block gradient-text">
-                Around the World
-              </span>
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold text-foreground">
+              Caractéristiques
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Join thousands of medical students who have revolutionized their learning journey with MedCortex
-            </p>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div
-                key={index}
-                className={`group relative overflow-hidden rounded-3xl border ${stat.borderColor} ${stat.bgColor} backdrop-blur-sm transition-all duration-700 hover:scale-105 hover:shadow-2xl ${isVisible ? 'animate-slide-up' : 'opacity-0 translate-y-10'}`}
-                style={{
-                  animationDelay: `${index * 150}ms`,
-                  animationFillMode: 'forwards'
-                }}
-              >
-                {/* Gradient Background Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}></div>
-
-                {/* Floating Orb Animation */}
-                <div className={`absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br ${stat.color} rounded-full opacity-10 group-hover:opacity-20 transition-all duration-500 animate-pulse-soft`}></div>
-
-                <div className="relative p-8 text-center">
-                  {/* Icon Container */}
-                  <div className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br ${stat.color} shadow-lg mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                    <stat.icon className="w-10 h-10 text-white" />
+          {/* Features Grid - 3x2 layout matching the design */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+            {characteristics.map((characteristic, index) => {
+              const IconComponent = characteristic.icon;
+              return (
+                <div
+                  key={index}
+                  className="flex flex-col items-center text-center space-y-4 group cursor-pointer"
+                >
+                  {/* Icon Container - Primary color with hover effects matching the design */}
+                  <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 ease-out group-hover:shadow-xl group-hover:shadow-primary/25 group-hover:scale-110 group-hover:-translate-y-1">
+                    <IconComponent className="w-8 h-8 text-primary-foreground transition-transform duration-300 group-hover:scale-110" />
                   </div>
 
-                  {/* Value with Counter Animation */}
-                  <div className="space-y-3 mb-6">
-                    <div className={`text-4xl sm:text-5xl font-bold bg-gradient-to-br ${stat.color} bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300`}>
-                      {stat.value}
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground">
-                      {stat.label}
-                    </h3>
-                  </div>
+                  {/* Title */}
+                  <h3 className="text-xl font-bold text-foreground transition-colors duration-300 group-hover:text-primary">
+                    {characteristic.title}
+                  </h3>
 
                   {/* Description */}
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {stat.description}
+                  <p className="text-muted-foreground text-center leading-relaxed max-w-sm transition-colors duration-300 group-hover:text-foreground/80">
+                    {characteristic.description}
                   </p>
-
-                  {/* Progress Bar Animation */}
-                  <div className="mt-6 h-1 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full bg-gradient-to-r ${stat.color} rounded-full transition-all duration-1000 delay-300 ${isVisible ? 'w-full' : 'w-0'}`}
-                      style={{ animationDelay: `${index * 200 + 500}ms` }}
-                    ></div>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Additional Achievement Highlights */}
-          <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-6 rounded-2xl bg-card/50 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
-              <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="text-lg font-semibold text-foreground mb-2">4.9/5 Rating</h4>
-              <p className="text-sm text-muted-foreground">Average student satisfaction score</p>
-            </div>
-
-            <div className="text-center p-6 rounded-2xl bg-card/50 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
-              <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="text-lg font-semibold text-foreground mb-2">40% Improvement</h4>
-              <p className="text-sm text-muted-foreground">Average score increase after 3 months</p>
-            </div>
-
-            <div className="text-center p-6 rounded-2xl bg-card/50 border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="text-lg font-semibold text-foreground mb-2">24/7 Support</h4>
-              <p className="text-sm text-muted-foreground">Round-the-clock assistance available</p>
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* Enhanced Features Section */}
-      <section id="features" className="container px-4 py-32 mx-auto">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-8 mb-20">
-            <Badge className="px-6 py-2 bg-primary text-primary-foreground border-0">
-              ✨ Revolutionary Features
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold">
-              Smart Learning Features
+      {/* Fonctionnalités Section - Two-column alternating layout */}
+      <section className="container px-4 py-20 mx-auto bg-muted/30 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto relative">
+          {/* Section Header */}
+          <div className="text-center space-y-4 mb-20">
+            <h2 className="text-4xl sm:text-5xl font-bold text-foreground">
+              Fonctionnalités
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Cutting-edge technology meets medical education excellence
-            </p>
+            <div className="w-24 h-1 bg-gradient-to-r from-primary to-chart-1 rounded-full mx-auto"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card
-                key={index}
-                className="group hover:shadow-2xl transition-all duration-500 border border-gray-200/50 dark:border-gray-700/50 bg-card/80 backdrop-blur-sm hover:transform hover:scale-105 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700 dark:bg-card/90 dark:hover:bg-card relative"
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity duration-500`}></div>
-                <CardHeader className="relative pb-4">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-lg`}>
-                    <feature.icon className="h-8 w-8 text-white" />
+          {/* Feature Items - Alternating Layout */}
+          <div className="space-y-16 md:space-y-24">
+            {/* Feature 1: Filtres - Image Left, Text Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              {/* Image Container */}
+              <div className="relative group">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-white border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                  {/* Filter Interface Mockup */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-white p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold text-gray-800">Créer une session</h4>
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Modules Section */}
+                    <div className="space-y-4">
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Modules</h5>
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
+                            <div className="w-3 h-3 bg-primary rounded-full"></div>
+                            <span className="text-sm text-gray-700">Cardiologie</span>
+                          </div>
+                          <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
+                            <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                            <span className="text-sm text-gray-700">Pneumologie</span>
+                          </div>
+                          <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
+                            <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                            <span className="text-sm text-gray-700">Neurologie</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cours Section */}
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Cours</h5>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between p-2 bg-primary/10 rounded-lg border border-primary/20">
+                            <span className="text-sm text-gray-700">Insuffisance cardiaque</span>
+                            <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 8 8">
+                                <path d="M6.564.75l-3.59 3.612-1.538-1.55L0 4.26l2.974 2.99L8 2.193z"/>
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 pl-2">Physiopathologie de l'insuffisance cardiaque</div>
+                          <div className="text-xs text-gray-500 pl-2">Traitement de l'insuffisance cardiaque</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <CardTitle className="text-xl font-bold text-foreground">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="relative">
-                  <CardDescription className="text-base leading-relaxed text-muted-foreground">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="container px-4 py-32 mx-auto bg-muted/30 dark:bg-muted/10">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center space-y-6 mb-20">
-            <Badge className="px-6 py-2 bg-primary text-primary-foreground border-0">
-              🚀 Simple Process
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold">
-              Your Success Journey in
-              <span className="block gradient-text">
-                4 Simple Steps
-              </span>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {howItWorksSteps.map((step, index) => (
-              <div
-                key={index}
-                className={`relative text-center p-8 rounded-2xl transition-all duration-500 border border-gray-200/50 dark:border-gray-700/50 ${
-                  activeStep === index
-                    ? 'bg-card shadow-2xl transform scale-105 border-primary/50 dark:bg-card dark:border-primary/30'
-                    : 'bg-card/80 backdrop-blur-sm hover:bg-card dark:bg-card/90 dark:hover:bg-card'
-                }`}
-              >
-                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mx-auto mb-6 shadow-lg`}>
-                  <step.icon className="w-8 h-8 text-white" />
                 </div>
-                <div className="absolute -top-4 -right-4 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
-                  {step.step}
-                </div>
-                <h3 className="text-xl font-bold mb-4 text-foreground">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
-                {index < howItWorksSteps.length - 1 && (
-                  <ChevronRight className="absolute top-1/2 -right-4 transform -translate-y-1/2 w-8 h-8 text-primary/60 hidden lg:block" />
-                )}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="container px-4 py-32 mx-auto">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center space-y-6 mb-20">
-            <Badge className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0">
-              💬 Student Success Stories
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold">
-              What Our Students
-              <span className="block text-emerald-600 dark:text-emerald-400">
-                Are Saying
-              </span>
-            </h2>
-          </div>
+              {/* Text Content */}
+              <div className="space-y-6 text-center lg:text-left group">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 transition-colors duration-300 group-hover:text-primary">
+                    Filtres
+                  </h3>
+                  {/* Primary color underline accent */}
+                  <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
+                </div>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
+                  Quizy vous donne la possibilité de choisir les cours sur lesquels vous voulez vous exercer. Vous pouvez choisir un ou plusieurs cours à la fois, selon vos préférences. Vous pouvez même choisir des cours de modules différents.
+                </p>
+              </div>
+            </div>
 
-          <div className="relative">
-            <Card className="max-w-4xl mx-auto bg-card shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
-              <CardContent className="p-12">
-                <div className="flex items-center justify-center mb-8">
-                  <div className="flex space-x-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-6 h-6 text-yellow-400 fill-current" />
-                    ))}
+            {/* Feature 2: Flexibilité - Text Left, Image Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              {/* Text Content */}
+              <div className="space-y-6 text-center lg:text-left lg:order-1 group">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 transition-colors duration-300 group-hover:text-primary">
+                    Flexibilité
+                  </h3>
+                  {/* Primary color underline accent */}
+                  <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
+                </div>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
+                  Notre plateforme s'adapte à votre rythme d'apprentissage. Étudiez quand vous voulez, où vous voulez, avec un accès 24h/24 et 7j/7 à tous vos contenus pédagogiques.
+                </p>
+              </div>
+
+              {/* Image Container */}
+              <div className="relative group lg:order-2">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-white border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                  {/* Flexibility Interface Mockup */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-white p-6">
+                    {/* Dashboard Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold text-gray-800">Tableau de bord</h4>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Study Options */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <div className="w-6 h-6 bg-primary rounded-lg flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                              </svg>
+                            </div>
+                            <span className="text-sm font-medium text-gray-700">Étude libre</span>
+                          </div>
+                          <p className="text-xs text-gray-600">Choisissez vos modules</p>
+                        </div>
+
+                        <div className="p-3 bg-gray-100 rounded-xl">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <div className="w-6 h-6 bg-gray-400 rounded-lg flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <span className="text-sm font-medium text-gray-700">Examen</span>
+                          </div>
+                          <p className="text-xs text-gray-600">Mode chronométré</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Section */}
+                      <div className="mt-6">
+                        <h5 className="text-sm font-medium text-gray-700 mb-3">Progression récente</h5>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <span className="text-sm text-gray-700">Cardiologie</span>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-16 h-2 bg-gray-200 rounded-full">
+                                <div className="w-12 h-2 bg-primary rounded-full"></div>
+                              </div>
+                              <span className="text-xs text-gray-500">75%</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                            <span className="text-sm text-gray-700">Pneumologie</span>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-16 h-2 bg-gray-200 rounded-full">
+                                <div className="w-8 h-2 bg-primary rounded-full"></div>
+                              </div>
+                              <span className="text-xs text-gray-500">50%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <Quote className="w-12 h-12 text-primary/60 mx-auto mb-6" />
-
-                <blockquote className="text-xl sm:text-2xl text-center text-foreground leading-relaxed mb-8 italic">
-                  {testimonials[currentTestimonial].content}
-                </blockquote>
-
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                    {testimonials[currentTestimonial].avatar}
-                  </div>
-                  <h4 className="font-bold text-lg text-foreground">{testimonials[currentTestimonial].name}</h4>
-                  <p className="text-muted-foreground">{testimonials[currentTestimonial].role}</p>
-                  <p className="text-sm text-primary font-medium">{testimonials[currentTestimonial].university}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-center mt-8 space-x-2">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentTestimonial(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    currentTestimonial === index
-                      ? 'bg-primary w-8'
-                      : 'bg-gray-300 hover:bg-gray-400'
-                  }`}
-                />
-              ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Enhanced Pricing Section */}
-      <section id="pricing" className="container px-4 py-32 mx-auto bg-accent/5 dark:bg-accent/5">
+      <section id="pricing" className="container px-4 py-32 mx-auto bg-muted/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-16">
-            <Badge className="px-6 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white border-0">
-              💎 Flexible Pricing
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl font-bold">
+            <h2 className="text-4xl sm:text-5xl font-bold text-foreground">
               Choose Your
-              <span className="block text-rose-600 dark:text-rose-400">
+              <span className="block text-primary">
                 Perfect Plan
               </span>
             </h2>
@@ -559,25 +496,25 @@ export default function Home() {
             {pricingPlans.map((plan, index) => (
               <Card
                 key={index}
-                className={`relative hover:shadow-2xl transition-all duration-500 transform hover:scale-105 border border-gray-200/50 dark:border-gray-700/50 bg-card overflow-hidden ${
-                  plan.popular ? 'ring-4 ring-pink-400 shadow-2xl dark:ring-pink-500/50' : 'shadow-lg'
+                className={`relative hover:shadow-2xl transition-all duration-500 transform hover:scale-105 border border-border bg-card overflow-hidden ${
+                  plan.popular ? 'ring-4 ring-primary shadow-2xl' : 'shadow-lg'
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-center py-2 text-sm font-bold">
+                  <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center py-2 text-sm font-bold">
                     <Star className="w-4 h-4 inline mr-1" />
                     MOST POPULAR
                   </div>
                 )}
 
-                <div className={`h-2 bg-gradient-to-r ${plan.gradient}`}></div>
+                <div className="h-2 bg-primary"></div>
 
                 <CardHeader className="text-center pt-8 pb-4">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${plan.gradient} flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                  <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
                     {plan.year === 'R' ? (
-                      <GraduationCap className="h-8 w-8 text-white" />
+                      <GraduationCap className="h-8 w-8 text-primary-foreground" />
                     ) : (
-                      <span className="text-white font-bold text-xl">{plan.year}</span>
+                      <span className="text-primary-foreground font-bold text-xl">{plan.year}</span>
                     )}
                   </div>
                   <CardTitle className="text-lg font-bold text-foreground">{plan.title}</CardTitle>
@@ -595,7 +532,7 @@ export default function Home() {
                                       <div className="space-y-3">
                       {plan.features.map((feature, featureIndex) => (
                         <div key={featureIndex} className="flex items-center text-sm">
-                          <Check className="w-4 h-4 text-emerald-500 mr-2 flex-shrink-0" />
+                          <Check className="w-4 h-4 text-primary mr-2 flex-shrink-0" />
                           <span className="text-foreground">{feature}</span>
                         </div>
                       ))}
@@ -603,7 +540,7 @@ export default function Home() {
 
                   <Link href="/register">
                     <Button
-                      className={`w-full bg-gradient-to-r ${plan.gradient} hover:opacity-90 text-white shadow-lg transition-all duration-300`}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-300"
                     >
                       Get Started
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -617,15 +554,12 @@ export default function Home() {
       </section>
 
       {/* Modern FAQ Section */}
-      <section className="container px-4 py-32 mx-auto bg-gradient-to-br from-muted/20 via-background to-accent/10">
+      <section className="container px-4 py-32 mx-auto bg-muted/30">
         <div className="max-w-5xl mx-auto">
           <div className="text-center space-y-6 mb-20">
-            <Badge className="px-8 py-3 bg-primary text-primary-foreground border-0 text-lg font-semibold shadow-lg">
-              ❓ Frequently Asked Questions
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground">
               Got Questions?
-              <span className="block gradient-text mt-2">
+              <span className="block text-primary mt-2">
                 We&apos;ve Got Answers
               </span>
             </h2>
@@ -638,19 +572,19 @@ export default function Home() {
             {faqs.map((faq, index) => (
               <Card
                 key={index}
-                className="group relative overflow-hidden border border-gray-200/50 dark:border-gray-700/50 bg-card/80 backdrop-blur-sm hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]"
+                className="group relative overflow-hidden border border-border bg-card hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]"
               >
                 {/* Gradient overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                 {/* Floating accent */}
-                <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute -top-2 -right-2 w-16 h-16 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                 <Accordion type="single" collapsible>
                   <AccordionItem value={`item-${index}`} className="border-none">
                     <AccordionTrigger className="relative z-10 text-left font-bold text-lg px-8 py-8 hover:no-underline group-hover:text-primary transition-colors duration-300">
                       <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-sm mt-1">
+                        <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm mt-1">
                           {index + 1}
                         </div>
                         <span className="flex-1">{faq.question}</span>
@@ -669,22 +603,22 @@ export default function Home() {
 
           {/* Additional Help Section */}
           <div className="mt-16 text-center">
-            <Card className="max-w-2xl mx-auto from-primary/10 to-secondary/10 border border-primary/20">
+            <Card className="max-w-2xl mx-auto bg-primary/10 border border-primary/20">
               <CardContent className="p-8">
                 <div className="space-y-4">
-                  <div className="w-16 h-16  from-primary to-secondary rounded-full flex items-center justify-center mx-auto">
-                    <Star className="w-8 h-8 text-white" />
+                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto">
+                    <Star className="w-8 h-8 text-primary-foreground" />
                   </div>
                   <h3 className="text-2xl font-bold text-foreground">Still have questions?</h3>
-                                     <p className="text-muted-foreground">
-                     Our support team is here to help you 24/7. Get personalized assistance from medical education experts.
-                   </p>
+                  <p className="text-muted-foreground">
+                    Our support team is here to help you 24/7. Get personalized assistance from medical education experts.
+                  </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                    <Button className=" from-primary to-secondary hover:opacity-90 text-white">
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Clock className="w-4 h-4 mr-2" />
                       Contact Support
                     </Button>
-                    <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
+                    <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Browse Help Center
                     </Button>

@@ -28,6 +28,7 @@ import {
   AdvancedSessionFilters,
   SessionComparison,
   SessionSummary,
+  SubmitAnswerResponse,
   ComparisonMetrics,
   TimeBasedAnalytics,
   QuestionReport,
@@ -48,6 +49,7 @@ import {
   UpdateTodoRequest,
   // Analytics
   AnalyticsOverview,
+  CourseAnalyticsResponse,
   CourseProgressUpdateRequest,
   QuizHistoryParams,
   QuizHistoryItem,
@@ -378,41 +380,9 @@ export class StudentService {
     const url = queryParams.toString() ? `/students/available-sessions?${queryParams.toString()}` : '/students/available-sessions';
     return apiClient.get<any>(url);
   }
-  /**
-   * Get student questions with applied filters
-   * GET /students/questions
-   * Returns questions and metadata including applied filters and subscription info
-   */
-  static async getQuestions(params: {
-    // Optional filters (expand as backend supports)
-    questionType?: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
-    yearLevels?: string[]; // e.g., ['ONE','TWO']
-    moduleIds?: number[];
-    uniteIds?: number[];
-    universityIds?: number[];
-    examYears?: number[];
-    count?: number;
-    randomize?: boolean;
-    includeAnswers?: boolean;
-    includeExplanations?: boolean;
-    includeImages?: boolean;
-  } = {}): Promise<ApiResponse<any>> {
-    const qs = new URLSearchParams();
-    if (params.questionType) qs.append('questionType', params.questionType);
-    if (params.yearLevels?.length) qs.append('yearLevels', params.yearLevels.join(','));
-    if (params.moduleIds?.length) qs.append('moduleIds', params.moduleIds.join(','));
-    if (params.uniteIds?.length) qs.append('uniteIds', params.uniteIds.join(','));
-    if (params.universityIds?.length) qs.append('universityIds', params.universityIds.join(','));
-    if (params.examYears?.length) qs.append('examYears', params.examYears.join(','));
-    if (typeof params.count === 'number') qs.append('count', String(params.count));
-    if (typeof params.randomize === 'boolean') qs.append('randomize', String(params.randomize));
-    if (typeof params.includeAnswers === 'boolean') qs.append('includeAnswers', String(params.includeAnswers));
-    if (typeof params.includeExplanations === 'boolean') qs.append('includeExplanations', String(params.includeExplanations));
-    if (typeof params.includeImages === 'boolean') qs.append('includeImages', String(params.includeImages));
 
-    const url = qs.toString() ? `/students/questions?${qs.toString()}` : '/students/questions';
-    return apiClient.get<any>(url);
-  }
+  // Note: These methods have been moved to NewApiService for better organization
+  // and enhanced error handling. Use apiServices.newApi instead.
 
 
   /**
@@ -770,6 +740,106 @@ export class StudentService {
   }
 
   /**
+   * Get notes by module or unite with enhanced filtering
+   * Implements: GET /api/v1/students/notes/by-module?moduleId=X OR uniteId=X
+   */
+  static async getNotesByModule(params: {
+    moduleId?: number;
+    uniteId?: number;
+  }): Promise<ApiResponse<{
+    filterInfo: {
+      uniteId: number | null;
+      moduleId: number | null;
+      uniteName: string | null;
+      moduleName: string | null;
+    };
+    courseGroups: Array<{
+      course: {
+        id: number;
+        name: string;
+        module: {
+          id: number;
+          name: string;
+        };
+      };
+      notes: Note[];
+    }>;
+    ungroupedNotes: Note[];
+    totalNotes: number;
+  }>> {
+    // Validate mutually exclusive parameters according to API docs
+    if (params.moduleId && params.uniteId) {
+      const error = {
+        success: false,
+        error: {
+          message: 'Cannot provide both uniteId and moduleId. Please select only one.'
+        }
+      };
+      throw new Error(error.error.message);
+    }
+
+    if (!params.moduleId && !params.uniteId) {
+      const error = {
+        success: false,
+        error: {
+          message: 'Either uniteId or moduleId must be provided'
+        }
+      };
+      throw new Error(error.error.message);
+    }
+
+    // Validate parameter formats
+    if (params.moduleId && (!Number.isInteger(params.moduleId) || params.moduleId <= 0)) {
+      const error = {
+        success: false,
+        error: {
+          message: 'Invalid uniteId or moduleId format'
+        }
+      };
+      throw new Error(error.error.message);
+    }
+
+    if (params.uniteId && (!Number.isInteger(params.uniteId) || params.uniteId <= 0)) {
+      const error = {
+        success: false,
+        error: {
+          message: 'Invalid uniteId or moduleId format'
+        }
+      };
+      throw new Error(error.error.message);
+    }
+
+    const searchParams = new URLSearchParams();
+    if (params.moduleId) {
+      searchParams.append('moduleId', params.moduleId.toString());
+    }
+    if (params.uniteId) {
+      searchParams.append('uniteId', params.uniteId.toString());
+    }
+
+    const endpoint = `/students/notes/by-module?${searchParams.toString()}`;
+
+    // Use centralized logging with throttling
+    logServiceCall('StudentService', 'getNotesByModule', { endpoint, params });
+
+    try {
+      return await apiClient.get<any>(endpoint);
+    } catch (error: any) {
+      // Handle specific API error responses according to documentation
+      if (error?.response?.status === 403) {
+        throw new Error('Access denied: Module not found or not accessible with your current subscription');
+      }
+      if (error?.response?.status === 400) {
+        throw new Error('Valid module ID is required');
+      }
+      if (error?.response?.status === 401) {
+        throw new Error('Authentication required');
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Create a new note
    */
   static async createNote(noteData: {
@@ -778,9 +848,33 @@ export class StudentService {
     quizId?: number; // Changed from sessionId to quizId to match API docs
     labelIds?: number[];
   }): Promise<ApiResponse<any>> {
+    // Validate required fields according to API documentation
+    if (!noteData.noteText || noteData.noteText.trim().length === 0) {
+      throw new Error('Note text is required and cannot be empty');
+    }
+
+    // Validate note text length (reasonable limits)
+    if (noteData.noteText.length > 5000) {
+      throw new Error('Note text cannot exceed 5000 characters');
+    }
+
+    // Validate that at least one reference (questionId or quizId) is provided
+    if (!noteData.questionId && !noteData.quizId) {
+      throw new Error('Either questionId or quizId must be provided');
+    }
+
+    // Validate ID formats
+    if (noteData.questionId && (!Number.isInteger(noteData.questionId) || noteData.questionId <= 0)) {
+      throw new Error('Invalid questionId format');
+    }
+
+    if (noteData.quizId && (!Number.isInteger(noteData.quizId) || noteData.quizId <= 0)) {
+      throw new Error('Invalid quizId format');
+    }
+
     // Send data directly as API expects noteText field
     const apiData = {
-      noteText: noteData.noteText,
+      noteText: noteData.noteText.trim(),
       questionId: noteData.questionId,
       quizId: noteData.quizId, // Changed from sessionId to quizId
       labelIds: noteData.labelIds
@@ -793,7 +887,21 @@ export class StudentService {
       }
     });
 
-    return apiClient.post<any>('/students/notes', apiData);
+    try {
+      return await apiClient.post<any>('/students/notes', apiData);
+    } catch (error: any) {
+      // Handle specific API error responses
+      if (error?.response?.status === 400) {
+        throw new Error('Invalid note data provided');
+      }
+      if (error?.response?.status === 401) {
+        throw new Error('Authentication required');
+      }
+      if (error?.response?.status === 403) {
+        throw new Error('Access denied: No active subscription');
+      }
+      throw error;
+    }
   }
 
   /**
@@ -803,9 +911,24 @@ export class StudentService {
     noteText?: string;
     labelIds?: number[];
   }): Promise<ApiResponse<any>> {
+    // Validate note ID
+    if (!Number.isInteger(noteId) || noteId <= 0) {
+      throw new Error('Valid note ID is required');
+    }
+
+    // Validate note text if provided
+    if (noteData.noteText !== undefined) {
+      if (!noteData.noteText || noteData.noteText.trim().length === 0) {
+        throw new Error('Note text cannot be empty');
+      }
+      if (noteData.noteText.length > 5000) {
+        throw new Error('Note text cannot exceed 5000 characters');
+      }
+    }
+
     // Send data directly as API expects noteText field
     const apiData = {
-      noteText: noteData.noteText,
+      noteText: noteData.noteText?.trim(),
       labelIds: noteData.labelIds
     };
 
@@ -816,14 +939,50 @@ export class StudentService {
       }
     });
 
-    return apiClient.put<any>(`/students/notes/${noteId}`, apiData);
+    try {
+      return await apiClient.put<any>(`/students/notes/${noteId}`, apiData);
+    } catch (error: any) {
+      // Handle specific API error responses
+      if (error?.response?.status === 404) {
+        throw new Error('Note not found');
+      }
+      if (error?.response?.status === 400) {
+        throw new Error('Invalid note data provided');
+      }
+      if (error?.response?.status === 401) {
+        throw new Error('Authentication required');
+      }
+      if (error?.response?.status === 403) {
+        throw new Error('Access denied: You can only update your own notes');
+      }
+      throw error;
+    }
   }
 
   /**
    * Delete a note
    */
   static async deleteNote(noteId: number): Promise<ApiResponse<{ success: boolean }>> {
-    return apiClient.delete<{ success: boolean }>(`/students/notes/${noteId}`);
+    // Validate note ID
+    if (!Number.isInteger(noteId) || noteId <= 0) {
+      throw new Error('Valid note ID is required');
+    }
+
+    try {
+      return await apiClient.delete<{ success: boolean }>(`/students/notes/${noteId}`);
+    } catch (error: any) {
+      // Handle specific API error responses
+      if (error?.response?.status === 404) {
+        throw new Error('Note not found');
+      }
+      if (error?.response?.status === 401) {
+        throw new Error('Authentication required');
+      }
+      if (error?.response?.status === 403) {
+        throw new Error('Access denied: You can only delete your own notes');
+      }
+      throw error;
+    }
   }
 
   /**
@@ -840,21 +999,109 @@ export class StudentService {
     return apiClient.get<any[]>(`/students/questions/${questionId}/notes`);
   }
 
-  // Labels Management
+  // Note: getContentFilters has been moved to NewApiService for better organization
+  // and enhanced error handling. Use apiServices.newApi.getContentFilters() instead.
+
   /**
-   * Get all user labels
+   * Get notes for a specific module (legacy endpoint)
+   * Implements: GET /api/v1/students/notes/module/:moduleId
    */
-  static async getLabels(): Promise<ApiResponse<any[]>> {
-    return apiClient.get<any[]>('/students/labels');
+  static async getModuleNotes(moduleId: number): Promise<ApiResponse<{
+    moduleId: number;
+    courseGroups: Array<{
+      courseId: number;
+      courseName: string;
+      notes: Array<{
+        id: number;
+        noteText: string;
+        questionId: number;
+        quizId: number | null;
+        question: {
+          id: number;
+          questionText: string;
+          course: {
+            id: number;
+            name: string;
+          };
+        };
+        quiz: any;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>;
+    ungroupedNotes: any[];
+    totalNotes: number;
+  }>> {
+    // Validate module ID format
+    if (!Number.isInteger(moduleId) || moduleId <= 0) {
+      throw new Error('Valid module ID is required');
+    }
+
+    const endpoint = `/students/notes/module/${moduleId}`;
+
+    // Use centralized logging with throttling
+    logServiceCall('StudentService', 'getModuleNotes', { endpoint, moduleId });
+
+    try {
+      return await apiClient.get<any>(endpoint);
+    } catch (error: any) {
+      // Handle specific API error responses according to documentation
+      if (error?.response?.status === 403) {
+        throw new Error('Access denied: Module not found or not accessible with your current subscription');
+      }
+      if (error?.response?.status === 400) {
+        throw new Error('Valid module ID is required');
+      }
+      if (error?.response?.status === 401) {
+        throw new Error('Authentication required');
+      }
+      throw error;
+    }
+  }
+
+  // Labels Management - Updated for question-focused API
+  /**
+   * Get all student labels with associated questions
+   * Implements: GET /api/v1/students/labels
+   */
+  static async getLabels(): Promise<ApiResponse<{
+    success: boolean;
+    data: Array<{
+      id: number;
+      name: string;
+      statistics: {
+        quizzesCount: number;
+        questionsCount: number;
+        quizSessionsCount: number;
+        totalItems: number;
+      };
+      questionIds: number[];
+      questions: Array<{
+        id: number;
+        questionText: string;
+        course: {
+          id: number;
+          name: string;
+          module: {
+            id: number;
+            name: string;
+            description: string;
+          };
+        };
+        createdAt: string;
+      }>;
+      createdAt: string;
+    }>;
+  }>> {
+    return apiClient.get<any>('/students/labels');
   }
 
   /**
    * Create a new label
+   * Implements: POST /api/v1/students/labels
    */
   static async createLabel(labelData: {
     name: string;
-    color?: string;
-    description?: string;
   }): Promise<ApiResponse<any>> {
     return apiClient.post<any>('/students/labels', labelData);
   }
@@ -864,8 +1111,6 @@ export class StudentService {
    */
   static async updateLabel(labelId: number, labelData: {
     name?: string;
-    color?: string;
-    description?: string;
   }): Promise<ApiResponse<any>> {
     return apiClient.put<any>(`/students/labels/${labelId}`, labelData);
   }
@@ -878,18 +1123,15 @@ export class StudentService {
   }
 
   /**
-   * Associate a label with a quiz
+   * Get quiz sessions for a specific label
+   * This would need to be implemented on the backend
+   * GET /api/v1/students/labels/{labelId}/sessions
    */
-  static async associateLabelWithQuiz(quizId: number, labelId: number): Promise<ApiResponse<any>> {
-    return apiClient.post<any>(`/students/quizzes/${quizId}/labels/${labelId}`);
+  static async getLabelSessions(labelId: number): Promise<ApiResponse<any[]>> {
+    return apiClient.get<any[]>(`/students/labels/${labelId}/sessions`);
   }
 
-  /**
-   * Associate a label with a quiz session
-   */
-  static async associateLabelWithQuizSession(sessionId: number, labelId: number): Promise<ApiResponse<any>> {
-    return apiClient.post<any>(`/students/quiz-sessions/${sessionId}/labels/${labelId}`);
-  }
+
 
   /**
    * Add question to label (new question-focused API)
@@ -913,7 +1155,7 @@ export class StudentService {
     includeCompleted?: boolean;
     status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'ALL' | 'pending' | 'in_progress' | 'completed' | 'overdue' | 'all';
     priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'ALL' | 'low' | 'medium' | 'high' | 'all';
-    type?: 'READING' | 'QUIZ' | 'SESSION' | 'EXAM' | 'OTHER' | 'ALL' | 'reading' | 'quiz' | 'session' | 'exam' | 'other' | 'all';
+    type?: 'READING' | 'SESSION' | 'EXAM' | 'OTHER' | 'ALL' | 'reading' | 'session' | 'exam' | 'other' | 'all';
     search?: string;
     dueDate?: string;
   } = {}): Promise<ApiResponse<PaginatedResponse<Todo>>> {
@@ -957,7 +1199,7 @@ export class StudentService {
       type: mapUpper(todoData.type),
       priority: mapUpper(todoData.priority),
       dueDate: todoData.dueDate ? new Date(todoData.dueDate).toISOString() : undefined,
-      courseId: todoData.courseId,
+      courseIds: todoData.courseIds, // Send multiple course IDs as per new API
       quizId: todoData.quizId,
       estimatedTime: todoData.estimatedTime,
       tags: todoData.tags,
@@ -966,7 +1208,9 @@ export class StudentService {
     // Remove undefined fields
     Object.keys(apiData).forEach((k) => apiData[k] === undefined && delete apiData[k]);
 
-    return apiClient.post<Todo>('/students/todos', apiData);
+    const response = await apiClient.post<Todo>('/students/todos', apiData);
+
+    return response;
   }
 
   /**
@@ -982,14 +1226,16 @@ export class StudentService {
       priority: mapUpper(todoData.priority),
       status: mapUpper(todoData.status),
       dueDate: todoData.dueDate ? new Date(todoData.dueDate).toISOString() : undefined,
-      courseId: todoData.courseId,
+      courseIds: todoData.courseIds, // Send multiple course IDs as per new API
       estimatedTime: todoData.estimatedTime,
       tags: todoData.tags,
     };
 
     Object.keys(apiData).forEach((k) => apiData[k] === undefined && delete apiData[k]);
 
-    return apiClient.put<Todo>(`/students/todos/${todoId}`, apiData);
+    const response = await apiClient.put<Todo>(`/students/todos/${todoId}`, apiData);
+
+    return response;
   }
 
   /**
@@ -1117,6 +1363,26 @@ export class StudentService {
 
     const url = queryParams.toString() ? `/students/analytics/time-based?${queryParams.toString()}` : '/students/analytics/time-based';
     return apiClient.get<TimeBasedAnalytics>(url);
+  }
+
+  /**
+   * Get course analytics for quiz sessions
+   */
+  static async getCourseAnalytics(params: {
+    sessionId?: number;
+    sessionType?: 'PRACTICE' | 'EXAM' | 'MOCK';
+    page?: number;
+    limit?: number;
+  } = {}): Promise<ApiResponse<CourseAnalyticsResponse>> {
+    const queryParams = new URLSearchParams();
+
+    if (params.sessionId) queryParams.append('sessionId', params.sessionId.toString());
+    if (params.sessionType) queryParams.append('sessionType', params.sessionType);
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+
+    const url = queryParams.toString() ? `/students/course-analytics?${queryParams.toString()}` : '/students/course-analytics';
+    return apiClient.get<CourseAnalyticsResponse>(url);
   }
 
   /**
@@ -1369,11 +1635,149 @@ export class QuizService {
   }
 
   /**
+   * Get session filters for quiz creation
+   * GET /quizzes/session-filters
+   */
+  static async getSessionFilters(): Promise<ApiResponse<any>> {
+    return apiClient.get<any>('/quizzes/session-filters');
+  }
+
+  /**
+   * Get question count based on filters
+   * POST /quizzes/question-count
+   */
+  static async getQuestionCount(filters: {
+    courseIds: number[];
+    questionTypes?: Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>;
+    years?: number[];
+    rotations?: Array<'R1' | 'R2' | 'R3' | 'R4'>;
+    universityIds?: number[];
+    questionSourceIds?: number[];
+  }): Promise<ApiResponse<any>> {
+    return apiClient.post<any>('/quizzes/question-count', filters);
+  }
+
+  /**
+   * Create session using new endpoint
+   * POST /quizzes/sessions
+   */
+  static async createSession(sessionData: {
+    title: string;
+    questionCount: number;
+    courseIds: number[];
+    sessionType: 'PRACTISE' | 'EXAM';
+    questionTypes?: Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>;
+    years?: number[];
+    rotations?: Array<'R1' | 'R2' | 'R3' | 'R4'>;
+    universityIds?: number[];
+    questionSourceIds?: number[];
+  }): Promise<ApiResponse<any>> {
+    return apiClient.post<any>('/quizzes/sessions', sessionData);
+  }
+
+  /**
    * Get quiz session details
    * Docs: GET /quiz-sessions/{sessionId}
    */
   static async getQuizSession(sessionId: number): Promise<ApiResponse<any>> {
     return apiClient.get<any>(`/quiz-sessions/${sessionId}`);
+  }
+
+  /**
+   * Create a retake session from an existing completed session
+   * POST /quiz-sessions/retake
+   */
+  static async retakeQuizSession(payload: {
+    originalSessionId: number;
+    retakeType: 'SAME' | 'INCORRECT_ONLY' | 'CORRECT_ONLY' | 'NOT_RESPONDED';
+    title?: string;
+  }): Promise<ApiResponse<any>> {
+    try {
+      // Validate input parameters
+      if (!payload.originalSessionId || payload.originalSessionId <= 0) {
+        throw new Error('Invalid original session ID');
+      }
+
+      if (!payload.retakeType) {
+        throw new Error('Retake type is required');
+      }
+
+      console.log('🔄 [QuizService] Creating retake session:', {
+        originalSessionId: payload.originalSessionId,
+        retakeType: payload.retakeType,
+        title: payload.title || 'No title provided'
+      });
+
+      const response = await apiClient.post<any>('/quiz-sessions/retake', payload);
+
+      console.log('📋 [QuizService] Retake API response:', {
+        success: response.success,
+        data: response.data,
+        error: response.error,
+        dataStructure: response.data ? Object.keys(response.data) : 'null',
+        hasSessionId: !!(response.data?.sessionId),
+        hasId: !!(response.data?.id),
+        hasNestedSessionId: !!(response.data?.data?.sessionId),
+        hasNestedId: !!(response.data?.data?.id)
+      });
+
+      return response;
+    } catch (error: any) {
+      console.error('💥 [QuizService] Retake session creation failed:', {
+        error: error.message,
+        originalSessionId: payload.originalSessionId,
+        retakeType: payload.retakeType
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a quiz session
+   */
+  static async deleteQuizSession(sessionId: number): Promise<ApiResponse<{ success: boolean }>> {
+    // Validate session ID
+    if (!Number.isInteger(sessionId) || sessionId <= 0) {
+      throw new Error('Valid session ID is required');
+    }
+
+    try {
+      // Use the correct endpoint that works
+      return await apiClient.delete<{ success: boolean }>(`/students/quiz-sessions/${sessionId}`);
+    } catch (error: any) {
+      // Handle specific API error responses
+      if (error?.response?.status === 404) {
+        throw new Error('Session not found');
+      }
+      if (error?.response?.status === 401) {
+        throw new Error('Authentication required');
+      }
+      if (error?.response?.status === 403) {
+        throw new Error('Access denied: You can only delete your own sessions');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Update quiz session status
+   * Endpoint: PATCH /students/quiz-sessions/:sessionId/status
+   * Valid values: NOT_STARTED | IN_PROGRESS | COMPLETED
+   */
+  static async updateQuizSessionStatus(
+    sessionId: number,
+    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'
+  ): Promise<ApiResponse<any>> {
+    const body = { status };
+    try {
+      return await apiClient.patch<any>(`/students/quiz-sessions/${sessionId}/status`, body);
+    } catch (err: any) {
+      const isRouteMissing = err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || ''));
+      if (isRouteMissing) {
+        return await apiClient.patch<any>(`/quiz-sessions/${sessionId}/status`, body);
+      }
+      throw err;
+    }
   }
 
   /**
@@ -1384,9 +1788,17 @@ export class QuizService {
     return apiClient.post<any>('/quizzes/create-session-by-questions', payload);
   }
 
+  // Note: startPracticeSessionFromLabel has been removed as the endpoint doesn't exist
+  // Use createSessionByQuestions instead with the label's questionIds
+
+  // Note: Exam session creation methods have been moved to NewApiService
+  // Use apiServices.newApi.getExamSessionFilters(), getQuestionsByUniteOrModule(),
+  // and createExamSessionByQuestions() instead.
+
   /**
    * Submit multiple answers for questions in a quiz session (bulk submission)
-   * Docs: POST /quiz-sessions/{sessionId}/submit-answer
+   * Docs: POST /api/v1/students/quiz-sessions/{sessionId}/submit-answer
+   * According to session-doc.md, timeSpent should be at the top level, not per answer
    */
   static async submitAnswersBulk(sessionId: number, answers: Array<{
     questionId: number;
@@ -1394,7 +1806,11 @@ export class QuizService {
     selectedAnswerIds?: number[];
     textAnswer?: string;
     timeSpent?: number;
-  }>): Promise<ApiResponse<any>> {
+  }>, totalTimeSpent?: number): Promise<ApiResponse<SubmitAnswerResponse>> {
+    // Calculate total time spent if not provided
+    const sessionTimeSpent = totalTimeSpent ?? answers.reduce((sum, answer) =>
+      sum + (typeof answer.timeSpent === 'number' ? answer.timeSpent : 0), 0);
+
     const requestBody = {
       answers: answers.map(answer => ({
         questionId: answer.questionId,
@@ -1404,19 +1820,21 @@ export class QuizService {
             ? { selectedAnswerId: answer.selectedAnswerId }
             : (typeof answer.textAnswer === 'string' && answer.textAnswer.length > 0
               ? { textAnswer: answer.textAnswer }
-              : {})),
-        ...(typeof answer.timeSpent === 'number' ? { timeSpent: answer.timeSpent } : {})
-      }))
+              : {}))
+        // Remove per-answer timeSpent as per session-doc.md specification
+      })),
+      // Add timeSpent at the top level as per session-doc.md
+      ...(sessionTimeSpent > 0 ? { timeSpent: sessionTimeSpent } : {})
     };
 
     try {
-      // Primary as per docs
-      return await apiClient.post<any>(`/quiz-sessions/${sessionId}/submit-answer`, requestBody);
+      // Primary endpoint as per Postman collection documentation
+      return await apiClient.post<SubmitAnswerResponse>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
     } catch (err: any) {
       const isRouteMissing = (err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || '')));
       if (isRouteMissing) {
-        // Fallback to student-scoped route for legacy envs
-        return await apiClient.post<any>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
+        // Fallback to non-student-scoped route for legacy envs
+        return await apiClient.post<SubmitAnswerResponse>(`/quiz-sessions/${sessionId}/submit-answer`, requestBody);
       }
       throw err;
     }
@@ -1430,7 +1848,7 @@ export class QuizService {
     questionId: number;
     selectedAnswerId: number;
     timeSpent?: number;
-  }): Promise<ApiResponse<any>> {
+  }): Promise<ApiResponse<SubmitAnswerResponse>> {
     // Use bulk submission with single answer for consistency
     return this.submitAnswersBulk(sessionId, [answerData]);
   }
@@ -1461,127 +1879,17 @@ export class QuizService {
     return { success: true, data: { sessionId, message: 'No-op complete' } } as any;
   }
 
-  /**
-   * Create a new quiz session
-   */
-  static async createQuizSession(quizConfig: {
-    title: string;
-    // Use 'type' for classification: PRACTICE | EXAM | RESIDENCY
-    type?: 'PRACTICE' | 'EXAM' | 'RESIDENCY';
-    settings?: Partial<{
-      questionCount: number;
-      timeLimit?: number;
-      shuffleQuestions?: boolean;
-      showExplanations?: 'after_each' | 'at_end' | 'never';
-    }>;
-    filters: {
-      yearLevels?: string[];
-      courseIds?: number[];
-      quizSourceIds?: number[];
-      quizYears?: number[];
-      questionTypes?: Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>;
-      examYears?: number[];
-      moduleIds?: number[];
-      uniteIds?: number[];
-    };
-  }): Promise<ApiResponse<any>> {
-    return apiClient.post<any>('/quizzes/quiz-sessions', quizConfig);
-  }
 
-  /**
-   * Get user's quiz sessions
-   * Note: Backend currently does NOT accept pagination query params; request must be plain GET /quiz-sessions
-   * We keep the parameters in the signature for future compatibility but do not append them to the URL.
-   */
-  static async getQuizSessions(params: PaginationParams & {
-    status?: 'NOT_STARTED' | 'COMPLETED' | 'IN_PROGRESS' | 'ABANDONED';
-    type?: 'PRACTICE' | 'EXAM' | 'REMEDIAL';
-  } = {}): Promise<ApiResponse<PaginatedResponse<any>>> {
-    // Call without pagination query parameters to avoid 500s on current backend
-    try {
-      return await apiClient.get<PaginatedResponse<any>>('/quiz-sessions');
-    } catch (err: any) {
-      // Fallback to student-scoped route for legacy envs
-      const status = err?.status || err?.statusCode || err?.response?.status;
-      const isRouteMissing = status === 404 || /Endpoint not found/i.test((err?.error || err?.message || '').toString());
-      if (isRouteMissing) {
-        return await apiClient.get<PaginatedResponse<any>>('/students/quiz-sessions');
-      }
-      throw err;
-    }
-  }
 
-  /**
-   * Create a retake session from an existing completed session
-   * POST /quiz-sessions/retake
-   */
-  static async retakeQuizSession(payload: {
-    originalSessionId: number;
-    retakeType: 'SAME' | 'INCORRECT_ONLY' | 'CORRECT_ONLY' | 'NOT_RESPONDED';
-    title?: string;
-  }): Promise<ApiResponse<any>> {
-    // Docs: POST /quiz-sessions/retake
-    return apiClient.post<any>('/quiz-sessions/retake', payload);
-  }
 
-  /**
-   * Update a quiz session (e.g., title)
-   */
-  static async updateQuizSession(sessionId: number, data: { title?: string; description?: string }): Promise<ApiResponse<any>> {
-    try {
-      // Prefer unified docs route
-      return await apiClient.put<any>(`/quiz-sessions/${sessionId}`, data);
-    } catch (err: any) {
-      const status = err?.status || err?.statusCode || err?.response?.status;
-      const message = (err?.error || err?.message || '').toString();
-      const isRouteMissing = status === 404 || /Endpoint not found/i.test(message);
-      if (isRouteMissing) {
-        // Fallback to student-scoped route
-        return await apiClient.put<any>(`/students/quiz-sessions/${sessionId}`, data);
-      }
-      throw err;
-    }
-  }
 
-  /**
-   * Delete a quiz session
-   */
-  static async deleteQuizSession(sessionId: number): Promise<ApiResponse<{ success: boolean }>> {
-    try {
-      return await apiClient.delete<{ success: boolean }>(`/students/quiz-sessions/${sessionId}`);
-    } catch (err: any) {
-      const status = err?.status || err?.statusCode || err?.response?.status;
-      const message = (err?.error || err?.message || '').toString();
-      const isRouteMissing = status === 404 || /Endpoint not found/i.test(message);
-      if (isRouteMissing) {
-        return await apiClient.delete<{ success: boolean }>(`/students/quiz-sessions/${sessionId}`);
-      }
-      throw err;
-    }
-  }
 
-  /**
-   * Update quiz session status
-   * Endpoint: PATCH /students/quiz-sessions/:sessionId/status
-   * Valid values: NOT_STARTED | IN_PROGRESS | COMPLETED
-   * Notes: Server enforces transitions; client just forwards the request.
-   */
-  static async updateQuizSessionStatus(
-    sessionId: number,
-    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'
-  ): Promise<ApiResponse<any>> {
-    const body = { status };
-    try {
-      return await apiClient.patch<any>(`/students/quiz-sessions/${sessionId}/status`, body);
-    } catch (err: any) {
-      const isRouteMissing = err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || ''));
-      if (isRouteMissing) {
-        // Fallback: unified route without /students (for legacy envs)
-        return await apiClient.patch<any>(`/quiz-sessions/${sessionId}/status`, body);
-      }
-      throw err;
-    }
-  }
+
+
+
+
+
+
 
 
 }
@@ -1613,20 +1921,75 @@ export class ExamService {
   }
 
   /**
-   * Create exam session
+   * Create exam session from predefined exam using unified endpoint
    */
   static async createExamSession(examId: number): Promise<ApiResponse<ExamSession>> {
-    // Ensure quizType classification is EXAM
-    return apiClient.post<ExamSession>('/exams/exam-sessions', { examId, quizType: 'EXAM' });
+    try {
+      // First, get the exam questions
+      const examResponse = await apiClient.get<any>(`/exams/${examId}/questions`);
+
+      if (!examResponse.data?.questions || examResponse.data.questions.length === 0) {
+        throw new Error('No questions found for this exam');
+      }
+
+      const questionIds = examResponse.data.questions.map((q: any) => q.id);
+
+      // Get exam details for title
+      const examDetails = await apiClient.get<any>(`/exams/${examId}`);
+      const examTitle = examDetails.data?.title || `Exam Session ${examId}`;
+
+      // Create session using unified endpoint
+      return await apiClient.post<ExamSession>('/quizzes/create-session-by-questions', {
+        type: 'EXAM',
+        questionIds,
+        title: examTitle
+      });
+    } catch (error) {
+      console.error('Failed to create exam session:', error);
+      throw error;
+    }
   }
 
   /**
-   * Create exam session from multiple modules
-   * POST /exams/exam-sessions/from-modules
+   * Create exam session from multiple modules using unified endpoint
+   * POST /api/v1/quizzes/create-session-by-questions
    */
   static async createExamSessionFromModules(payload: { moduleIds: number[]; year: number; title?: string }): Promise<ApiResponse<any>> {
-    // Ensure quizType classification is EXAM for module-based creation
-    return apiClient.post<any>('/exams/exam-sessions/from-modules', { ...payload, quizType: 'EXAM' });
+    try {
+      // Get questions for the selected modules and year
+      const questions: any[] = [];
+
+      for (const moduleId of payload.moduleIds) {
+        try {
+          const response = await apiClient.get<any>(`/quizzes/questions-by-unite-or-module?moduleId=${moduleId}`);
+          if (response.data?.data?.questions) {
+            // Filter by year if specified
+            const moduleQuestions = response.data.data.questions.filter((q: any) =>
+              !payload.year || q.examYear === payload.year
+            );
+            questions.push(...moduleQuestions);
+          }
+        } catch (err) {
+          console.warn(`Failed to fetch questions for module ${moduleId}:`, err);
+        }
+      }
+
+      if (questions.length === 0) {
+        throw new Error('No questions found for the selected modules and year');
+      }
+
+      const questionIds = questions.slice(0, 100).map(q => q.id);
+
+      // Create session using unified endpoint
+      return await apiClient.post<any>('/quizzes/create-session-by-questions', {
+        type: 'EXAM',
+        questionIds,
+        title: payload.title || `Exam Session - ${new Date().toLocaleDateString()}`
+      });
+    } catch (error) {
+      console.error('Failed to create exam session from modules:', error);
+      throw error;
+    }
   }
 
   /**
@@ -1672,13 +2035,13 @@ export class ExamService {
     };
 
     try {
-      // Primary spec path
-      return await apiClient.post<{ success: boolean; message: string }>(`/quiz-sessions/${sessionId}/submit-answer`, requestBody);
+      // Primary endpoint as per Postman collection documentation
+      return await apiClient.post<{ success: boolean; message: string }>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
     } catch (err: any) {
-      // Fallback to student-scoped route if unified route is not available in some envs
+      // Fallback to non-student-scoped route for legacy envs
       const isRouteMissing = (err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || '')));
       if (isRouteMissing) {
-        return await apiClient.post<{ success: boolean; message: string }>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
+        return await apiClient.post<{ success: boolean; message: string }>(`/quiz-sessions/${sessionId}/submit-answer`, requestBody);
       }
       throw err;
     }
@@ -3242,6 +3605,9 @@ export function handleApiError(error: any): string {
   return 'An unexpected error occurred';
 }
 
+// Import new API service
+import { NewApiService } from './api/new-api-services';
+
 // Export all services
 export const apiServices = {
   auth: AuthService,
@@ -3254,4 +3620,5 @@ export const apiServices = {
   exam: ExamService,
   admin: AdminService,
   adminContent: AdminContentService,
+  newApi: NewApiService,
 };

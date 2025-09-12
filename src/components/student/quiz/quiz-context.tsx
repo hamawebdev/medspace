@@ -16,6 +16,34 @@ export interface QuizQuestion {
   difficulty?: 'easy' | 'medium' | 'hard';
   subject?: string;
   tags?: string[];
+  // Additional fields from API response
+  questionType?: 'MULTIPLE_CHOICE' | 'SINGLE_CHOICE' | 'TRUE_FALSE';
+  yearLevel?: string;
+  examYear?: number;
+  metadata?: string;
+  questionImages?: Array<{
+    id: number;
+    imagePath: string;
+    altText?: string;
+  }>;
+  university?: {
+    id: number;
+    name: string;
+    country: string;
+  };
+  course?: {
+    id: number;
+    name: string;
+    description?: string;
+    module?: {
+      id: number;
+      name: string;
+    };
+  };
+  source?: {
+    id: number;
+    name: string;
+  } | string; // Can be object or string for backward compatibility
 }
 
 export interface UserAnswer {
@@ -347,6 +375,18 @@ export function QuizProvider({ children, initialSession }: QuizProviderProps) {
 
   const revealAnswer = useCallback(() => {
     dispatch({ type: 'REVEAL_ANSWER' });
+
+    // Scroll to explanation after a short delay to allow DOM update
+    setTimeout(() => {
+      const explanationElement = document.getElementById('answer-explanation');
+      if (explanationElement) {
+        explanationElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+      }
+    }, 100);
   }, []);
 
   const toggleExplanation = useCallback(() => {

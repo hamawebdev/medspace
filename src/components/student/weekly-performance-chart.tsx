@@ -41,25 +41,25 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
       day: 'numeric',
     }),
     date: d.date,
-    Correct: d.correct,
-    Incorrect: d.incorrect,
-    Viewed: d.viewed,
+    Justes: d.correct,
+    Fausses: d.incorrect,
+    Consultées: d.viewed,
     Total: d.correct + d.incorrect + d.viewed,
     Accuracy: Math.round((d.correct / (d.correct + d.incorrect)) * 100) || 0
   }))
 
   // Chart colors using design system values
   const colors = {
-    Correct: '#10b981', // chart-2 equivalent - Green
-    Incorrect: '#ec4899', // chart-5 equivalent - Pink
-    Viewed: '#f59e0b', // chart-3 equivalent - Orange
-    Accuracy: '#3b82f6' // chart-1 equivalent - Blue
+    Justes: '#00B050', // Justes - Green
+    Fausses: '#FF0000', // Fausses - Red
+    Consultées: '#BFBFBF', // Consultées - Gray
+    Accuracy: '#00B050' // Use green for accuracy trend
   }
 
   // Calculate trends
   const totalQuestions = data.reduce((sum, d) => sum + d.Total, 0)
-  const totalCorrect = data.reduce((sum, d) => sum + d.Correct, 0)
-  const overallAccuracy = Math.round((totalCorrect / (totalQuestions - data.reduce((sum, d) => sum + d.Viewed, 0))) * 100) || 0
+  const totalCorrect = data.reduce((sum, d) => sum + d.Justes, 0)
+  const overallAccuracy = Math.round((totalCorrect / (totalQuestions - data.reduce((sum, d) => sum + d.Consultées, 0))) * 100) || 0
 
   const lastWeekAccuracy = data[data.length - 1]?.Accuracy || 0
   const previousWeekAccuracy = data[data.length - 2]?.Accuracy || 0
@@ -123,26 +123,26 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
             />
             <Line
               type="monotone"
-              dataKey="Correct"
-              stroke={colors.Correct}
+              dataKey="Justes"
+              stroke={colors.Justes}
               strokeWidth={2}
-              dot={{ fill: colors.Correct, strokeWidth: 1, r: 3 }}
+              dot={{ fill: colors.Justes, strokeWidth: 1, r: 3 }}
               activeDot={{ r: 5, strokeWidth: 2 }}
             />
             <Line
               type="monotone"
-              dataKey="Incorrect"
-              stroke={colors.Incorrect}
+              dataKey="Fausses"
+              stroke={colors.Fausses}
               strokeWidth={2}
-              dot={{ fill: colors.Incorrect, strokeWidth: 1, r: 3 }}
+              dot={{ fill: colors.Fausses, strokeWidth: 1, r: 3 }}
               activeDot={{ r: 5, strokeWidth: 2 }}
             />
             <Line
               type="monotone"
-              dataKey="Viewed"
-              stroke={colors.Viewed}
+              dataKey="Consultées"
+              stroke={colors.Consultées}
               strokeWidth={2}
-              dot={{ fill: colors.Viewed, strokeWidth: 1, r: 3 }}
+              dot={{ fill: colors.Consultées, strokeWidth: 1, r: 3 }}
               activeDot={{ r: 5, strokeWidth: 2 }}
             />
           </LineChart>
@@ -175,26 +175,26 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
             />
             <Area
               type="monotone"
-              dataKey="Correct"
+              dataKey="Justes"
               stackId="1"
-              stroke={colors.Correct}
-              fill={colors.Correct}
+              stroke={colors.Justes}
+              fill={colors.Justes}
               fillOpacity={0.7}
             />
             <Area
               type="monotone"
-              dataKey="Incorrect"
+              dataKey="Fausses"
               stackId="1"
-              stroke={colors.Incorrect}
-              fill={colors.Incorrect}
+              stroke={colors.Fausses}
+              fill={colors.Fausses}
               fillOpacity={0.7}
             />
             <Area
               type="monotone"
-              dataKey="Viewed"
+              dataKey="Consultées"
               stackId="1"
-              stroke={colors.Viewed}
-              fill={colors.Viewed}
+              stroke={colors.Consultées}
+              fill={colors.Consultées}
               fillOpacity={0.7}
             />
           </AreaChart>
@@ -225,16 +225,16 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
               wrapperStyle={{ fontSize: '12px' }}
               iconType="rect"
             />
-            <Bar dataKey="Correct" fill={colors.Correct} radius={[3, 3, 0, 0]} />
-            <Bar dataKey="Incorrect" fill={colors.Incorrect} radius={[3, 3, 0, 0]} />
-            <Bar dataKey="Viewed" fill={colors.Viewed} radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Justes" fill={colors.Justes} radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Fausses" fill={colors.Fausses} radius={[3, 3, 0, 0]} />
+            <Bar dataKey="Consultées" fill={colors.Consultées} radius={[3, 3, 0, 0]} />
           </BarChart>
         )
     }
   }
 
   return (
-    <Card className='bg-card border-border shadow-sm hover:shadow-md transition-shadow duration-200'>
+    <Card className='bg-card border-border shadow-sm'>
 
       <CardHeader className='pb-4'>
         <div className='flex flex-col gap-3'>
@@ -305,48 +305,42 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
 
         {/* Performance Summary */}
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4'>
-          <div className='bg-muted/30 rounded-lg p-3 text-center border-border hover:bg-muted/50 transition-colors'>
+          <div className='rounded-lg p-3 text-center border-border' style={{ backgroundColor: '#00B05020', border: '1px solid #00B05040' }}>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 bg-chart-2/20 rounded-full'>
-                <Target className='h-3 w-3 text-chart-2' />
+              <div className='p-1 rounded-full' style={{ backgroundColor: '#00B05020' }}>
+                <Target className='h-3 w-3' style={{ color: '#00B050' }} />
               </div>
             </div>
-            <div className='text-lg font-bold text-chart-2'>{overallAccuracy}%</div>
-            <div className='text-xs text-muted-foreground'>Overall Accuracy</div>
+            <div className='text-lg font-bold' style={{ color: '#00B050' }}>{overallAccuracy}%</div>
+            <div className='text-xs font-medium' style={{ color: '#00B050' }}>Overall Accuracy</div>
           </div>
 
-          <div className='bg-muted/30 rounded-lg p-3 text-center border-border hover:bg-muted/50 transition-colors'>
+          <div className='rounded-lg p-3 text-center border-border' style={{ backgroundColor: '#BFBFBF20', border: '1px solid #BFBFBF40' }}>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 bg-chart-1/20 rounded-full'>
-                <BarChart3 className='h-3 w-3 text-chart-1' />
+              <div className='p-1 rounded-full' style={{ backgroundColor: '#BFBFBF20' }}>
+                <BarChart3 className='h-3 w-3' style={{ color: '#BFBFBF' }} />
               </div>
             </div>
-            <div className='text-lg font-bold text-chart-1'>{totalQuestions}</div>
-            <div className='text-xs text-muted-foreground'>Total Questions</div>
+            <div className='text-lg font-bold' style={{ color: '#BFBFBF' }}>{totalQuestions}</div>
+            <div className='text-xs font-medium' style={{ color: '#BFBFBF' }}>Total Questions</div>
           </div>
 
-          <div className='bg-muted/30 rounded-lg p-3 text-center border-border hover:bg-muted/50 transition-colors'>
+          <div className='rounded-lg p-3 text-center border-border' style={{ backgroundColor: '#00B05020', border: '1px solid #00B05040' }}>
             <div className='flex items-center justify-center mb-1'>
-              <div className={cn(
-                'p-1 rounded-full',
-                accuracyTrend > 0 ? 'bg-chart-2/20' : accuracyTrend < 0 ? 'bg-destructive/20' : 'bg-chart-3/20'
-              )}>
+              <div className='p-1 rounded-full' style={{ backgroundColor: '#00B05020' }}>
                 {accuracyTrend > 0 ? (
-                  <TrendingUp className='h-3 w-3 text-chart-2' />
+                  <TrendingUp className='h-3 w-3' style={{ color: '#00B050' }} />
                 ) : accuracyTrend < 0 ? (
-                  <TrendingDown className='h-3 w-3 text-destructive' />
+                  <TrendingDown className='h-3 w-3' style={{ color: '#FF0000' }} />
                 ) : (
-                  <Award className='h-3 w-3 text-chart-3' />
+                  <Award className='h-3 w-3' style={{ color: '#00B050' }} />
                 )}
               </div>
             </div>
-            <div className={cn(
-              'text-lg font-bold',
-              accuracyTrend > 0 ? 'text-chart-2' : accuracyTrend < 0 ? 'text-destructive' : 'text-chart-3'
-            )}>
+            <div className='text-lg font-bold' style={{ color: accuracyTrend > 0 ? '#00B050' : accuracyTrend < 0 ? '#FF0000' : '#00B050' }}>
               {Math.abs(accuracyTrend)}%
             </div>
-            <div className='text-xs text-muted-foreground'>Weekly Trend</div>
+            <div className='text-xs font-medium' style={{ color: '#00B050' }}>Weekly Trend</div>
           </div>
         </div>
       </CardHeader>

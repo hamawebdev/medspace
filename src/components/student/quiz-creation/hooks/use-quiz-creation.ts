@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuizFilters } from '@/hooks/use-quiz-api';
 import { useQuestionCalculation } from './use-question-calculation';
 import { QuizService } from '@/lib/api-services';
+import { NewApiService } from '@/lib/api/new-api-services';
 import { toast } from 'sonner';
 import { 
   QuizCreationConfig, 
@@ -202,53 +203,109 @@ export function useQuizCreation(
 
     setIsCreating(true);
     try {
-      // Prepare the request payload to match API expectations
-      // For smart defaults: omit quizSourceIds and quizYears entirely (don't send empty arrays)
       const sanitizedTitle = sanitizeTitle(config.title);
-      const quizPayload = {
-        title: sanitizedTitle,
-        type: config.type,
-        settings: {
-          questionCount: config.settings.questionCount,
-          ...(config.settings.timeLimit && { timeLimit: config.settings.timeLimit }),
-          ...(config.settings.shuffleQuestions !== undefined && { shuffleQuestions: config.settings.shuffleQuestions }),
-          ...(config.settings.showExplanations && { showExplanations: config.settings.showExplanations })
-        },
-        filters: {
-          yearLevels: config.filters.yearLevels,
-          // Legacy param mapping remains for backward compatibility
-          ...(config.filters.courseIds?.length && { courseIds: config.filters.courseIds }),
-          ...(config.filters.quizSourceIds?.length && { quizSourceIds: config.filters.quizSourceIds }),
-          ...(config.filters.quizYears?.length && { quizYears: config.filters.quizYears }),
-          // New API contract fields
-          ...(config.filters.questionTypes?.length && { questionTypes: config.filters.questionTypes }),
-          ...(config.filters.examYears?.length && { examYears: config.filters.examYears }),
-          ...(config.filters.moduleIds?.length && { moduleIds: config.filters.moduleIds }),
-          ...(config.filters.uniteIds?.length && { uniteIds: config.filters.uniteIds })
+
+      // Method 1: Complete Workflow of Filter
+      // Step 1: Get Content Structure (already available via useQuizFilters)
+      // Step 2: Get Available Questions by Unite or Module
+      let allQuestions: any[] = [];
+
+      // Fetch questions for each unite
+      if (config.filters.uniteIds && config.filters.uniteIds.length > 0) {
+        for (const uniteId of config.filters.uniteIds) {
+          try {
+            console.debug('[QuizCreation] Fetching questions for unite:', uniteId);
+            const qRes = await NewApiService.getQuestionsByUniteOrModule({ uniteId });
+            if (qRes.success && qRes.data?.questions) {
+              allQuestions.push(...qRes.data.questions);
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch questions for unite ${uniteId}:`, err);
+          }
         }
-      };
+      }
+
+      // Fetch questions for each module
+      if (config.filters.moduleIds && config.filters.moduleIds.length > 0) {
+        for (const moduleId of config.filters.moduleIds) {
+          try {
+            console.debug('[QuizCreation] Fetching questions for module:', moduleId);
+            const qRes = await NewApiService.getQuestionsByUniteOrModule({ moduleId });
+            if (qRes.success && qRes.data?.questions) {
+              allQuestions.push(...qRes.data.questions);
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch questions for module ${moduleId}:`, err);
+          }
+        }
+      }
+
+      if (allQuestions.length === 0) {
+        throw new Error('No questions available for the selected content. Please select at least one unite or module.');
+      }
+
+      // Step 3: Apply Frontend Filters
+      let filteredQuestions = allQuestions;
+
+      // Filter by question type if specified
+      if (config.filters.questionTypes && config.filters.questionTypes.length > 0) {
+        filteredQuestions = filteredQuestions.filter((q: any) =>
+          config.filters.questionTypes!.includes(q.questionType)
+        );
+      }
+
+      // Filter by exam years if specified
+      if (config.filters.examYears && config.filters.examYears.length > 0) {
+        filteredQuestions = filteredQuestions.filter((q: any) =>
+          config.filters.examYears!.includes(q.examYear)
+        );
+      }
+
+      // Remove duplicates by question ID
+      const uniqueQuestions = filteredQuestions.filter((q: any, index: number, arr: any[]) =>
+        arr.findIndex((item: any) => item.id === q.id) === index
+      );
+
+      // Randomize and limit to requested count
+      const shuffledQuestions = uniqueQuestions.sort(() => Math.random() - 0.5);
+      const questionIds: number[] = shuffledQuestions
+        .slice(0, config.settings.questionCount)
+        .map((q: any) => Number(q?.id))
+        .filter(Boolean);
+
+      if (questionIds.length === 0) {
+        throw new Error('No questions available with current filters');
+      }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('🚀 Quiz Creation Payload:', JSON.stringify(quizPayload, null, 2));
-        console.log('📝 Title sanitization:', {
-          original: config.title,
-          sanitized: sanitizedTitle,
-          changed: config.title !== sanitizedTitle
+        console.log('🚀 Quiz Creation - Method 1 Workflow:', {
+          title: sanitizedTitle,
+          type: config.type,
+          totalQuestions: allQuestions.length,
+          filteredQuestions: filteredQuestions.length,
+          uniqueQuestions: uniqueQuestions.length,
+          selectedQuestions: questionIds.length,
+          filters: config.filters
         });
       }
 
-      const result = await QuizService.createQuizSession(quizPayload);
+      // Step 4: Create Session
+      const result = await QuizService.createSessionByQuestions({
+        type: config.type as 'PRACTICE' | 'EXAM',
+        questionIds,
+        title: sanitizedTitle,
+      });
 
       if (result.success) {
         toast.success('Quiz created successfully!');
 
-        // Handle nested response structure: result.data.data.sessionId
-        const sessionData = result.data.data || result.data;
+        // Handle new response structure: session data is directly in result.data
+        const sessionData = result.data;
 
         console.log('Quiz creation successful:', {
           fullResponse: result,
           sessionData: sessionData,
-          sessionId: sessionData.sessionId
+          sessionId: sessionData.id
         });
 
         return sessionData;

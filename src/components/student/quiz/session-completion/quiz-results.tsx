@@ -104,22 +104,22 @@ export function QuizResults() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-green-600">{correctAnswers}</div>
-                <div className="text-sm text-green-700 dark:text-green-400">Correct</div>
+              <div className="text-center p-4 rounded-lg" style={{ backgroundColor: '#00B05020', border: '1px solid #00B05040' }}>
+                <CheckCircle className="h-8 w-8 mx-auto mb-2" style={{ color: '#00B050' }} />
+                <div className="text-2xl font-bold" style={{ color: '#00B050' }}>{correctAnswers}</div>
+                <div className="text-sm font-medium" style={{ color: '#00B050' }}>Justes</div>
               </div>
               
-              <div className="text-center p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-red-600">{incorrectAnswers}</div>
-                <div className="text-sm text-red-700 dark:text-red-400">Incorrect</div>
+              <div className="text-center p-4 rounded-lg" style={{ backgroundColor: '#FF000020', border: '1px solid #FF000040' }}>
+                <XCircle className="h-8 w-8 mx-auto mb-2" style={{ color: '#FF0000' }} />
+                <div className="text-2xl font-bold" style={{ color: '#FF0000' }}>{incorrectAnswers}</div>
+                <div className="text-sm font-medium" style={{ color: '#FF0000' }}>Fausses</div>
               </div>
               
-              <div className="text-center p-4 bg-primary/10 rounded-lg">
-                <Target className="h-8 w-8 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold text-primary">{totalQuestions}</div>
-                <div className="text-sm text-primary-foreground">Total</div>
+              <div className="text-center p-4 rounded-lg" style={{ backgroundColor: '#BFBFBF20', border: '1px solid #BFBFBF40' }}>
+                <Target className="h-8 w-8 mx-auto mb-2" style={{ color: '#BFBFBF' }} />
+                <div className="text-2xl font-bold" style={{ color: '#BFBFBF' }}>{totalQuestions}</div>
+                <div className="text-sm font-medium" style={{ color: '#BFBFBF' }}>Consultées</div>
               </div>
 
               <div className="text-center p-4 bg-accent/10 rounded-lg">
@@ -207,13 +207,13 @@ export function QuizResults() {
             Review Results
           </Button>
 
-          {/* Edit reuses the session page with review/edit flags */}
+          {/* Review: detailed review of answers and explanations */}
           <Button
             onClick={() => router.push(`/session/${session.id || session.sessionId}/review`)}
             className="gap-2"
           >
             <FileText className="h-4 w-4" />
-            Review & Edit Answers
+            Review Answers
           </Button>
 
           {/* Practice more / Exam create: dynamic by type */}

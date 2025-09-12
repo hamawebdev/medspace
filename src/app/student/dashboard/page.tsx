@@ -12,6 +12,7 @@ import { PerformanceOverview } from '@/components/student/performance-overview';
 import { RecentActivityFeed } from '@/components/student/recent-activity-feed';
 import { WeeklyPerformanceChart } from '@/components/student/weekly-performance-chart';
 import { EmailVerificationBanner } from '@/components/student/email-verification-banner';
+import { DashboardStatsCards } from '@/components/student/dashboard-stats-cards';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -85,6 +86,9 @@ export default function StudentDashboard() {
             />
           )}
 
+          {/* Dashboard Stats Cards */}
+          <DashboardStatsCards />
+
           {/* API Loading Indicator */}
           {apiLoading && (
             <div className='bg-primary/10 border border-primary/20 rounded-lg p-[calc(var(--spacing)*4)]'>
@@ -130,8 +134,7 @@ export default function StudentDashboard() {
           {/* Dashboard Content - Only show when data is available */}
           {performance ? (
             <>
-              {/* Performance Overview - Consolidated metrics */}
-              <PerformanceOverview performance={performance} />
+
 
               {/* Main Content Layout - Enhanced Visual Hierarchy */}
               <div className='space-y-8'>

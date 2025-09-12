@@ -314,8 +314,9 @@ export interface ExplanationImage {
 export interface QuizSession {
   id: number;
   title: string;
-  type: 'PRACTICE' | 'EXAM';
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  type: 'PRACTICE' | 'EXAM' | 'RESIDENCY';
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
+  startedAt?: string; // New field for when session was started
   score: number;
   percentage: number;
   questions: QuizQuestion[];
@@ -459,8 +460,9 @@ export interface Exam {
 export interface ExamSession {
   id: number;
   title: string;
-  type: 'EXAM' | 'QUIZ' | 'PRACTICE';
+  type: 'EXAM' | 'QUIZ' | 'PRACTICE' | 'RESIDENCY';
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
+  startedAt?: string; // New field for when session was started
   score: number;
   percentage: number;
   questions: SessionQuestion[];
@@ -575,6 +577,17 @@ export interface SessionResult {
   createdAt: string;
 }
 
+// Submit Answer API Response - Based on session-doc.md
+export interface SubmitAnswerResponse {
+  sessionId: number;
+  scoreOutOf20: number;
+  percentageScore: number;
+  timeSpent: number;
+  answeredQuestions: number;
+  totalQuestions: number;
+  status: 'completed';
+}
+
 export interface SessionResultsFilters {
   studyPackId?: number;
   startDate?: string;
@@ -643,9 +656,18 @@ export interface TimeBasedAnalytics {
 }
 
 // Todo types aligned with endpoint contract
-export type TodoType = 'READING' | 'QUIZ' | 'SESSION' | 'EXAM' | 'OTHER';
+export type TodoType = 'READING' | 'SESSION' | 'EXAM' | 'OTHER';
 export type TodoPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 export type TodoStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+
+export interface TodoCourse {
+  id: number;
+  name: string;
+  description?: string;
+  moduleName?: string;
+  uniteName?: string;
+  completed?: boolean;
+}
 
 export interface Todo {
   id: number;
@@ -661,7 +683,8 @@ export interface Todo {
   exam?: any;
   quizSession?: any;
   isOverdue?: boolean;
-  courseId?: number;
+  courseIds?: number[]; // Multiple course IDs
+  courses?: TodoCourse[]; // Course details for display
   estimatedTime?: number; // minutes
   tags?: string[] | null;
   createdAt: string;
@@ -674,7 +697,7 @@ export interface CreateTodoRequest {
   type: TodoType;
   priority: TodoPriority;
   dueDate?: string;
-  courseId?: number;
+  courseIds?: number[]; // Multiple course IDs
   quizId?: number;
   estimatedTime?: number;
   tags?: string[];
@@ -687,7 +710,7 @@ export interface UpdateTodoRequest {
   priority?: TodoPriority;
   status?: TodoStatus;
   dueDate?: string;
-  courseId?: number;
+  courseIds?: number[]; // Multiple course IDs
   estimatedTime?: number;
   tags?: string[];
 }
@@ -772,6 +795,45 @@ export interface QuestionReportsFilters {
 }
 
 // ==================== ANALYTICS TYPES ====================
+
+// Course Analytics API Response
+export interface CourseAnalyticsResponse {
+  session: {
+    id: number;
+    title: string;
+    type: 'PRACTICE' | 'EXAM' | 'MOCK';
+    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+    completedAt: string;
+    totalQuestions: number;
+    correctAnswers: number;
+    incorrectAnswers: number;
+    percentage: number;
+    timeSpent: number; // in minutes
+    averageTimePerQuestion: number; // in minutes
+    courses: CourseAnalytics[];
+  };
+  pagination: {
+    currentPage: number;
+    totalItems: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+// Course Analytics Object
+export interface CourseAnalytics {
+  id: number;
+  name: string;
+  description: string;
+  moduleId: number;
+  moduleName: string;
+  courseAnalytics: {
+    totalQuestions: number;
+    totalCorrectAnswers: number;
+    totalIncorrectAnswers: number;
+    overallAccuracy: number;
+  };
+}
 
 // Analytics Overview Response
 export interface AnalyticsOverview {
@@ -1006,6 +1068,198 @@ export interface GroupedNotesResponse {
   totalModules: number;
 }
 
+// Enhanced notes response format for by-module endpoint
+export interface EnhancedNotesResponse {
+  filterInfo: {
+    uniteId: number | null;
+    moduleId: number | null;
+    uniteName: string | null;
+    moduleName: string | null;
+  };
+  courseGroups: Array<{
+    course: {
+      id: number;
+      name: string;
+      module: {
+        id: number;
+        name: string;
+      };
+    };
+    notes: Note[];
+  }>;
+  ungroupedNotes: Note[];
+  totalNotes: number;
+}
+
+// Notes filtering parameters for enhanced endpoints
+export interface NotesFilterParams {
+  moduleId?: number;
+  uniteId?: number;
+}
+
+// Content filters response structure
+export interface ContentFiltersResponse {
+  unites: Array<{
+    id: number;
+    name: string;
+    modules: Array<{
+      id: number;
+      name: string;
+      courses: Array<{
+        id: number;
+        name: string;
+        description?: string;
+      }>;
+    }>;
+  }>;
+  independentModules: Array<{
+    id: number;
+    name: string;
+    courses: Array<{
+      id: number;
+      name: string;
+      description?: string;
+    }>;
+  }>;
+}
+
+// Module navigation item for hamburger menu
+export interface ModuleNavigationItem {
+  id: number;
+  name: string;
+  type: 'unite' | 'module';
+  uniteId?: number;
+  uniteName?: string;
+  noteCount?: number;
+}
+
+// ==================== COURSE TRACKING TYPES ====================
+
+// Course Layer interface
+export interface CourseLayer {
+  id: number;
+  courseId: number;
+  studentId: number;
+  layerNumber: number;
+  isCompleted: boolean;
+  isQcmLayer: boolean;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  course?: {
+    id: number;
+    name: string;
+    description?: string;
+  };
+}
+
+// Course Layer Progress
+export interface CourseLayerProgress {
+  layer1: boolean;
+  layer2: boolean;
+  layer3: boolean;
+  qcmLayer: boolean;
+}
+
+// Course Progress Details
+export interface CourseProgressDetails {
+  courseId: number;
+  courseName: string;
+  progressPercentage: number;
+  layerProgress: CourseLayerProgress;
+  completedLayers: number;
+  totalLayers: number;
+}
+
+// Card Course Association
+export interface CardCourse {
+  id: number;
+  cardId: number;
+  courseId: number;
+  createdAt: string;
+  course: {
+    id: number;
+    name: string;
+    description?: string;
+    module?: {
+      id: number;
+      name: string;
+      unite?: {
+        id: number;
+        name: string;
+      };
+    };
+  };
+}
+
+// Study Card interface
+export interface StudyCard {
+  id: number;
+  studentId: number;
+  title: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  cardCourses: CardCourse[];
+}
+
+// Card Progress Response
+export interface CardProgressResponse {
+  cardId: number;
+  cardTitle: string;
+  cardProgressPercentage: number;
+  totalCourses: number;
+  courseProgress: CourseProgressDetails[];
+}
+
+// Course Layer Upsert Request
+export interface CourseLayerUpsertRequest {
+  courseId: number;
+  layerNumber: number;
+  completed: boolean;
+}
+
+// Card Creation Request
+export interface CardCreateRequest {
+  title: string;
+  description?: string;
+  courseIds?: number[];
+}
+
+// Card Update Request
+export interface CardUpdateRequest {
+  title?: string;
+  description?: string;
+}
+
+// Unit/Module Selection for tracking
+export interface UnitModuleSelection {
+  type: 'unite' | 'module';
+  id: number;
+  name: string;
+  uniteId?: number;
+  uniteName?: string;
+}
+
+// Tracker Summary (for directory view)
+export interface TrackerSummary {
+  id: number;
+  title: string;
+  description?: string;
+  unitType: 'unite' | 'module';
+  unitId: number;
+  unitName: string;
+  courseCount: number;
+  progressBreakdown: {
+    c1: { count: number; percentage: number };
+    c2: { count: number; percentage: number };
+    c3: { count: number; percentage: number };
+    qcm: { count: number; percentage: number };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ==================== LABELS TYPES ====================
 
 // Label types for the new question-focused API format
@@ -1037,6 +1291,24 @@ export interface LabelQuestion {
     };
   };
   createdAt: string;
+}
+
+// Enhanced labels response with filtering context (new API)
+export interface LabelsResponse {
+  filterInfo: {
+    uniteId: number | null;
+    moduleId: number | null;
+    uniteName: string | null;
+    moduleName: string | null;
+  };
+  labels: Label[];
+  totalLabels: number;
+}
+
+// Filter parameters for labels
+export interface LabelFilterParams {
+  moduleId?: number;
+  uniteId?: number;
 }
 
 // ==================== COURSE RESOURCES TYPES ====================

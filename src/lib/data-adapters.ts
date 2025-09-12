@@ -187,8 +187,6 @@ export function adaptLastSession(apiData: any[] | any): LastSession | null {
   let estimatedQuestions = 10; // Default for practice sessions
   if (mostRecentActivity.type === 'EXAM') {
     estimatedQuestions = 50; // Exams typically have more questions
-  } else if (mostRecentActivity.type === 'QUIZ') {
-    estimatedQuestions = 20; // Quizzes are medium length
   }
 
   // Calculate answered questions based on score (assuming perfect score means all answered)

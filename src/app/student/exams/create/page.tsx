@@ -27,7 +27,8 @@ export default function CreateExamPage() {
   }
 
   const handleExamCreated = (examSession: any) => {
-    const sessionId = examSession?.sessionId || examSession?.id;
+    // Session data is now at root level with id field
+    const sessionId = examSession?.id;
     if (sessionId) {
       toast.success('Exam session created');
       router.push(`/session/${sessionId}`);

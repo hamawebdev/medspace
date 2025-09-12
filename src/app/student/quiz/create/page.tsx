@@ -20,8 +20,8 @@ export default function CreateQuizPage() {
 
     toast.success('Quiz created successfully!');
 
-    // Navigate to the practice session route
-    const sessionId = quizSession?.sessionId || quizSession?.id;
+    // Navigate to the practice session route - session data is now at root level
+    const sessionId = quizSession?.id;
     if (sessionId) {
       console.log(`Navigating to practice session: ${sessionId}`);
       router.push(`/session/${sessionId}`);

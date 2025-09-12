@@ -47,17 +47,41 @@ import { QuestionDisplay } from './question-display';
 // import { ClientStorageIndicator } from './client-storage-indicator';
 import { SessionTypeIndicator } from './session-type-indicator';
 import { QuizTimer } from './quiz-timer';
+import { useGlobalKeyboardShortcuts } from './hooks/use-global-keyboard-shortcuts';
 import { QuizResults } from './session-completion/quiz-results';
 import { ApiStatusIndicator } from './api-status-indicator';
 import { ApiQuizResults } from './api-quiz-results';
 import { useApiQuiz } from './quiz-api-context';
 import { EnhancedQuizFooter } from './enhanced-quiz-footer';
+import { QuizStatisticsDisplay } from './quiz-statistics-display';
+import { EnhancedExitDialog } from './enhanced-exit-dialog';
+
 
 export function QuizLayout() {
-  const router = useRouter(); 
+  const router = useRouter();
   const { state, pauseQuiz, resumeQuiz, nextQuestion, previousQuestion, completeQuiz, goToQuestion, toggleSidebar, submitAllAnswers } = useQuiz();
   const { state: apiState } = useApiQuiz();
   const [showExitDialog, setShowExitDialog] = useState(false);
+
+  // Extract API session results from the API state
+  const apiSessionResults = apiState.session ? {
+    scoreOutOf20: apiState.session.score,
+    percentageScore: apiState.session.percentage,
+    timeSpent: apiState.session.timeSpent,
+    answeredQuestions: apiState.session.answeredQuestions,
+    totalQuestions: apiState.session.totalQuestions,
+    status: apiState.session.status,
+    sessionId: apiState.apiSessionId
+  } : undefined;
+
+  // Global keyboard shortcuts
+  useGlobalKeyboardShortcuts({
+    onShowExitDialog: () => setShowExitDialog(true),
+    onClearAnswers: () => {
+      // This will be handled by individual question components
+      // We'll pass this down to question components
+    }
+  });
 
   const { session, timer, currentQuestion } = state;
 
@@ -409,29 +433,15 @@ export function QuizLayout() {
                 )}
 
                 {/* Exit Quiz */}
-                <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Home className="h-4 w-4" />
-                      <span className="hidden sm:inline">Exit</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Exit Quiz Session?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to exit this quiz session? Your progress will be saved,
-                        but you'll need to resume from where you left off.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Continue Quiz</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleExitQuiz}>
-                        Exit Session
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setShowExitDialog(true)}
+                >
+                  <Home className="h-4 w-4" />
+                  <span className="hidden sm:inline">Exit</span>
+                </Button>
               </>
             )}
           </div>
@@ -468,21 +478,43 @@ export function QuizLayout() {
             <div className="space-y-2">
               {session.questions.map((question, index) => {
                 const isCurrentQuestion = index === currentQuestionIndex;
-                const userAnswer = session.userAnswers[question?.id];
+                // Use localAnswers from API context instead of session.userAnswers
+                const userAnswer = state.localAnswers?.[question?.id] || session.userAnswers?.[question?.id];
                 const isAnswered = !!userAnswer;
-                
-                // Determine if the answer is correct
+
+                // Only show status if user has actually interacted with the question
+                // Check if answer was submitted (has selectedOptions, selectedAnswerIds, or selectedAnswerId) or if session is completed
+                const hasUserInteraction = isAnswered && (
+                  userAnswer.selectedOptions?.length > 0 ||
+                  userAnswer.selectedAnswerIds?.length > 0 ||
+                  userAnswer.selectedAnswerId ||
+                  userAnswer.textAnswer ||
+                  session.status === 'COMPLETED' ||
+                  session.status === 'completed'
+                );
+
+                // Determine if the answer is correct (only if user has interacted)
                 let isCorrect = null;
-                if (isAnswered && userAnswer) {
-                  // Check if the user's answer is correct
-                  const selectedOptions = userAnswer.selectedOptions || [];
+                if (hasUserInteraction && userAnswer) {
+                  // Get selected answer IDs from different possible formats
+                  let selectedAnswerIds: string[] = [];
+
+                  if (userAnswer.selectedOptions?.length > 0) {
+                    selectedAnswerIds = userAnswer.selectedOptions.map(String);
+                  } else if (userAnswer.selectedAnswerIds?.length > 0) {
+                    selectedAnswerIds = userAnswer.selectedAnswerIds.map(String);
+                  } else if (userAnswer.selectedAnswerId) {
+                    selectedAnswerIds = [String(userAnswer.selectedAnswerId)];
+                  }
+
+                  // Get correct answer IDs
                   const correctOptions = (question.options || question.answers || [])
                     .filter((opt: any) => opt.isCorrect)
                     .map((opt: any) => String(opt.id));
-                  
-                  if (correctOptions.length > 0 && selectedOptions.length > 0) {
+
+                  if (correctOptions.length > 0 && selectedAnswerIds.length > 0) {
                     // For multiple choice: all selected must be correct and all correct must be selected
-                    const selectedSet = new Set(selectedOptions.map(String));
+                    const selectedSet = new Set(selectedAnswerIds);
                     const correctSet = new Set(correctOptions);
                     isCorrect = selectedSet.size === correctSet.size &&
                                [...selectedSet].every(id => correctSet.has(id));
@@ -503,7 +535,7 @@ export function QuizLayout() {
                       "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between",
                       isCurrentQuestion
                         ? "bg-primary text-primary-foreground shadow-sm"
-                        : isAnswered
+                        : hasUserInteraction
                           ? isCorrect
                             ? "bg-green-50 text-green-700 hover:bg-green-100"
                             : "bg-red-50 text-red-700 hover:bg-red-100"
@@ -511,7 +543,7 @@ export function QuizLayout() {
                     )}
                   >
                     <span>Question {index + 1}</span>
-                    {isAnswered && !isCurrentQuestion && (
+                    {hasUserInteraction && !isCurrentQuestion && isCorrect !== null && (
                       <div className="flex items-center ml-2">
                         {isCorrect ? (
                           <Check className="h-4 w-4 text-green-600" />
@@ -524,6 +556,8 @@ export function QuizLayout() {
                 );
               })}
             </div>
+
+
           </div>
         </div>
 
@@ -535,16 +569,11 @@ export function QuizLayout() {
           />
         )}
 
-        {/* Question Area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-background via-background to-muted/10 min-w-0">
-          {/* Question Content */}
-          <div className="flex-1 overflow-y-auto">
+        {/* Question Area - No scrolling, fit to viewport */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-background via-background to-muted/10 min-w-0 quiz-no-scroll">
+          {/* Question Content - Fills available space */}
+          <div className="flex-1 overflow-hidden quiz-no-scroll">
             <QuestionDisplay />
-            {/* Per-question and session actions: notes, labels, report */}
-            <div className="border-t border-border/50 bg-card/30">
-              {/* QuestionActions removed: no submit/duplicate note/signal/favorite buttons here */}
-              <div className="px-3 sm:px-4 py-2 sm:py-3" />
-            </div>
           </div>
 
           {/* Enhanced Navigation Footer */}
@@ -574,30 +603,60 @@ export function QuizLayout() {
 
       {/* Pause Overlay (disabled in review mode) */}
       {timer.isPaused && !(session.status === 'COMPLETED' || session.status === 'completed') && (
-        <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="text-center space-y-8 animate-fade-in-up">
-            <div className="mx-auto w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
-              <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center animate-pulse-soft">
-                <span className="text-4xl">⏸️</span>
+        <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-50 overflow-y-auto">
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl space-y-8 animate-fade-in-up">
+              {/* Header */}
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center animate-pulse-soft">
+                    <span className="text-4xl">⏸️</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold tracking-tight text-foreground">Quiz Paused</h2>
+                  <p className="text-lg text-muted-foreground leading-relaxed max-w-md mx-auto">
+                    Your answers have been automatically saved. Review your progress below.
+                  </p>
+                </div>
+              </div>
+
+              {/* Statistics Display */}
+              <QuizStatisticsDisplay
+                session={session}
+                timer={timer}
+                localAnswers={state.localAnswers}
+                showTitle={false}
+                className="max-w-3xl mx-auto"
+                apiSessionResults={apiSessionResults}
+              />
+
+              {/* Resume Button */}
+              <div className="text-center">
+                <Button
+                  onClick={resumeQuiz}
+                  size="lg"
+                  className="gap-3 btn-modern focus-ring bg-primary hover:bg-primary/90 px-8 py-3 text-lg"
+                >
+                  <Play className="h-5 w-5" />
+                  Resume Quiz
+                </Button>
               </div>
             </div>
-            <div className="space-y-4">
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">Quiz Paused</h2>
-              <p className="text-lg text-muted-foreground leading-relaxed max-w-md mx-auto">
-                Take your time. Click Resume when you're ready to continue your session.
-              </p>
-            </div>
-            <Button
-              onClick={resumeQuiz}
-              size="lg"
-              className="gap-3 btn-modern focus-ring bg-primary hover:bg-primary/90 px-8 py-3 text-lg"
-            >
-              <Play className="h-5 w-5" />
-              Resume Quiz
-            </Button>
           </div>
         </div>
       )}
+
+      {/* Enhanced Exit Dialog */}
+      <EnhancedExitDialog
+        open={showExitDialog}
+        onOpenChange={setShowExitDialog}
+        session={session}
+        timer={timer}
+        localAnswers={state.localAnswers}
+        apiSessionId={state.apiSessionId}
+        apiSessionResults={apiSessionResults}
+      />
     </div>
   );
 }

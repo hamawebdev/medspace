@@ -105,24 +105,24 @@ export function SessionResultsSection() {
 
   const getAnswerIcon = (isCorrect: boolean, userAnswer?: string | string[]) => {
     if (!userAnswer || (Array.isArray(userAnswer) && userAnswer.length === 0)) {
-      return <HelpCircle className="h-4 w-4 text-gray-500" />;
+      return <HelpCircle className="h-4 w-4 text-muted-foreground" />;
     }
     return isCorrect ?
-      <CheckCircle className="h-4 w-4 text-green-500" /> :
-      <XCircle className="h-4 w-4 text-red-500" />;
+      <CheckCircle className="h-4 w-4 text-chart-1" /> :
+      <XCircle className="h-4 w-4 text-destructive" />;
   };
 
   const getAnswerColor = (isCorrect: boolean, userAnswer?: string | string[]) => {
     if (!userAnswer || (Array.isArray(userAnswer) && userAnswer.length === 0)) {
-      return 'text-gray-500';
+      return 'text-muted-foreground';
     }
-    return isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+    return isCorrect ? 'text-chart-1' : 'text-destructive';
   };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'EASY': return 'text-success';
-      case 'MEDIUM': return 'text-warning';
+      case 'EASY': return 'text-chart-1';
+      case 'MEDIUM': return 'text-chart-4';
       case 'HARD': return 'text-destructive';
       default: return 'text-muted-foreground';
     }
@@ -132,7 +132,7 @@ export function SessionResultsSection() {
     switch (type) {
       case 'EXAM': return 'bg-destructive/10 text-destructive';
       case 'PRACTICE': return 'bg-primary/10 text-primary';
-      case 'REMEDIAL': return 'bg-warning/10 text-warning';
+      case 'REMEDIAL': return 'bg-chart-4/10 text-chart-4';
       default: return 'bg-muted text-muted-foreground';
     }
   };

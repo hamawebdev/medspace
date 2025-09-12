@@ -1,9 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { StudentService } from '@/lib/api-services';
-import { PaginationParams } from '@/types/api';
+import { PaginationParams, EnhancedNotesResponse, NotesFilterParams, ContentFiltersResponse, ModuleNavigationItem } from '@/types/api';
 import { toast } from 'sonner';
 import { logger, logHookOperation } from '@/lib/logger';
 
@@ -76,7 +76,7 @@ export interface Todo {
   id: number;
   title: string;
   description?: string;
-  type: 'READING' | 'QUIZ' | 'SESSION' | 'EXAM' | 'OTHER';
+  type: 'READING' | 'SESSION' | 'EXAM' | 'OTHER';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   dueDate?: string;
@@ -247,9 +247,140 @@ export function useNotes(params: PaginationParams & {
   };
 }
 
+// Enhanced Notes Management Hook with Unite/Module Filtering
+export function useNotesByModule(params: NotesFilterParams | null) {
+  const [notesData, setNotesData] = useState<EnhancedNotesResponse | null>(null);
+  const [loading, setLoading] = useState(false); // Start with false when no params
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchNotesByModule = useCallback(async () => {
+    if (!params || (!params.moduleId && !params.uniteId)) {
+      // Don't set error when params is null - this is expected when no module is selected
+      if (params && !params.moduleId && !params.uniteId) {
+        setError('Either moduleId or uniteId must be provided');
+      } else {
+        setError(null);
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Use centralized logging with throttling
+    logHookOperation('useNotesByModule', 'Starting to fetch notes by module', { params });
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await StudentService.getNotesByModule(params);
+
+      if (response.success) {
+        const responseData = response.data?.data || response.data;
+        setNotesData(responseData);
+      } else {
+        logger.error('📝 useNotesByModule: API returned error', response.error);
+        throw new Error(response.error || 'Failed to fetch notes by module');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch notes by module';
+      logger.error('📝 useNotesByModule: Fetch error caught', {
+        error,
+        errorMessage,
+        errorType: typeof error,
+        isApiError: error && typeof error === 'object' && 'statusCode' in error
+      });
+
+      setError(errorMessage);
+      setNotesData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [params?.moduleId, params?.uniteId]);
+
+  useEffect(() => {
+    fetchNotesByModule();
+  }, [fetchNotesByModule]);
+
+  return {
+    notesData,
+    loading,
+    error,
+    refresh: fetchNotesByModule,
+    filterInfo: notesData?.filterInfo || null,
+    courseGroups: notesData?.courseGroups || [],
+    ungroupedNotes: notesData?.ungroupedNotes || [],
+    totalNotes: notesData?.totalNotes || 0,
+  };
+}
+
+// Legacy Module Notes Hook (for backward compatibility)
+export function useModuleNotes(moduleId: number) {
+  const [moduleNotesData, setModuleNotesData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchModuleNotes = useCallback(async () => {
+    if (!moduleId) {
+      setError('Module ID is required');
+      setLoading(false);
+      return;
+    }
+
+    // Use centralized logging with throttling
+    logHookOperation('useModuleNotes', 'Starting to fetch module notes', { moduleId });
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await StudentService.getModuleNotes(moduleId);
+
+      if (response.success) {
+        const responseData = response.data?.data || response.data;
+        setModuleNotesData(responseData);
+      } else {
+        logger.error('📝 useModuleNotes: API returned error', response.error);
+        throw new Error(response.error || 'Failed to fetch module notes');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch module notes';
+      logger.error('📝 useModuleNotes: Fetch error caught', {
+        error,
+        errorMessage,
+        errorType: typeof error,
+        isApiError: error && typeof error === 'object' && 'statusCode' in error
+      });
+
+      setError(errorMessage);
+      setModuleNotesData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [moduleId]);
+
+  useEffect(() => {
+    fetchModuleNotes();
+  }, [fetchModuleNotes]);
+
+  return {
+    moduleNotesData,
+    loading,
+    error,
+    refresh: fetchModuleNotes,
+    moduleId: moduleNotesData?.moduleId || null,
+    courseGroups: moduleNotesData?.courseGroups || [],
+    ungroupedNotes: moduleNotesData?.ungroupedNotes || [],
+    totalNotes: moduleNotesData?.totalNotes || 0,
+  };
+}
+
 // Labels Management Hook
-export function useLabels() {
+export function useLabels(filterParams?: { moduleId?: number; uniteId?: number }) {
   const [labels, setLabels] = useState<Label[] | null>(null);
+  const [filterInfo, setFilterInfo] = useState<{
+    uniteId: number | null;
+    moduleId: number | null;
+    uniteName: string | null;
+    moduleName: string | null;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -259,11 +390,12 @@ export function useLabels() {
 
     try {
       const response = await StudentService.getLabels();
-      
+
       if (response.success) {
-        // Handle nested API response structure: response.data.data.data or response.data.data
-        const labelsData = response.data?.data?.data || response.data?.data || response.data || [];
+        // Handle new API response structure
+        const labelsData = response.data?.data || response.data || [];
         setLabels(Array.isArray(labelsData) ? labelsData : []);
+        setFilterInfo(null); // No filter context needed for direct label fetching
       } else {
         throw new Error(response.error || 'Failed to fetch labels');
       }
@@ -275,7 +407,7 @@ export function useLabels() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Remove dependency on filterParams since we're fetching all labels directly
 
   const createLabel = useCallback(async (labelData: {
     name: string;
@@ -378,6 +510,7 @@ export function useLabels() {
 
   return {
     labels,
+    filterInfo,
     loading,
     error,
     refresh: fetchLabels,
@@ -394,7 +527,7 @@ export function useTodos(params: PaginationParams & {
   includeCompleted?: boolean;
   status?: 'pending' | 'completed' | 'all';
   priority?: 'low' | 'medium' | 'high' | 'all';
-  type?: 'reading' | 'quiz' | 'session' | 'exam' | 'other' | 'all';
+  type?: 'reading' | 'session' | 'exam' | 'other' | 'all';
   dueDate?: string;
 } = {}) {
   const [todos, setTodos] = useState<Todo[] | null>(null);
@@ -432,8 +565,8 @@ export function useTodos(params: PaginationParams & {
     description?: string;
     dueDate?: string;
     priority?: 'LOW' | 'MEDIUM' | 'HIGH';
-    type?: 'READING' | 'QUIZ' | 'SESSION' | 'EXAM' | 'OTHER';
-    courseId?: number;
+    type?: 'READING' | 'SESSION' | 'EXAM' | 'OTHER';
+    courseIds?: number[];
     quizId?: number;
   }) => {
     try {
@@ -575,5 +708,94 @@ export function useQuestionNotes(questionId: number | null) {
     loading,
     error,
     refresh: questionId ? () => fetchQuestionNotes(questionId) : undefined,
+  };
+}
+
+// Content Filters Hook for Navigation
+export function useContentFilters() {
+  const [contentFilters, setContentFilters] = useState<ContentFiltersResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchContentFilters = useCallback(async () => {
+    // Use centralized logging with throttling
+    logHookOperation('useContentFilters', 'Starting to fetch content filters');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await StudentService.getContentFilters();
+
+      if (response.success) {
+        const responseData = response.data?.data || response.data;
+        setContentFilters(responseData);
+      } else {
+        logger.error('📂 useContentFilters: API returned error', response.error);
+        throw new Error(response.error || 'Failed to fetch content filters');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch content filters';
+      logger.error('📂 useContentFilters: Fetch error caught', {
+        error,
+        errorMessage,
+        errorType: typeof error,
+        isApiError: error && typeof error === 'object' && 'statusCode' in error
+      });
+
+      setError(errorMessage);
+      setContentFilters(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Transform content filters into navigation items
+  const navigationItems = useMemo((): ModuleNavigationItem[] => {
+    if (!contentFilters) return [];
+
+    const items: ModuleNavigationItem[] = [];
+
+    // Add unites as navigation items (with null checks)
+    (contentFilters.unites || []).forEach(unite => {
+      items.push({
+        id: unite.id,
+        name: unite.name,
+        type: 'unite',
+      });
+
+      // Add modules within unites (with null checks)
+      (unite.modules || []).forEach(module => {
+        items.push({
+          id: module.id,
+          name: module.name,
+          type: 'module',
+          uniteId: unite.id,
+          uniteName: unite.name,
+        });
+      });
+    });
+
+    // Add independent modules (with null checks)
+    (contentFilters.independentModules || []).forEach(module => {
+      items.push({
+        id: module.id,
+        name: module.name,
+        type: 'module',
+      });
+    });
+
+    return items;
+  }, [contentFilters]);
+
+  useEffect(() => {
+    fetchContentFilters();
+  }, [fetchContentFilters]);
+
+  return {
+    contentFilters,
+    navigationItems,
+    loading,
+    error,
+    refresh: fetchContentFilters,
   };
 }

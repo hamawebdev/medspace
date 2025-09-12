@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -16,7 +16,14 @@ import {
   List,
   ExternalLink,
   Play,
-  DollarSign
+  DollarSign,
+  ChevronRight,
+  ArrowLeft,
+  Home,
+  GraduationCap,
+  Users,
+  FolderOpen,
+  Layers
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -39,11 +46,52 @@ import {
 import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingSpinner } from '@/components/loading-states'
 import { useStudentAuth } from '@/hooks/use-auth'
-import { useCourseResources } from '@/hooks/use-study-packs'
-import { CourseSelector } from '@/components/student/course-resources/course-selector'
+import { useContentFilters } from '@/hooks/use-content-filters'
+import { NewApiService } from '@/lib/api/new-api-services'
+import { ContentService } from '@/lib/api-services'
 import { CourseResource } from '@/types/api'
+import { UnitCard } from '@/components/student/course-resources/unit-card'
+import { ModuleCard } from '@/components/student/course-resources/module-card'
+import { CourseCard } from '@/components/student/course-resources/course-card'
+import { ResourceCard } from '@/components/student/course-resources/resource-card'
+import { BreadcrumbNavigation } from '@/components/student/course-resources/breadcrumb-navigation'
+import { LoadingState } from '@/components/student/course-resources/loading-state'
+import { ErrorState } from '@/components/student/course-resources/error-state'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+
+// Navigation types
+type NavigationLevel = 'units' | 'modules' | 'courses' | 'resources'
+
+interface NavigationState {
+  level: NavigationLevel
+  selectedUnit?: { id: number; name: string }
+  selectedModule?: { id: number; name: string; isIndependent?: boolean }
+  selectedCourse?: { id: number; name: string }
+}
+
+interface BreadcrumbItem {
+  label: string
+  level: NavigationLevel
+  onClick: () => void
+}
+
+// Course and resource types
+interface Course {
+  id: number
+  name: string
+  description?: string
+  moduleId?: number
+  moduleName?: string
+  statistics?: {
+    questionsCount: number
+    quizzesCount: number
+  }
+}
+
+interface CourseWithResources extends Course {
+  resources: CourseResource[]
+}
 
 const FILE_TYPE_ICONS = {
   PDF: FileText,
@@ -56,28 +104,200 @@ const FILE_TYPE_ICONS = {
 export default function CourseResourcesPage() {
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
+  const { filters, loading: filtersLoading, error: filtersError, refetch } = useContentFilters()
 
-  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null)
-  const [selectedCourseName, setSelectedCourseName] = useState<string>('')
+  // Navigation state
+  const [navigation, setNavigation] = useState<NavigationState>({
+    level: 'units'
+  })
+
+  // Data states
+  const [courses, setCourses] = useState<Course[]>([])
+  const [courseResources, setCourseResources] = useState<CourseResource[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // UI states
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState<'title' | 'type' | 'created'>('title')
 
-  // Fetch course resources using the hook - always call this hook
-  const {
-    courseName,
-    resources,
-    loading: resourcesLoading,
-    error: resourcesError,
-    refresh
-  } = useCourseResources(selectedCourseId)
+  // Navigation functions
+  const navigateToModules = (unit: { id: number; name: string }) => {
+    setNavigation({
+      level: 'modules',
+      selectedUnit: unit
+    })
+    setCourses([])
+    setCourseResources([])
+    setError(null)
+  }
 
-  // Filter and sort resources - always call this hook
+  const navigateToCoursesFromModule = (module: { id: number; name: string; isIndependent?: boolean }) => {
+    setNavigation(prev => ({
+      level: 'courses',
+      selectedUnit: prev.selectedUnit,
+      selectedModule: module
+    }))
+    setCourseResources([])
+    setError(null)
+    fetchCourses(module.id, module.isIndependent)
+  }
+
+  const navigateToResources = (course: { id: number; name: string }) => {
+    setNavigation(prev => ({
+      ...prev,
+      level: 'resources',
+      selectedCourse: course
+    }))
+    setError(null)
+    fetchCourseResources(course.id)
+  }
+
+  const navigateBack = () => {
+    switch (navigation.level) {
+      case 'modules':
+        setNavigation({ level: 'units' })
+        break
+      case 'courses':
+        setNavigation(prev => ({
+          level: 'modules',
+          selectedUnit: prev.selectedUnit
+        }))
+        setCourses([])
+        break
+      case 'resources':
+        setNavigation(prev => ({
+          level: 'courses',
+          selectedUnit: prev.selectedUnit,
+          selectedModule: prev.selectedModule
+        }))
+        setCourseResources([])
+        break
+    }
+    setError(null)
+  }
+
+  const navigateToLevel = (level: NavigationLevel) => {
+    if (level === 'units') {
+      setNavigation({ level: 'units' })
+      setCourses([])
+      setCourseResources([])
+    } else if (level === 'modules' && navigation.selectedUnit) {
+      setNavigation({
+        level: 'modules',
+        selectedUnit: navigation.selectedUnit
+      })
+      setCourses([])
+      setCourseResources([])
+    } else if (level === 'courses' && navigation.selectedModule) {
+      setNavigation(prev => ({
+        level: 'courses',
+        selectedUnit: prev.selectedUnit,
+        selectedModule: prev.selectedModule
+      }))
+      setCourseResources([])
+      if (navigation.selectedModule) {
+        fetchCourses(navigation.selectedModule.id, navigation.selectedModule.isIndependent)
+      }
+    }
+    setError(null)
+  }
+
+  // Data fetching functions
+  const fetchCourses = async (moduleId: number, isIndependent?: boolean) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = isIndependent
+        ? await NewApiService.getStudentCourses({ moduleId })
+        : await NewApiService.getStudentCourses({ moduleId })
+
+      if (response.success && response.data) {
+        const coursesData = response.data.courses || response.data
+        setCourses(Array.isArray(coursesData) ? coursesData : [])
+      } else {
+        throw new Error(response.error || 'Failed to fetch courses')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch courses'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchCourseResources = async (courseId: number) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await ContentService.getCourseResources(courseId, {
+        page: 1,
+        limit: 100
+      })
+
+      if (response.success && response.data) {
+        const data = response.data as any
+        const resources = data?.resources || data?.data?.resources || []
+        setCourseResources(Array.isArray(resources) ? resources : [])
+      } else {
+        throw new Error(response.error || 'Failed to fetch course resources')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch course resources'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Generate breadcrumbs - moved before early returns
+  const breadcrumbs: BreadcrumbItem[] = useMemo(() => {
+    const items: BreadcrumbItem[] = [
+      {
+        label: 'Course Resources',
+        level: 'units',
+        onClick: () => navigateToLevel('units')
+      }
+    ]
+
+    if (navigation.selectedUnit) {
+      items.push({
+        label: navigation.selectedUnit.name,
+        level: 'modules',
+        onClick: () => navigateToLevel('modules')
+      })
+    }
+
+    if (navigation.selectedModule) {
+      items.push({
+        label: navigation.selectedModule.name,
+        level: 'courses',
+        onClick: () => navigateToLevel('courses')
+      })
+    }
+
+    if (navigation.selectedCourse) {
+      items.push({
+        label: navigation.selectedCourse.name,
+        level: 'resources',
+        onClick: () => {}
+      })
+    }
+
+    return items
+  }, [navigation])
+
+  // Filter and sort resources
   const filteredResources = useMemo(() => {
-    if (!resources) return []
+    if (!courseResources) return []
 
-    return resources
+    return courseResources
       .filter(resource => {
         if (searchQuery && !resource.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
             !resource.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false
@@ -96,35 +316,13 @@ export default function CourseResourcesPage() {
             return a.title.localeCompare(b.title)
         }
       })
-  }, [resources, searchQuery, selectedType, sortBy])
+  }, [courseResources, searchQuery, selectedType, sortBy])
 
-  // Get unique resource types for filter - always call this hook
+  // Get unique resource types for filter
   const availableTypes = useMemo(() => {
-    if (!resources) return []
-    return Array.from(new Set(resources.map(resource => resource.type)))
-  }, [resources])
-
-  // Handle course selection
-  const handleCourseSelect = (courseId: number, courseName: string) => {
-    setSelectedCourseId(courseId)
-    setSelectedCourseName(courseName)
-  }
-
-  // Handle authentication redirect
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    router.push('/auth/login')
-    return null
-  }
-
-
+    if (!courseResources) return []
+    return Array.from(new Set(courseResources.map(resource => resource.type)))
+  }, [courseResources])
 
   const handleViewResource = (resource: CourseResource) => {
     if (resource.type === 'VIDEO' && resource.youtubeVideoId) {
@@ -166,51 +364,202 @@ export default function CourseResourcesPage() {
     })
   }
 
+  // Handle authentication redirect - moved after all hooks
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    router.push('/auth/login')
+    return null
+  }
+
   return (
-    <div className="flex-1 space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 xl:p-10 pt-4 sm:pt-6">
+    <div className="flex-1 space-y-4 sm:space-y-6 p-4 sm:p-6 lg:p-8 pt-4 sm:pt-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl xl:text-3xl font-bold tracking-tight">Course Resources</h2>
-          <p className="text-sm sm:text-base xl:text-lg text-muted-foreground mt-1">
-            Select a course to access its educational resources and study materials.
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <BookOpen className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
+            </div>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-primary">
+              Course Resources
+            </h2>
+          </div>
+          <p className="text-sm sm:text-base lg:text-lg text-muted-foreground">
+            Navigate through units, modules, and courses to access educational resources.
           </p>
         </div>
       </div>
 
+      {/* Breadcrumb Navigation */}
+      <BreadcrumbNavigation
+        items={breadcrumbs.map((item, index) => ({
+          label: item.label,
+          onClick: item.onClick,
+          isActive: index === breadcrumbs.length - 1
+        }))}
+      />
+
+      {/* Back Button */}
+      {navigation.level !== 'units' && (
+        <Button
+          variant="outline"
+          onClick={navigateBack}
+          className="w-fit"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+      )}
+
       <Separator />
 
-      {/* Course Selection and Resources Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6 xl:gap-8">
-        {/* Course Selector */}
-        <div className="lg:col-span-1 xl:col-span-1 2xl:col-span-1">
-          <CourseSelector
-            selectedCourseId={selectedCourseId}
-            onCourseSelect={handleCourseSelect}
-            className="h-fit sticky top-4"
-          />
-        </div>
+      {/* Main Content */}
+      {filtersLoading ? (
+        <LoadingState message="Loading content..." />
+      ) : filtersError ? (
+        <ErrorState
+          message={filtersError}
+          onRetry={refetch}
+        />
+      ) : (
+        <>
+          {/* Units Level */}
+          {navigation.level === 'units' && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Home className="h-5 w-5" />
+                <h3 className="text-lg font-semibold">Select a Unit or Module</h3>
+              </div>
 
-        {/* Resources Section */}
-        <div className="lg:col-span-3 xl:col-span-2 2xl:col-span-3 space-y-4 xl:space-y-6">
-          {selectedCourseId ? (
-            <>
-              {/* Course Info Header */}
-              <Card>
-                <CardHeader className="p-4 sm:p-6 xl:p-8">
-                  <CardTitle className="flex items-center gap-2 text-lg xl:text-xl">
-                    <BookOpen className="h-5 w-5 xl:h-6 xl:w-6" />
-                    {selectedCourseName || courseName}
-                  </CardTitle>
-                  <CardDescription className="text-sm xl:text-base">
-                    Educational resources for this course
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+              {/* Units Section */}
+              {filters?.unites && filters.unites.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="text-md font-medium text-muted-foreground">Units</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filters.unites.map((unit) => (
+                      <UnitCard
+                        key={unit.id}
+                        unit={unit}
+                        onClick={() => navigateToModules(unit)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              {/* Filters and Search */}
+              {/* Independent Modules Section */}
+              {filters?.independentModules && filters.independentModules.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="text-md font-medium text-muted-foreground">Independent Modules</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filters.independentModules.map((module) => (
+                      <ModuleCard
+                        key={module.id}
+                        module={module}
+                        isIndependent={true}
+                        onClick={() => navigateToCoursesFromModule({ ...module, isIndependent: true })}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {(!filters?.unites || filters.unites.length === 0) &&
+               (!filters?.independentModules || filters.independentModules.length === 0) && (
+                <EmptyState
+                  icon={BookOpen}
+                  title="No Content Available"
+                  description="No units or modules are available for your current subscription."
+                />
+              )}
+            </div>
+          )}
+          {/* Modules Level */}
+          {navigation.level === 'modules' && navigation.selectedUnit && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <Layers className="h-5 w-5" />
+                <h3 className="text-lg font-semibold">Modules in {navigation.selectedUnit.name}</h3>
+              </div>
+
+              {filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)?.modules && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filters.unites
+                    .find(u => u.id === navigation.selectedUnit?.id)
+                    ?.modules?.map((module) => (
+                    <ModuleCard
+                      key={module.id}
+                      module={module}
+                      onClick={() => navigateToCoursesFromModule(module)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)?.modules?.length && (
+                <EmptyState
+                  icon={FolderOpen}
+                  title="No Modules Available"
+                  description="No modules are available in this unit."
+                />
+              )}
+            </div>
+          )}
+
+          {/* Courses Level */}
+          {navigation.level === 'courses' && navigation.selectedModule && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                <h3 className="text-lg font-semibold">Courses in {navigation.selectedModule.name}</h3>
+              </div>
+
+              {loading ? (
+                <LoadingState message="Loading courses..." />
+              ) : error ? (
+                <ErrorState
+                  message={error}
+                  onRetry={() => fetchCourses(navigation.selectedModule!.id, navigation.selectedModule!.isIndependent)}
+                />
+              ) : courses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {courses.map((course) => (
+                    <CourseCard
+                      key={course.id}
+                      course={course}
+                      onClick={() => navigateToResources(course)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={BookOpen}
+                  title="No Courses Available"
+                  description="No courses are available in this module."
+                />
+              )}
+            </div>
+          )}
+
+          {/* Resources Level */}
+          {navigation.level === 'resources' && navigation.selectedCourse && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                <h3 className="text-lg font-semibold">Resources for {navigation.selectedCourse.name}</h3>
+              </div>
+
+              {/* Search and Filters */}
               <div className="flex flex-col gap-4">
-                {/* Search Bar - Full Width on Mobile */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
@@ -221,11 +570,10 @@ export default function CourseResourcesPage() {
                   />
                 </div>
 
-                {/* Filters and View Toggle */}
                 <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                  <div className="flex flex-col xs:flex-row lg:flex-row gap-3 flex-1">
+                  <div className="flex flex-col sm:flex-row gap-3 flex-1">
                     <Select value={selectedType} onValueChange={setSelectedType}>
-                      <SelectTrigger className="w-full xs:w-[140px] lg:w-[160px]">
+                      <SelectTrigger className="w-full sm:w-[160px]">
                         <SelectValue placeholder="File type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -239,7 +587,7 @@ export default function CourseResourcesPage() {
                     </Select>
 
                     <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                      <SelectTrigger className="w-full xs:w-[140px] lg:w-[160px]">
+                      <SelectTrigger className="w-full sm:w-[160px]">
                         <SelectValue placeholder="Sort by" />
                       </SelectTrigger>
                       <SelectContent>
@@ -255,7 +603,7 @@ export default function CourseResourcesPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                      className="touch-target"
+                      className="min-h-[44px] min-w-[44px] px-3"
                     >
                       {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
                       <span className="ml-2 hidden sm:inline">
@@ -267,24 +615,16 @@ export default function CourseResourcesPage() {
               </div>
 
               {/* Resources Content */}
-              {resourcesLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <LoadingSpinner size="lg" />
-                </div>
-              ) : resourcesError ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-4">{resourcesError}</p>
-                      <Button onClick={refresh} variant="outline">
-                        Try Again
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+              {loading ? (
+                <LoadingState message="Loading resources..." />
+              ) : error ? (
+                <ErrorState
+                  message={error}
+                  onRetry={() => fetchCourseResources(navigation.selectedCourse!.id)}
+                />
               ) : filteredResources.length === 0 ? (
                 <EmptyState
-                  icon={BookOpen}
+                  icon={FileText}
                   title="No Resources Found"
                   description={searchQuery || selectedType !== 'all'
                     ? "No resources match your current filters. Try adjusting your search or filters."
@@ -293,136 +633,27 @@ export default function CourseResourcesPage() {
                 />
               ) : (
                 <div className={cn(
-                  "gap-3 sm:gap-4 xl:gap-6",
+                  "gap-3 sm:gap-4 lg:gap-6",
                   viewMode === 'grid'
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3"
-                    : "flex flex-col space-y-3 sm:space-y-4 xl:space-y-6"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
+                    : "flex flex-col space-y-3 sm:space-y-4"
                 )}>
-                  {filteredResources.map((resource) => {
-                    const FileIcon = FILE_TYPE_ICONS[resource.type] || FileText
-
-                    return (
-                      <Card
-                        key={resource.id}
-                        className={cn(
-                          "cursor-pointer transition-all hover:shadow-md",
-                          viewMode === 'list' && "flex-row"
-                        )}
-                        onClick={() => handleViewResource(resource)}
-                      >
-                        <CardHeader className={cn(
-                          "pb-3 p-4 sm:p-6",
-                          viewMode === 'list' && "flex-1"
-                        )}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                              <div className="p-2 bg-muted rounded-lg flex-shrink-0">
-                                <FileIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start gap-2 mb-1">
-                                  <CardTitle className="text-base sm:text-lg line-clamp-2 flex-1">
-                                    {resource.title}
-                                  </CardTitle>
-                                  {resource.isPaid && (
-                                    <Badge variant="outline" className="text-xs flex-shrink-0">
-                                      <DollarSign className="h-3 w-3 mr-1" />
-                                      {resource.price ? `$${resource.price}` : 'Paid'}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <CardDescription className="line-clamp-2 text-sm">
-                                  {resource.description || 'No description available'}
-                                </CardDescription>
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {resource.type}
-                                  </Badge>
-                                  {resource.downloadCount && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      {resource.downloadCount} downloads
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <Button variant="ghost" size="sm" className="touch-target flex-shrink-0">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleViewResource(resource)
-                                }}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View
-                                </DropdownMenuItem>
-                                {resource.filePath && (
-                                  <DropdownMenuItem onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleDownloadResource(resource)
-                                  }}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Download
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className={cn(
-                          "p-4 sm:p-6 pt-0",
-                          viewMode === 'list' && "flex-1"
-                        )}>
-                          <div className="space-y-2 sm:space-y-3">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                <span className="truncate">{formatDate(resource.createdAt)}</span>
-                              </div>
-                              {resource.downloadCount && (
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Download className="h-3 w-3" />
-                                  {resource.downloadCount}
-                                </div>
-                              )}
-                            </div>
-
-                            {resource.type === 'VIDEO' && resource.youtubeVideoId && (
-                              <div className="flex items-center gap-1 text-xs text-primary">
-                                <Play className="h-3 w-3" />
-                                YouTube Video
-                              </div>
-                            )}
-
-                            {resource.type === 'LINK' && resource.externalUrl && (
-                              <div className="flex items-center gap-1 text-xs text-primary">
-                                <ExternalLink className="h-3 w-3" />
-                                External Link
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
+                  {filteredResources.map((resource) => (
+                    <ResourceCard
+                      key={resource.id}
+                      resource={resource}
+                      viewMode={viewMode}
+                      onView={handleViewResource}
+                      onDownload={handleDownloadResource}
+                      formatDate={formatDate}
+                    />
+                  ))}
                 </div>
               )}
-            </>
-          ) : (
-            <EmptyState
-              icon={BookOpen}
-              title="Select a Course"
-              description="Choose a course from the sidebar to view its educational resources."
-            />
+            </div>
           )}
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }

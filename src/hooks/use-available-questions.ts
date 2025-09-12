@@ -4,6 +4,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { QuizService } from '@/lib/api-services';
+import { NewApiService } from '@/lib/api/new-api-services';
 
 export type QuestionCountFilters = {
   yearLevels: string[]; // derived from subscriptions
@@ -47,6 +48,11 @@ function buildQueryParams(filters: QuestionCountFilters) {
   return params.toString();
 }
 
+/**
+ * @deprecated This hook uses the older /quizzes/quiz-filters endpoint.
+ * For new implementations, use the useQuestionCount hook from use-content-filters.tsx
+ * which uses the newer POST /quizzes/question-count endpoint with proper accessibleQuestionCount handling.
+ */
 export function useAvailableQuestionCounts(
   filters: QuestionCountFilters,
   enabled: boolean,

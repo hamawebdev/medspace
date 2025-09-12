@@ -98,26 +98,21 @@ export function Header() {
           : 'bg-background/60 backdrop-blur-md'
       }`}
     >
-      <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="container flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Modern Logo */}
         <Link href="/" className="group flex items-center transition-all duration-300 hover:scale-105 flex-shrink-0">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Logo
-              className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 object-contain"
-            />
-            <span className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold gradient-text whitespace-nowrap">
-              MedCortex
-            </span>
-          </div>
+          <Logo
+            className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 object-contain"
+          />
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6 flex-1 justify-center max-w-2xl mx-auto xl:mx-50">
+        <nav className="hidden md:flex items-center space-x-2 lg:space-x-4 xl:space-x-6 flex-1 justify-center max-w-3xl mx-auto">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="group relative flex items-center space-x-2 px-4 xl:px-6 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 hover:bg-accent/50 whitespace-nowrap"
+              className="group relative flex items-center space-x-1 lg:space-x-2 px-2 lg:px-4 xl:px-6 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 hover:bg-accent/50 whitespace-nowrap"
             >
               <item.icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 flex-shrink-0" />
               <span>{item.label}</span>
@@ -132,7 +127,7 @@ export function Header() {
           <ThemeToggle />
           
           {/* Auth Buttons - Desktop */}
-          <div className="hidden md:flex items-center space-x-2 lg:space-x-3">
+          <div className="hidden sm:flex items-center space-x-2 lg:space-x-3">
             {!loading && (
               <>
                 {isAuthenticated && user ? (
@@ -178,7 +173,7 @@ export function Header() {
                     <Link href="/register">
                       <Button
                         size="sm"
-                        className="relative bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl hover:shadow-primary/25 transition-all duration-300 btn-modern overflow-hidden group px-3 lg:px-4"
+                        className="relative bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl hover:shadow-primary/25 transition-all duration-300 overflow-hidden group px-4 lg:px-6 rounded-xl font-semibold"
                       >
                         <span className="relative z-10 flex items-center">
                           <span className="hidden lg:inline">Sign Up</span>
@@ -196,7 +191,7 @@ export function Header() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden relative h-9 w-9 rounded-lg border border-gray-200/40 dark:border-gray-700/40 bg-background/80 backdrop-blur-sm transition-all duration-200 hover:bg-accent hover:scale-105 flex-shrink-0 ml-2"
+            className="sm:hidden relative h-9 w-9 rounded-lg border border-gray-200/40 dark:border-gray-700/40 bg-background/80 backdrop-blur-sm transition-all duration-200 hover:bg-accent hover:scale-105 flex-shrink-0 ml-2"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <div className="absolute inset-0 flex items-center justify-center">

@@ -74,6 +74,18 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Debug logging for content filters endpoint
+        if (config.url?.includes('content/filters')) {
+          console.log('🔍 [ApiClient] Content filters request details:', {
+            url: config.url,
+            fullUrl: `${config.baseURL}${config.url}`,
+            hasToken: !!token,
+            tokenLength: token?.length || 0,
+            headers: config.headers
+          });
+        }
+
         return config;
       },
       (error) => {
@@ -84,6 +96,23 @@ class ApiClient {
     // Response interceptor - Handle responses and errors (simplified, no auto-refresh)
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
+        // Debug logging for content filters endpoint
+        if (response.config.url?.includes('content/filters')) {
+          console.log('🔍 [ApiClient] Content filters response details:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.config.url,
+            dataStructure: {
+              hasData: !!response.data,
+              dataKeys: response.data ? Object.keys(response.data) : [],
+              hasUnites: !!response.data?.data?.unites,
+              hasIndependentModules: !!response.data?.data?.independentModules,
+              unitesCount: response.data?.data?.unites?.length || 0,
+              independentModulesCount: response.data?.data?.independentModules?.length || 0
+            },
+            rawData: response.data
+          });
+        }
         return response;
       },
       async (error: AxiosError) => {
@@ -239,6 +268,16 @@ class ApiClient {
   }
 
   private handleError(error: any): ApiError {
+    // Gracefully handle request cancellations (AbortController)
+    if (error?.code === 'ERR_CANCELED' || error?.message === 'canceled') {
+      // Do not toast for canceled requests; treat as benign
+      return {
+        success: false,
+        error: 'Request canceled',
+        statusCode: 0,
+      };
+    }
+
     let errorMessage = 'An unexpected error occurred';
     let statusCode = 500;
 

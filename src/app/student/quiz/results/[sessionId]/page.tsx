@@ -27,11 +27,27 @@ export default function QuizResultsPage() {
       // Handle nested response structure from unified API
       const sessionData = apiSession.data?.data || apiSession.data || apiSession;
 
-      // Calculate results from unified session data
-      const totalQuestions = sessionData.questions?.length || 0;
-      const score = sessionData.score || 0;
-      const percentage = sessionData.percentage || 0;
+      // Calculate results from unified session data, prioritizing submit-answer response fields
+      const totalQuestions = sessionData.totalQuestions || sessionData.questions?.length || 0;
+      const answeredQuestions = sessionData.answeredQuestions;
+      const scoreOutOf20 = sessionData.score || 0;
+      const percentageScore = sessionData.percentage || 0;
+      const timeSpent = sessionData.timeSpent || 0;
       const sessionType = sessionData.type || 'PRACTICE';
+      const status = sessionData.status;
+
+      // Log submit-answer response data if available
+      if (answeredQuestions !== undefined || sessionData.scoreOutOf20 !== undefined) {
+        console.log('📊 Submit-answer response data detected:', {
+          sessionId: sessionData.id || sessionData.sessionId,
+          scoreOutOf20,
+          percentageScore,
+          timeSpent,
+          answeredQuestions,
+          totalQuestions,
+          status
+        });
+      }
 
       // Process question results with unified data structure, including user's selected answers (QCS & QCM)
       const questionResults = sessionData.questions?.map((question, index) => {
@@ -70,12 +86,15 @@ export default function QuizResultsPage() {
         sessionId: sessionData.id || sessionData.sessionId,
         title: sessionData.title || (sessionType === 'EXAM' ? 'Exam Session' : 'Quiz Session'),
         type: sessionType,
-        status: sessionData.status,
+        status,
         totalQuestions,
+        answeredQuestions,
         correctAnswers,
         incorrectAnswers,
-        score,
-        percentage,
+        score: scoreOutOf20,
+        scoreOutOf20,
+        percentage: percentageScore,
+        timeSpent,
         questionResults,
         completedAt: sessionData.updatedAt || sessionData.completedAt || new Date().toISOString(),
       });
@@ -364,6 +383,34 @@ export default function QuizResultsPage() {
                       {performance.level}
                     </Badge>
                   </div>
+
+                  {/* Submit-Answer Response Fields */}
+                  {quizResults.timeSpent > 0 && (
+                    <div className="flex justify-between items-center p-3 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors duration-300 group/item">
+                      <span className="text-sm text-muted-foreground font-medium">Time Spent:</span>
+                      <Badge variant="outline" className="font-mono font-semibold group-hover/item:scale-105 transition-transform duration-300">
+                        {Math.floor(quizResults.timeSpent / 60)}:{(quizResults.timeSpent % 60).toString().padStart(2, '0')}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {quizResults.scoreOutOf20 !== undefined && (
+                    <div className="flex justify-between items-center p-3 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors duration-300 group/item">
+                      <span className="text-sm text-muted-foreground font-medium">Score (Out of 20):</span>
+                      <Badge variant="outline" className="font-semibold group-hover/item:scale-105 transition-transform duration-300">
+                        {quizResults.scoreOutOf20.toFixed(1)}/20
+                      </Badge>
+                    </div>
+                  )}
+
+                  {quizResults.answeredQuestions !== undefined && (
+                    <div className="flex justify-between items-center p-3 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors duration-300 group/item">
+                      <span className="text-sm text-muted-foreground font-medium">Answered Questions:</span>
+                      <Badge variant="outline" className="font-semibold group-hover/item:scale-105 transition-transform duration-300">
+                        {quizResults.answeredQuestions}/{quizResults.totalQuestions}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
