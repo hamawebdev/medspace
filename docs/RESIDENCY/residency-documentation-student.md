@@ -2,9 +2,6 @@
 
 GET /api/v1/students/sessions/residency-filters
 
-### Authentication
-- Requires valid JWT token
-- Requires active subscription (payment check middleware)
 
 ### Response Format
 {

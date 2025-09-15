@@ -5,7 +5,12 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SessionWizard, PracticeSessionPayload } from '@/components/student/practice/session-wizard';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuizFilters } from '@/hooks/use-quiz-api';
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription';
 import { QuizService } from '@/lib/api-services';
@@ -14,149 +19,88 @@ import { toast } from 'sonner';
 import { Stethoscope } from 'lucide-react';
 
 export default function ResidencyCreatePage() {
+
+  // Residency Filters and Form State
+  const [filters, setFilters] = React.useState<{ universities: any[]; years: number[]; parts?: string[] } | null>(null);
+  const [filtersLoading, setFiltersLoading] = React.useState(false);
+  const [filtersError, setFiltersError] = React.useState<string | null>(null);
+
+  const [title, setTitle] = React.useState('');
+  const [selectedUniversityId, setSelectedUniversityId] = React.useState<string>('');
+  const [selectedYear, setSelectedYear] = React.useState<string>('');
+  const [selectedParts, setSelectedParts] = React.useState<string[]>([]);
+  const [creating, setCreating] = React.useState(false);
+
+  const loadFilters = React.useCallback(async () => {
+    try {
+      setFiltersLoading(true);
+      setFiltersError(null);
+      const res = await NewApiService.getResidencyFilters();
+      const data = (res?.data?.data) ?? res?.data;
+      if (res?.success && data) {
+        setFilters({
+          universities: data.universities || [],
+          years: data.years || [],
+          parts: data.parts || [],
+        });
+      } else {
+        throw new Error(res?.error || 'Failed to load filters');
+      }
+    } catch (e) {
+      setFiltersError('Impossible de charger les filtres de résidanat.');
+    } finally {
+      setFiltersLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { loadFilters(); }, [loadFilters]);
+
   const router = useRouter();
   const { filters: quizFilters } = useQuizFilters();
   const { subscriptions } = useUserSubscriptions();
   const { isResidency } = selectEffectiveActiveSubscription(subscriptions);
 
-  const handleCreateSession = async (payload: PracticeSessionPayload & { questionCount?: number; courseIds?: number[] }) => {
+  const handleCreate = async () => {
     try {
       if (!isResidency) {
         toast.error('Residency subscription required');
         return;
       }
 
-      const selectedTypes = payload.filters.types || [];
-      const questionTypes = selectedTypes.map((t) => (t.toUpperCase() === 'QCM' ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE')) as Array<'SINGLE_CHOICE'|'MULTIPLE_CHOICE'>;
-      const quizType = questionTypes.length === 1 ? (questionTypes[0] === 'MULTIPLE_CHOICE' ? 'QCM' : 'QCS') : undefined;
+      if (!title.trim() || title.trim().length < 3) {
+        toast.error('Please enter a title (min 3 characters)');
+        return;
+      }
+      if (!selectedYear || !selectedUniversityId) {
+        toast.error('Please select exam year and university');
+        return;
+      }
 
-      const courseNameToId = new Map((quizFilters?.courses || []).map((c: any) => [c.name, c.id]));
-      const selectedCourseIds = (payload.courseIds && payload.courseIds.length)
-        ? payload.courseIds
-        : (payload.courses || []).map((name) => courseNameToId.get(name)).filter(Boolean) as number[];
+      setCreating(true);
 
-      const quizYears = (payload.filters as any).quizYears as number[] | undefined;
-
-      const filters: any = {
-        ...(selectedCourseIds.length ? { courseIds: selectedCourseIds } : {}),
-        ...(questionTypes.length ? { questionTypes } : {}),
-        ...(payload.filters.quizSourceIds && payload.filters.quizSourceIds.length ? { quizSourceIds: payload.filters.quizSourceIds } : {}),
-        ...(quizYears && quizYears.length ? { quizYears } : {}),
+      const payload = {
+        title: title.trim().slice(0, 100),
+        examYear: Number(selectedYear),
+        universityId: Number(selectedUniversityId),
+        ...(selectedParts.length ? { parts: selectedParts } : {}),
       };
 
-      const moduleIds = (payload as any).moduleIds?.map(Number);
-      const uniteIds = payload.unitId ? [Number(payload.unitId)] : undefined;
+      const res = await NewApiService.createResidencySession(payload);
+      const sid = (res as any)?.data?.data?.sessionId ?? (res as any)?.data?.sessionId;
 
-      const yearLevelsFromSubs = selectEffectiveActiveSubscription(subscriptions).allowedYearLevels;
-
-      const safeCount = Math.max(1, Math.min(payload.questionCount || 10, payload.availableCount || Infinity));
-
-      const createPayload = {
-        title: payload.title || 'Residency Session',
-        type: 'RESIDENCY',
-        ...(quizType ? { quizType } : {}),
-        settings: { questionCount: safeCount },
-        filters: {
-          yearLevels: yearLevelsFromSubs,
-          ...filters,
-          ...(moduleIds && moduleIds.length ? { moduleIds } : {}),
-          ...(uniteIds ? { uniteIds } : {}),
-        },
-      } as any;
-
-      // Method 1: Complete Workflow of Filter
-      // Step 1: Get Content Structure (already available via useQuizFilters)
-      // Step 2: Get Available Questions by Unite or Module
-      let allQuestions: any[] = [];
-
-      // Fetch questions for each unite
-      if (uniteIds && uniteIds.length > 0) {
-        for (const uniteId of uniteIds) {
-          try {
-            console.debug('[Residency/Create] Fetching questions for unite:', uniteId);
-            const qRes = await NewApiService.getQuestionsByUniteOrModule({ uniteId });
-            if (qRes.success && qRes.data?.questions) {
-              allQuestions.push(...qRes.data.questions);
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch questions for unite ${uniteId}:`, err);
-          }
-        }
-      }
-
-      // Fetch questions for each module
-      if (moduleIds && moduleIds.length > 0) {
-        for (const moduleId of moduleIds) {
-          try {
-            console.debug('[Residency/Create] Fetching questions for module:', moduleId);
-            const qRes = await NewApiService.getQuestionsByUniteOrModule({ moduleId });
-            if (qRes.success && qRes.data?.questions) {
-              allQuestions.push(...qRes.data.questions);
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch questions for module ${moduleId}:`, err);
-          }
-        }
-      }
-
-      if (allQuestions.length === 0) {
-        toast.error('No questions available for the selected content');
-        return;
-      }
-
-      // Step 3: Apply Frontend Filters
-      let filteredQuestions = allQuestions;
-
-      // Filter by question type if specified
-      if (questionTypes.length === 1) {
-        const targetType = questionTypes[0];
-        filteredQuestions = filteredQuestions.filter((q: any) => q.questionType === targetType);
-      }
-
-      // Remove duplicates by question ID
-      const uniqueQuestions = filteredQuestions.filter((q: any, index: number, arr: any[]) =>
-        arr.findIndex((item: any) => item.id === q.id) === index
-      );
-
-      // Randomize and limit to requested count
-      const shuffledQuestions = uniqueQuestions.sort(() => Math.random() - 0.5);
-      const questionIds: number[] = shuffledQuestions.slice(0, safeCount).map((q: any) => Number(q?.id)).filter(Boolean);
-
-      if (!questionIds.length) {
-        toast.error('No questions available with current filters');
-        return;
-      }
-
-      // Step 4: Create Session using documented endpoint
-      // Extract course IDs from the selected questions
-      const courseIds = [...new Set(
-        uniqueQuestions.map((q: any) => q.course?.id).filter((id: any) => id)
-      )];
-
-      if (courseIds.length === 0) {
-        throw new Error('No courses found for the selected questions');
-      }
-
-      console.debug('[Residency/Create] Creating RESIDENCY session with course IDs:', courseIds);
-      const created = await QuizService.createSession({
-        title: createPayload.title,
-        questionCount: questionIds.length,
-        courseIds,
-        sessionType: 'EXAM' // Residency sessions are treated as exams
-      });
-
-      // Session data is now directly in result.data with id field
-      const sid = created?.data?.id;
-      if (sid) {
+      if (res?.success && sid) {
         toast.success('Residency session created');
         router.push(`/session/${sid}`);
       } else {
-        toast.error('Session created but no sessionId returned');
-        router.push('/student/residency');
+        const errorMsg = (res as any)?.error || 'Aucune question trouvée pour ces filtres.';
+        toast.error(errorMsg);
       }
     } catch (e: any) {
       console.error('[Residency/Create] error:', e);
-      toast.error(e?.message || 'Failed to create session');
+      const message = e?.message || 'Failed to create residency session';
+      toast.error(message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -212,11 +156,103 @@ export default function ResidencyCreatePage() {
           </Card>
         ) : (
           <Card className="border-border/50 shadow-lg">
-            <CardContent className="p-0">
-              <SessionWizard
-                onCreate={(p) => handleCreateSession(p as any)}
-                onCancel={() => router.push('/student/residency')}
-              />
+            <CardContent className="p-6 space-y-6">
+              {filtersError && (
+                <Alert variant="destructive">
+                  <AlertDescription>Impossible de charger les filtres de résidanat.</AlertDescription>
+                </Alert>
+              )}
+
+              {!filtersError && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Title</Label>
+                      <Input
+                        id="title"
+                        placeholder="e.g. Residency Practice - 2024"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>University</Label>
+                      <Select
+                        value={selectedUniversityId}
+                        onValueChange={setSelectedUniversityId}
+                        disabled={filtersLoading || !filters}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select a university'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filters?.universities?.map((u: any) => (
+                            <SelectItem key={u.id} value={String(u.id)}>
+                              {u.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Exam Year</Label>
+                      <Select
+                        value={selectedYear}
+                        onValueChange={setSelectedYear}
+                        disabled={filtersLoading || !filters}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={filtersLoading ? 'Loading...' : 'Select year'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filters?.years?.map((y: number) => (
+                            <SelectItem key={y} value={String(y)}>
+                              {y}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Parts (optional)</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {(filters?.parts || []).map((p: string) => (
+                          <label key={p} className="flex items-center gap-2">
+                            <Checkbox
+                              checked={selectedParts.includes(p)}
+                              onCheckedChange={(checked) => {
+                                setSelectedParts((prev) => (checked ? [...prev, p] : prev.filter((x) => x !== p)));
+                              }}
+                            />
+                            <span className="text-sm">{p}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-end gap-3">
+                    <Button variant="outline" onClick={() => router.push('/student/residency')}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleCreate}
+                      disabled={
+                        creating || !title.trim() || title.trim().length < 3 || !selectedUniversityId || !selectedYear
+                      }
+                    >
+                      {creating ? 'Creating...' : 'Create Session'}
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}

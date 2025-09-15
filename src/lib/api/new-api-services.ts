@@ -461,7 +461,7 @@ export class NewApiService {
     uniteId?: number;
   }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.moduleId) {
       queryParams.append('moduleId', params.moduleId.toString());
     } else if (params.uniteId) {
@@ -469,7 +469,7 @@ export class NewApiService {
     } else {
       throw new Error('Either moduleId or uniteId must be provided');
     }
-    
+
     const url = `/students/labels/by-module?${queryParams.toString()}`;
     return apiClient.get<any>(url);
   }
@@ -484,7 +484,7 @@ export class NewApiService {
     uniteId?: number;
   }): Promise<ApiResponse<any>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.moduleId) {
       queryParams.append('moduleId', params.moduleId.toString());
     } else if (params.uniteId) {
@@ -492,7 +492,7 @@ export class NewApiService {
     } else {
       throw new Error('Either moduleId or uniteId must be provided');
     }
-    
+
     const url = `/students/courses/by-module?${queryParams.toString()}`;
     return apiClient.get<any>(url);
   }
@@ -707,6 +707,56 @@ export class NewApiService {
       handleApiError(error, 'fetch quiz session');
     }
   }
+
+  /**
+   * Get Residency filters (universities, years, parts)
+   * GET /api/v1/students/sessions/residency-filters
+   */
+  static async getResidencyFilters(): Promise<ApiResponse<any>> {
+    try {
+      const url = '/students/sessions/residency-filters';
+      console.log('🩺 [NewApiService] Fetching residency filters:', { url });
+      const response = await apiClient.get<any>(url);
+      return response;
+    } catch (error) {
+      handleApiError(error, 'fetch residency filters');
+    }
+  }
+
+  /**
+   * Create Residency session
+   * POST /api/v1/quizzes/residency-sessions
+   */
+  static async createResidencySession(params: {
+    title: string;
+    examYear: number;
+    universityId: number;
+    parts?: string[];
+  }): Promise<ApiResponse<any>> {
+    try {
+      const url = '/quizzes/residency-sessions';
+      console.log('🩺 [NewApiService] Creating residency session:', { url, params });
+      const response = await apiClient.post<any>(url, params);
+      console.log('🩺 [NewApiService] Residency session created:', {
+        success: response.success,
+        status: response.status,
+        sessionId: response.data?.data?.sessionId || response.data?.sessionId,
+      });
+      return response;
+    } catch (error) {
+      console.error('💥 [NewApiService] Residency session creation error:', error);
+      if (error?.response?.data) {
+        return {
+          success: false,
+          error: error.response.data?.error?.message || error.response.data?.message || 'Session creation failed',
+          statusCode: error.response.status,
+          data: null,
+        } as any;
+      }
+      handleApiError(error, 'create residency session');
+    }
+  }
+
 
   // ==================== COURSE LAYERS & CARDS API ====================
 
