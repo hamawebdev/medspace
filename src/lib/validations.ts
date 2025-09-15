@@ -17,11 +17,15 @@ export const registerSchema = z
     firstName: z
       .string()
       .min(1, 'First name is required')
-      .min(2, 'First name must be at least 2 characters'),
+      .min(2, 'First name must be at least 2 characters')
+      .regex(/^[a-zA-Z\s'-]+$/, 'First name can only contain letters, spaces, hyphens, and apostrophes')
+      .refine((val) => !/\d/.test(val), 'First name cannot contain numbers'),
     lastName: z
       .string()
       .min(1, 'Last name is required')
-      .min(2, 'Last name must be at least 2 characters'),
+      .min(2, 'Last name must be at least 2 characters')
+      .regex(/^[a-zA-Z\s'-]+$/, 'Last name can only contain letters, spaces, hyphens, and apostrophes')
+      .refine((val) => !/\d/.test(val), 'Last name cannot contain numbers'),
     email: z
       .string()
       .min(1, 'Email is required')

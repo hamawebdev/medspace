@@ -5,6 +5,7 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import { useQuizAnswerSubmission } from '@/hooks/use-quiz-api';
 import { QuizService } from '@/lib/api-services';
 import { quizStorage, QuizSessionState, QuizAnswer } from '@/lib/quiz-storage';
+import { SessionStatusManager } from '@/lib/session-status-manager';
 import { toast } from 'sonner';
 import { debounce } from 'lodash';
 
@@ -44,6 +45,7 @@ type ApiQuizAction =
   | { type: 'GO_TO_QUESTION'; questionIndex: number }
   | { type: 'SUBMIT_ANSWER'; answer: any; submitToApi?: boolean }
   | { type: 'ANSWER_SUBMITTED'; success: boolean; error?: string }
+  | { type: 'CLEAR_ANSWER'; questionId: string | number }
   | { type: 'REVEAL_ANSWER' }
   | { type: 'TOGGLE_EXPLANATION' }
   | { type: 'PAUSE_QUIZ' }
@@ -180,6 +182,25 @@ function apiQuizReducer(state: ApiQuizState, action: ApiQuizAction): ApiQuizStat
         ...state,
         submittingAnswer: false,
         lastSubmissionError: action.success ? null : (action.error || 'Submission failed'),
+      };
+
+    case 'CLEAR_ANSWER':
+      const questionIdToClear = String(action.questionId);
+      const questionIdNumberToClear = Number(action.questionId);
+
+      // Remove from session.userAnswers
+      const { [questionIdToClear]: removedUserAnswer, ...remainingUserAnswers } = state.session.userAnswers;
+
+      // Remove from localAnswers
+      const { [questionIdNumberToClear]: removedLocalAnswer, ...remainingLocalAnswers } = state.localAnswers;
+
+      return {
+        ...state,
+        session: {
+          ...state.session,
+          userAnswers: remainingUserAnswers,
+        },
+        localAnswers: remainingLocalAnswers,
       };
 
     case 'REVEAL_ANSWER':
@@ -390,6 +411,7 @@ interface ApiQuizContextType {
   previousQuestion: () => void;
   goToQuestion: (index: number) => void;
   submitAnswer: (answer: any, submitToApi?: boolean) => Promise<void>;
+  clearAnswer: (questionId: string | number) => void;
   revealAnswer: () => void;
   toggleExplanation: () => void;
   pauseQuiz: () => void;
@@ -427,7 +449,8 @@ export function ApiQuizProvider({
   const initialState: ApiQuizState = {
     session: initialSession,
     timer: {
-      totalTime: 0,
+      // Resume timer from API timeSpent if available
+      totalTime: initialSession.timeSpent || 0,
       questionTime: 0,
       isPaused: initialSession.status === 'COMPLETED',
       isRunning: initialSession.status !== 'COMPLETED',
@@ -440,20 +463,63 @@ export function ApiQuizProvider({
     submittingAnswer: false,
     lastSubmissionError: null,
     autoSave: false, // Disable auto-save for client-side storage
-    clientStorageEnabled: true,
+    clientStorageEnabled: !initialSession.resumeFromApi, // Disable client storage when resuming from API
     pendingSubmission: false,
-    localAnswers: {},
+    localAnswers: initialSession.userAnswers || {},
     editTriggerAt: null,
   };
 
   const [state, dispatch] = useReducer(apiQuizReducer, initialState);
   const { submitAnswer: apiSubmitAnswer, submitting } = useQuizAnswerSubmission();
 
-  // Initialize client-side storage for the session
+  // Derive a stable client storage session ID even when apiSessionId is absent (e.g., practice mode)
+  const computeLocalSessionId = (id: any) => {
+    if (typeof id === 'number' && Number.isFinite(id)) return id;
+    const s = String(id || '');
+    const numeric = parseInt(s, 10);
+    if (!Number.isNaN(numeric)) return numeric;
+    // djb2 hash -> positive 31-bit int
+    let hash = 5381;
+    for (let i = 0; i < s.length; i++) {
+      hash = ((hash << 5) + hash) + s.charCodeAt(i);
+      hash = hash & 0x7fffffff;
+    }
+    return hash;
+  };
+
+  const storageSessionId = useMemo(() => {
+    return (apiSessionId && Number.isFinite(apiSessionId))
+      ? apiSessionId
+      : computeLocalSessionId(initialSession?.id || initialSession?.sessionId || Date.now());
+  }, [apiSessionId, initialSession?.id]);
+
+  // Initialize session state - prioritize API data over client storage for resumption
   useEffect(() => {
-    if (apiSessionId && state.clientStorageEnabled) {
-      // Load existing session state from storage
-      const storedSession = quizStorage.loadSessionState(apiSessionId);
+    if (initialSession.resumeFromApi) {
+      // Session is being resumed from API - use API data directly
+      console.log(`🔄 Resuming session ${apiSessionId} from API data`);
+
+      // Load answers from API response
+      if (initialSession.userAnswers && Object.keys(initialSession.userAnswers).length > 0) {
+        dispatch({ type: 'LOAD_LOCAL_ANSWERS', answers: initialSession.userAnswers });
+        console.log(`📖 Loaded ${Object.keys(initialSession.userAnswers).length} answers from API`);
+      }
+
+      // Navigate to the correct question (already set in currentQuestionIndex)
+      if (typeof initialSession.currentQuestionIndex === 'number') {
+        dispatch({ type: 'GO_TO_QUESTION', questionIndex: initialSession.currentQuestionIndex });
+        console.log(`📍 Navigated to question ${initialSession.currentQuestionIndex + 1}`);
+      }
+
+      // Resume timer from API timeSpent
+      if (typeof initialSession.timeSpent === 'number' && initialSession.timeSpent > 0) {
+        dispatch({ type: 'UPDATE_TIMER', totalTime: initialSession.timeSpent, questionTime: 0 });
+        console.log(`⏱️ Resumed timer at ${initialSession.timeSpent} seconds`);
+      }
+
+    } else if (storageSessionId && state.clientStorageEnabled) {
+      // Fallback to client-side storage for non-API sessions
+      const storedSession = quizStorage.loadSessionState(storageSessionId);
 
       if (storedSession) {
         // Load stored answers
@@ -469,7 +535,7 @@ export function ApiQuizProvider({
       } else {
         // Initialize new session in storage
         const sessionState: QuizSessionState = {
-          sessionId: apiSessionId,
+          sessionId: storageSessionId,
           title: initialSession.title || 'Quiz Session',
           type: initialSession.type || 'PRACTICE',
           status: 'NOT_STARTED',
@@ -489,10 +555,10 @@ export function ApiQuizProvider({
         };
 
         quizStorage.saveSessionState(sessionState);
-        console.log(`💾 Initialized new session ${apiSessionId} in client storage`);
+        console.log(`💾 Initialized new session ${storageSessionId} in client storage`);
       }
     }
-  }, [apiSessionId, state.clientStorageEnabled, initialSession]);
+  }, [storageSessionId, state.clientStorageEnabled, initialSession, apiSessionId]);
 
 
   // On entering a session: if status is NOT_STARTED, mark it IN_PROGRESS on server
@@ -529,24 +595,28 @@ export function ApiQuizProvider({
   // Helper functions
   const nextQuestion = useCallback(() => {
     dispatch({ type: 'NEXT_QUESTION' });
-  }, []);
+    // Persist navigation in client storage for resume
+    if (storageSessionId && state.clientStorageEnabled) {
+      try {
+        const nextIndex = Math.min(state.session.currentQuestionIndex + 1, state.session.totalQuestions - 1);
+        quizStorage.updateSessionProgress(storageSessionId, { currentQuestionIndex: nextIndex });
+      } catch {}
+    }
+  }, [storageSessionId, state.clientStorageEnabled, state.session.currentQuestionIndex, state.session.totalQuestions]);
 
-  // Update answer via PUT for review/edit mode (supports QCS and QCM)
+  // REMOVED: Legacy updateAnswer functionality
+  // Review mode now relies solely on GET /quiz-sessions/{sessionId} response structure
   const updateAnswer = useCallback(async (questionId: number, selected: number | number[]) => {
+    // For review mode, we only update local state - no API calls
+    // The session data comes from GET /quiz-sessions/{sessionId} and is read-only
+
     if (!apiSessionId || !questionId || (!Array.isArray(selected) && !selected)) {
       toast.error('Missing session or answer information');
       throw { success: false, error: 'Missing session or answer information' };
     }
-    try {
-      const body = Array.isArray(selected)
-        ? { selectedAnswerIds: selected.map(Number) }
-        : { selectedAnswerId: Number(selected) };
-      const res = await QuizService.updateAnswer(apiSessionId, questionId, body as any);
-      if (!res.success) {
-        throw res;
-      }
 
-      // Update local state and storage to reflect the change
+    try {
+      // Update local state only for UI purposes
       const quizAnswer: QuizAnswer = {
         questionId: Number(questionId),
         ...(Array.isArray(selected)
@@ -564,29 +634,34 @@ export function ApiQuizProvider({
         isCorrect: undefined,
       } as any;
 
+      // Only update local storage, not server
       quizStorage.saveAnswer(apiSessionId, quizAnswer);
       dispatch({ type: 'SAVE_LOCAL_ANSWER', answer: quizAnswer });
-      toast.success('Answer updated');
+
+      toast.info('Answer updated locally. Note: Review mode is read-only.');
     } catch (err: any) {
-      const msg: string = (err?.error || err?.message || '').toString();
-      const status = err?.statusCode || err?.status || err?.response?.status;
-      console.error('Update answer failed', err);
-      if (status === 400 && /Cannot modify completed quiz session/i.test(msg)) {
-        toast.info('This session is completed and cannot be edited. Create a retake to change answers.');
-      } else {
-        toast.error(msg || 'Failed to update answer');
-      }
+      console.error('Local answer update failed', err);
+      toast.error('Failed to update answer locally');
       throw err;
     }
   }, [apiSessionId, state.timer.questionTime]);
 
   const previousQuestion = useCallback(() => {
     dispatch({ type: 'PREVIOUS_QUESTION' });
-  }, []);
+    if (storageSessionId && state.clientStorageEnabled) {
+      try {
+        const prevIndex = Math.max(0, state.session.currentQuestionIndex - 1);
+        quizStorage.updateSessionProgress(storageSessionId, { currentQuestionIndex: prevIndex });
+      } catch {}
+    }
+  }, [storageSessionId, state.clientStorageEnabled, state.session.currentQuestionIndex]);
 
   const goToQuestion = useCallback((index: number) => {
     dispatch({ type: 'GO_TO_QUESTION', questionIndex: index });
-  }, []);
+    if (storageSessionId && state.clientStorageEnabled) {
+      try { quizStorage.updateSessionProgress(storageSessionId, { currentQuestionIndex: index }); } catch {}
+    }
+  }, [storageSessionId, state.clientStorageEnabled]);
 
   // Legacy batch submission - DISABLED for manual submission flow
   const submitAnswersBatch = useCallback(async (answersToSubmit: any[]) => {
@@ -612,12 +687,14 @@ export function ApiQuizProvider({
       return;
     }
 
-    // Persist locally and set session IN_PROGRESS on first answer
+    // Persist in React state and set session IN_PROGRESS on first answer
     dispatch({ type: 'SUBMIT_ANSWER', answer, submitToApi: false });
 
-    if (state.clientStorageEnabled && apiSessionId && state.currentQuestion) {
+    // Build a normalized answer object once
+    let quizAnswer: QuizAnswer | null = null;
+    if (state.currentQuestion) {
       const selectedAnswerId = answer.selectedOptions?.[0];
-      const quizAnswer: QuizAnswer = {
+      quizAnswer = {
         questionId: parseInt(state.currentQuestion.id),
         selectedAnswerId: selectedAnswerId ? parseInt(selectedAnswerId) : undefined,
         selectedAnswerIds: answer.selectedOptions?.map((id: string) => parseInt(id)),
@@ -630,22 +707,43 @@ export function ApiQuizProvider({
         notes: answer.notes,
       } as any;
 
+      // Always reflect in localAnswers for real-time UI (even without apiSessionId)
+      dispatch({ type: 'SAVE_LOCAL_ANSWER', answer: quizAnswer });
+    }
+
+    // Save to client storage with a stable session ID (works in local/practice mode too)
+    if (state.clientStorageEnabled && storageSessionId && quizAnswer) {
       // Mark the session as IN_PROGRESS locally the first time an answer is saved
-      if (quizStorage.loadSessionState(apiSessionId)?.status === 'NOT_STARTED') {
-        try { quizStorage.updateSessionProgress(apiSessionId, { status: 'IN_PROGRESS' }); } catch {}
-        try { await QuizService.updateQuizSessionStatus(apiSessionId, 'IN_PROGRESS'); } catch {}
+      if (quizStorage.loadSessionState(storageSessionId)?.status === 'NOT_STARTED') {
+        try { quizStorage.updateSessionProgress(storageSessionId, { status: 'IN_PROGRESS' }); } catch {}
+        // Best-effort server status update if an API session exists
+        if (apiSessionId) {
+          try { await QuizService.updateQuizSessionStatus(apiSessionId, 'IN_PROGRESS'); } catch {}
+        }
       }
 
-      quizStorage.saveAnswer(apiSessionId, quizAnswer);
-      dispatch({ type: 'SAVE_LOCAL_ANSWER', answer: quizAnswer });
+      quizStorage.saveAnswer(storageSessionId, quizAnswer);
       console.log(`💾 Answer saved to client storage (Question ${quizAnswer.questionId})`);
-      // Removed per-answer toast noise
-
       // Do NOT submit per-answer anymore. Answers are stored locally and submitted in bulk on final submit.
     }
 
     dispatch({ type: 'ANSWER_SUBMITTED', success: true });
-  }, [state.clientStorageEnabled, state.currentQuestion?.id, state.timer.questionTime, apiSessionId, enableApiSubmission]);
+  }, [state.clientStorageEnabled, state.currentQuestion?.id, state.timer.questionTime, storageSessionId, apiSessionId, enableApiSubmission]);
+
+  const clearAnswer = useCallback((questionId: string | number) => {
+    dispatch({ type: 'CLEAR_ANSWER', questionId });
+
+    // Also clear from local storage if enabled
+    if (state.clientStorageEnabled && storageSessionId) {
+      try {
+        const questionIdNumber = Number(questionId);
+        quizStorage.removeAnswer(storageSessionId, questionIdNumber);
+        console.log(`🗑️ Cleared answer for question ${questionId} from client storage`);
+      } catch (error) {
+        console.error('Failed to clear answer from storage:', error);
+      }
+    }
+  }, [state.clientStorageEnabled, storageSessionId]);
 
   const revealAnswer = useCallback(() => {
     dispatch({ type: 'REVEAL_ANSWER' });
@@ -671,9 +769,10 @@ export function ApiQuizProvider({
     try {
       // First submit all answered questions to the API
       if (apiSessionId && enableApiSubmission) {
-        const answersToSubmit = Object.keys(state.session.userAnswers).filter(
+        const userAnswers = state.session?.userAnswers || {};
+        const answersToSubmit = Object.keys(userAnswers).filter(
           questionId => {
-            const answer = state.session.userAnswers[questionId];
+            const answer = userAnswers[questionId];
             return answer && (answer.selectedOptions?.length || answer.textAnswer);
           }
         );
@@ -683,7 +782,7 @@ export function ApiQuizProvider({
 
           // Submit answers using existing submitAllAnswers logic but only for answered questions
           const answersForSubmission = answersToSubmit.map(questionId => {
-            const answer = state.session.userAnswers[questionId];
+            const answer = userAnswers[questionId];
             return {
               questionId: Number(questionId),
               selectedAnswerId: answer.selectedOptions?.[0],
@@ -736,8 +835,24 @@ export function ApiQuizProvider({
 
           if (apiAnswers.length > 0) {
             const totalTimeSpent = state.timer.totalTime || 0;
-            await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
-            console.log(`✅ Successfully submitted ${apiAnswers.length} answers on pause`);
+            const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
+
+            if (response.success && response.data) {
+              // Update session with submission results for pause display
+              dispatch({
+                type: 'UPDATE_SESSION_RESULTS',
+                results: {
+                  score: response.data.scoreOutOf20 || 0,
+                  percentage: response.data.percentageScore || 0,
+                  timeSpent: response.data.timeSpent || totalTimeSpent,
+                  answeredQuestions: response.data.answeredQuestions || apiAnswers.length,
+                  totalQuestions: response.data.totalQuestions || state.session.totalQuestions
+                }
+              });
+              console.log(`✅ Successfully submitted ${apiAnswers.length} answers on pause:`, response.data);
+            } else {
+              console.log(`✅ Submitted ${apiAnswers.length} answers on pause (no response data)`);
+            }
           }
         }
       }
@@ -746,9 +861,34 @@ export function ApiQuizProvider({
       // Continue with pause even if submission fails
     }
 
+    // Update session status to IN_PROGRESS when pausing with unanswered questions
+    if (apiSessionId) {
+      try {
+        const userAnswers = state.session?.userAnswers || {};
+        const answeredQuestions = Object.keys(userAnswers).filter(
+          questionId => {
+            const answer = userAnswers[questionId];
+            return answer && (answer.selectedOptions?.length || answer.textAnswer);
+          }
+        ).length;
+
+        const totalQuestions = state.session.totalQuestions || state.session.questions?.length || 0;
+
+        if (answeredQuestions < totalQuestions && answeredQuestions > 0) {
+          await SessionStatusManager.setInProgress(apiSessionId, {
+            showToast: false,
+            silent: true
+          });
+          console.log(`✅ Session ${apiSessionId} marked as IN_PROGRESS on pause`);
+        }
+      } catch (error) {
+        console.warn('Failed to update session status on pause:', error);
+      }
+    }
+
     // Then pause the quiz
     dispatch({ type: 'PAUSE_QUIZ' });
-  }, [apiSessionId, enableApiSubmission, state.session.userAnswers, state.session.questions, state.timer.totalTime]);
+  }, [apiSessionId, enableApiSubmission, state.session.userAnswers, state.session.questions, state.session.totalQuestions, state.timer.totalTime]);
 
   const resumeQuiz = useCallback(() => {
     dispatch({ type: 'RESUME_QUIZ' });
@@ -878,12 +1018,16 @@ export function ApiQuizProvider({
         }
       }
 
-      // Mark completed on server and locally
-      try {
-        await QuizService.updateQuizSessionStatus(apiSessionId, 'COMPLETED');
-      } catch (e) {
-        console.warn('Failed to set session COMPLETED:', e);
+      // Mark completed on server and locally using SessionStatusManager
+      const statusUpdateSuccess = await SessionStatusManager.setCompleted(apiSessionId, {
+        showToast: false, // We'll show our own success toast below
+        retryCount: 1
+      });
+
+      if (!statusUpdateSuccess) {
+        console.warn('Failed to update session status to COMPLETED, but continuing with submission');
       }
+
       dispatch({ type: 'COMPLETE_QUIZ' });
 
       // Clean up client storage after successful submission
@@ -931,22 +1075,47 @@ export function ApiQuizProvider({
     dispatch({ type: 'CLEAR_SUBMISSION_ERROR' });
   }, []);
 
-  // Retry submission of stored answers
+  // Retry submission of stored answers with enhanced error handling
   const retrySubmission = useCallback(async () => {
-    if (!apiSessionId) return;
+    if (!apiSessionId) {
+      console.error('Cannot retry submission: No session ID');
+      toast.error('Cannot retry submission: No session ID');
+      return;
+    }
 
     const storedSession = quizStorage.loadSessionState(apiSessionId);
     if (!storedSession || storedSession.status !== 'COMPLETED') {
       console.log('No completed session found for retry');
+      toast.warning('No completed session found for retry');
       return;
     }
 
+    console.log(`🔄 Retrying submission for session ${apiSessionId}...`);
+    toast.loading('Retrying submission...', { id: 'retry-submission' });
+
     try {
-      await completeQuiz();
+      const success = await submitAllAnswers();
+
+      if (success) {
+        toast.success('Quiz submitted successfully on retry!', { id: 'retry-submission' });
+        console.log(`✅ Retry submission successful for session ${apiSessionId}`);
+      } else {
+        toast.error('Retry submission failed. Please try again.', { id: 'retry-submission' });
+        console.error(`❌ Retry submission failed for session ${apiSessionId}`);
+      }
     } catch (error) {
-      console.error('Retry submission failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Retry submission error:', error);
+      toast.error(`Retry submission failed: ${errorMessage}`, { id: 'retry-submission' });
+
+      // Update submission error state for UI feedback
+      dispatch({
+        type: 'ANSWER_SUBMITTED',
+        success: false,
+        error: `Retry failed: ${errorMessage}`
+      });
     }
-  }, [apiSessionId, completeQuiz]);
+  }, [apiSessionId, submitAllAnswers]);
 
   // Get client storage statistics
   const getStorageStats = useCallback(() => {
@@ -990,8 +1159,8 @@ export function ApiQuizProvider({
       }
 
       // Persist timer periodically
-      if (state.apiSessionId) {
-        quizStorage.updateSessionProgress(state.apiSessionId, { timeSpent: newTotalTime });
+      if (storageSessionId) {
+        quizStorage.updateSessionProgress(storageSessionId, { timeSpent: newTotalTime });
       }
     }, 1000);
 
@@ -1005,6 +1174,7 @@ export function ApiQuizProvider({
     previousQuestion,
     goToQuestion,
     submitAnswer,
+    clearAnswer,
     revealAnswer,
     toggleExplanation,
     pauseQuiz,

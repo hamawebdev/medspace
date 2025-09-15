@@ -106,7 +106,7 @@ export default function TodosPage() {
   const [showCompleted, setShowCompleted] = useState(false)
   const [showTodayOnly, setShowTodayOnly] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
-  const [sortBy, setSortBy] = useState<'dueDate' | 'priority' | 'created'>('dueDate')
+  const [sortBy, setSortBy] = useState<'dueDate' | 'priority' | 'created'>('created')
   const [page, setPage] = useState(1)
   const [limit] = useState(12)
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<number>>(new Set())
@@ -234,6 +234,8 @@ export default function TodosPage() {
           type: selectedCategory !== 'ALL' ? selectedCategory : undefined,
           priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
           search: searchQuery || undefined,
+          sortBy: sortBy === 'created' ? 'createdAt' : sortBy === 'dueDate' ? 'dueDate' : sortBy,
+          sortOrder: sortBy === 'created' ? 'desc' : sortBy === 'dueDate' ? 'asc' : 'desc', // Newest first for created, earliest first for due date, highest first for priority
         }
 
         // Handle status filtering according to new API behavior
@@ -314,7 +316,7 @@ export default function TodosPage() {
     }
 
     return () => handle && clearTimeout(handle)
-  }, [isAuthenticated, selectedCategory, selectedPriority, selectedStatus, searchQuery, page, limit, initialLoadDone, refreshTrigger])
+  }, [isAuthenticated, selectedCategory, selectedPriority, selectedStatus, searchQuery, page, limit, initialLoadDone, refreshTrigger, sortBy])
 
   // Enhanced filter and sort todos
   const filteredTodos = todos
@@ -348,13 +350,16 @@ export default function TodosPage() {
       return true
     })
     .sort((a, b) => {
+      // Since we're now using server-side sorting, this client-side sort is mainly for
+      // additional filtering and ensuring consistent ordering
       switch (sortBy) {
         case 'priority':
           const priorityOrder: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 }
           return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
         case 'created':
+          // Default: newest first (descending order)
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        default:
+        default: // 'dueDate'
           if (!a.dueDate && !b.dueDate) return 0
           if (!a.dueDate) return 1
           if (!b.dueDate) return -1

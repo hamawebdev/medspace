@@ -6,12 +6,13 @@ import { useQuestionCalculation } from './use-question-calculation';
 import { QuizService } from '@/lib/api-services';
 import { NewApiService } from '@/lib/api/new-api-services';
 import { toast } from 'sonner';
-import { 
-  QuizCreationConfig, 
-  QuizCreationStep, 
+import {
+  QuizCreationConfig,
+  QuizCreationStep,
   UseQuizCreationReturn,
-  ValidationError 
+  ValidationError
 } from '../types';
+import { analyzeSessionCreationError, logErrorDetails, getUserErrorMessage, getSuggestedActions } from '@/utils/session-error-handler';
 
 // Generate default title with date and time
 const generateDefaultTitle = () => {
@@ -289,54 +290,83 @@ export function useQuizCreation(
         });
       }
 
-      // Step 4: Create Session
-      const result = await QuizService.createSessionByQuestions({
-        type: config.type as 'PRACTICE' | 'EXAM',
-        questionIds,
+      // Step 4: Create Session using documented endpoint
+      // Extract course IDs from the selected questions
+      const courseIds = [...new Set(
+        questions.map((q: any) => q.course?.id).filter((id: any) => id)
+      )];
+
+      if (courseIds.length === 0) {
+        throw new Error('No courses found for the selected questions');
+      }
+
+      // Build session data based on type
+      const sessionData: any = {
         title: sanitizedTitle,
+        courseIds,
+        sessionType: config.type === 'PRACTICE' ? 'PRACTISE' : 'EXAM'
+      };
+
+      // For PRACTICE sessions, include questionCount
+      if (config.type === 'PRACTICE') {
+        sessionData.questionCount = Math.min(questionIds.length, 100);
+      }
+
+      // For EXAM sessions, use fixed question types as per requirements (no questionCount needed)
+      if (config.type === 'EXAM') {
+        sessionData.questionTypes = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE'];
+        sessionData.rotations = []; // Default to empty array
+        // Note: questionCount is not needed for EXAM sessions with the new endpoint
+      }
+
+      const result = await QuizService.createSession(sessionData);
+
+      // Check if the API returned an error response
+      if (!result || !result.success) {
+        const sessionType = config.type === 'EXAM' ? 'EXAM' : 'PRACTICE';
+        const errorDetails = analyzeSessionCreationError(result, sessionType);
+        logErrorDetails(errorDetails, `${sessionType} Session Creation`);
+
+        const userMessage = getUserErrorMessage(errorDetails);
+        const suggestedActions = getSuggestedActions(errorDetails);
+
+        // Show user-friendly error message
+        toast.error(userMessage);
+
+        // Log suggested actions for debugging
+        console.log(`💡 [QuizCreation] Suggested actions for user:`, suggestedActions);
+
+        throw new Error(result?.error || 'Failed to create quiz');
+      }
+
+      toast.success('Quiz created successfully!');
+
+      // Handle new response structure: session data is directly in result.data
+      const sessionData = result.data;
+
+      console.log('Quiz creation successful:', {
+        fullResponse: result,
+        sessionData: sessionData,
+        sessionId: sessionData.sessionId || sessionData.id
       });
 
-      if (result.success) {
-        toast.success('Quiz created successfully!');
-
-        // Handle new response structure: session data is directly in result.data
-        const sessionData = result.data;
-
-        console.log('Quiz creation successful:', {
-          fullResponse: result,
-          sessionData: sessionData,
-          sessionId: sessionData.id
-        });
-
-        return sessionData;
-      } else {
-        throw new Error(result.error || 'Failed to create quiz');
-      }
+      return sessionData;
     } catch (error) {
-      console.error('Quiz creation error:', error);
+      console.error('💥 [QuizCreation] Exception during session creation:', error);
 
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.message.includes('InsufficientQuestionsError')) {
-          toast.error('Not enough questions available. Try selecting more courses or reducing the question count.');
-        } else if (error.message.includes('ValidationError') || error.message.includes('invalid characters')) {
-          toast.error('Quiz title contains invalid characters. Please edit the title and try again.');
-        } else if (error.message.includes('title')) {
-          toast.error('There was an issue with the quiz title. Please check and modify it.');
-        } else {
-          toast.error(error.message || 'Failed to create quiz. Please try again.');
-        }
-      } else if (typeof error === 'object' && error !== null && 'error' in error) {
-        // Handle API error response format
-        const apiError = error as any;
-        if (apiError.error?.includes('invalid characters') || apiError.error?.includes('title')) {
-          toast.error('Quiz title contains invalid characters. Please edit the title and try again.');
-        } else {
-          toast.error(apiError.error || 'Failed to create quiz. Please try again.');
-        }
-      } else {
-        toast.error('An unexpected error occurred. Please try again.');
-      }
+      // Use comprehensive error analysis for exceptions
+      const sessionType = config.type === 'EXAM' ? 'EXAM' : 'PRACTICE';
+      const errorDetails = analyzeSessionCreationError(error, sessionType);
+      logErrorDetails(errorDetails, `${sessionType} Session Creation Exception`);
+
+      const userMessage = getUserErrorMessage(errorDetails);
+      const suggestedActions = getSuggestedActions(errorDetails);
+
+      // Show user-friendly error message
+      toast.error(userMessage);
+
+      // Log suggested actions for debugging
+      console.log(`💡 [QuizCreation] Suggested actions for user:`, suggestedActions);
 
       throw error;
     } finally {

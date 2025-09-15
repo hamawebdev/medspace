@@ -285,18 +285,20 @@ Incomplete Sessions: Allows submission even if not all questions are answered
 Smart Scoring: Calculates scores based on answered questions only
 Dual Score Format: Returns both percentage and normalized 20-point scores
 ### Response Schema
-
 {
-  "success": true,
-  "data": {
-    "sessionId": 123,
-    "scoreOutOf20": 16.5,
-    "percentageScore": 82.5,
-    "timeSpent": 1800,
-    "answeredQuestions": 15,
-    "totalQuestions": 20,
-    "status": "completed"
-  }
+    "success": true,
+    "data": {
+        "sessionId": 667,
+        "scoreOutOf20": 4,
+        "percentageScore": 20,
+        "timeSpent": 22,
+        "answeredQuestions": 2,
+        "totalQuestions": 5
+    },
+    "meta": {
+        "timestamp": "2025-09-14T10:40:37.038Z",
+        "requestId": "18wmsduhcxh"
+    }
 }
 ### Response Fields
 

@@ -308,43 +308,7 @@ export class AuthAPI {
     }
   }
 
-  /**
-   * Verify email with token
-   */
-  static async verifyEmail(token: string): Promise<{ message: string }> {
-    try {
-      const response = await AuthService.verifyEmail(token);
 
-      if (!response.success) {
-        // Handle API error structure
-        const errorMessage = typeof response.error === 'string'
-          ? response.error
-          : response.error?.message || 'Email verification failed';
-        throw new Error(errorMessage);
-      }
-
-      return response.data || { message: 'Email verified successfully' };
-    } catch (error: any) {
-      throw new Error(error.message || 'Email verification failed');
-    }
-  }
-
-  /**
-   * Resend verification email
-   */
-  static async resendVerificationEmail(email: string): Promise<{ message: string }> {
-    try {
-      const response = await AuthService.resendVerificationEmail(email);
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to resend verification email');
-      }
-
-      return response.data || { message: 'Verification email sent successfully' };
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to resend verification email');
-    }
-  }
 
   /**
    * Get role-based redirect path

@@ -116,7 +116,6 @@ export interface UserProfile {
   universityId: number;
   specialtyId: number;
   currentYear: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
-  emailVerified: boolean;
   isActive: boolean;
   lastLogin: string;
   createdAt: string;
@@ -155,6 +154,84 @@ export interface StudentDashboardPerformance {
     morning: number;
     afternoon: number;
     evening: number;
+  };
+}
+
+// New Dashboard Stats API Response - /api/v1/students/dashboard/stats
+export interface StudentDashboardStats {
+  todosToday: TodoItem[];
+  lastSessionByCreated: SessionInfo | null;
+  lastSessionByAnswer: SessionInfo | null;
+  questionCount: number;
+  unitsCount: number;
+  independentModulesCount: number;
+  staticExamsCount: number;
+  userStudyPacks: UserStudyPack[];
+  userSubscriptions: UserSubscription[];
+  userProfile: UserProfile;
+  answersLast7Days: DailyAnswerStats[];
+}
+
+// Todo item from dashboard stats
+export interface TodoItem {
+  id: number;
+  title: string;
+  description: string;
+  type: 'EXAM' | 'PRACTICE' | 'READING' | string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  status: 'PENDING' | 'COMPLETED' | 'IN_PROGRESS';
+  dueDate: string; // ISO date string
+  courses?: TodoCourse[];
+}
+
+// Course info in todo items
+export interface TodoCourse {
+  id: number;
+  name: string;
+  module: {
+    id: number;
+    name: string;
+    studyPack: any | null;
+  };
+}
+
+// Session info from dashboard stats
+export interface SessionInfo {
+  id: number;
+  title: string;
+  type: 'PRACTICE' | 'EXAM';
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'NOT_STARTED';
+  score: number;
+  percentage: number;
+  createdAt?: string; // For lastSessionByCreated
+  updatedAt?: string; // For lastSessionByAnswer
+  quiz: any | null;
+  exam: any | null;
+}
+
+// Daily answer statistics for weekly performance
+export interface DailyAnswerStats {
+  date: string; // YYYY-MM-DD format
+  correct: number;
+  incorrect: number;
+  total: number;
+}
+
+// User study pack from dashboard stats
+export interface UserStudyPack {
+  id: number;
+  name: string;
+  description: string;
+  type: string;
+  yearNumber: string;
+  pricePerMonth: string;
+  pricePerYear: string;
+  subscription: {
+    id: number;
+    status: string;
+    startDate: string;
+    endDate: string;
+    amountPaid: number;
   };
 }
 
@@ -971,6 +1048,45 @@ export interface SubjectAnalytics extends Required<Pick<SubjectPerformance,
   'lastActivity' | 'strengths' | 'weaknesses' | 'recommendations'
 >> {}
 
+// ==================== NEW ANALYTICS ENDPOINT TYPES ====================
+
+// Session stats from the new analytics endpoint
+export interface SessionStats {
+  averagePerQuestion: number;
+  totalQuestions: number;
+  answeredCorrect: number;
+  answeredWrong: number;
+  consulted: number;
+  accuracy: string;
+}
+
+// Course-level stats from the new analytics endpoint
+export interface CourseStats {
+  name: string;
+  totalQuestions: number;
+  answeredCorrect: number;
+  answeredWrong: number;
+  consulted: number;
+  accuracy: string;
+}
+
+// Individual session from the new analytics endpoint
+export interface AnalyticsSession {
+  id: number;
+  type: 'PRACTICE' | 'EXAM' | 'RESIDENCY';
+  title: string;
+  stats: SessionStats;
+  courses: CourseStats[];
+}
+
+// Response from GET /api/v1/quiz-sessions/type/{SESSION_TYPE}
+export interface AnalyticsSessionsResponse {
+  sessions: AnalyticsSession[];
+}
+
+// Session type enum for the new analytics endpoint
+export type SessionType = 'PRACTICE' | 'EXAM' | 'RESIDENCY';
+
 // Performance Comparison Parameters
 export interface PerformanceComparisonParams {
   compareWith?: 'PEERS' | 'PREVIOUS_PERIOD' | 'TARGET';
@@ -1169,6 +1285,19 @@ export interface CourseProgressDetails {
   layerProgress: CourseLayerProgress;
   completedLayers: number;
   totalLayers: number;
+  course?: {
+    id: number;
+    name: string;
+    description?: string;
+    module?: {
+      id: number;
+      name: string;
+      unite?: {
+        id: number;
+        name: string;
+      };
+    };
+  };
 }
 
 // Card Course Association

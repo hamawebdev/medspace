@@ -30,13 +30,14 @@ interface DataPoint {
 
 interface Props {
   weeklyPerformance: DataPoint[]
+  loading?: boolean
 }
 
-export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
+export function WeeklyPerformanceChart({ weeklyPerformance, loading }: Props) {
   const [chartType, setChartType] = useState<'bar' | 'line' | 'area'>('bar')
 
   const data = weeklyPerformance.map((d) => ({
-    name: new Date(d.date).toLocaleDateString('en-US', {
+    name: new Date(d.date).toLocaleDateString('fr-FR', {
       month: 'short',
       day: 'numeric',
     }),
@@ -47,6 +48,45 @@ export function WeeklyPerformanceChart({ weeklyPerformance }: Props) {
     Total: d.correct + d.incorrect + d.viewed,
     Accuracy: Math.round((d.correct / (d.correct + d.incorrect)) * 100) || 0
   }))
+
+  if (loading) {
+    return (
+      <Card className="bg-card border border-border shadow-sm">
+        <CardHeader className="pb-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="h-6 w-48 bg-muted rounded animate-pulse"></div>
+              <div className="h-4 w-32 bg-muted rounded animate-pulse"></div>
+            </div>
+            <div className="h-6 w-20 bg-muted rounded animate-pulse"></div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80 bg-muted/30 rounded-lg animate-pulse"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (weeklyPerformance.length === 0) {
+    return (
+      <Card className="bg-card border border-border shadow-sm">
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold">
+            <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
+              <BarChart3 className="w-4 h-4 text-primary" />
+            </div>
+            Weekly Performance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-16 text-muted-foreground">
+            Aucun élément disponible.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Chart colors using design system values
   const colors = {

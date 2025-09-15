@@ -6,6 +6,7 @@ import { ContentService, StudentService } from '@/lib/api-services';
 import { StudyPack, StudyPackDetails, StudyPackUnit, PaginatedResponse, Course, CourseProgressDetails } from '@/types/api';
 import { toast } from 'sonner';
 import { useStudentAuth } from './use-auth';
+import { apiClient } from '@/lib/api-client';
 
 // Extended StudyPackDetails interface for the actual API response structure
 interface ExtendedStudyPackDetails extends StudyPack {
@@ -183,6 +184,57 @@ export function useStudyPacks(filters: StudyPackFilters = {}) {
       }
     }
   }, [filters.page, filters.limit, filters.search, filters.difficulty, filters.isPaid, filters.minPrice, filters.maxPrice, filters.sortBy, filters.sortOrder]);
+
+  useEffect(() => {
+    fetchStudyPacks();
+  }, [fetchStudyPacks]);
+
+  return {
+    ...state,
+    refresh: fetchStudyPacks,
+  };
+}
+
+// Hook for homepage study packs display
+export function useHomepageStudyPacks() {
+  const [state, setState] = useState<{
+    studyPacks: StudyPack[];
+    loading: boolean;
+    error: string | null;
+  }>({
+    studyPacks: [],
+    loading: false,
+    error: null,
+  });
+
+  const fetchStudyPacks = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      // Use the direct API endpoint as specified in the documentation
+      const response = await apiClient.get<any>('/study-packs');
+
+      // Handle the nested response structure from the API documentation
+      const data = response.data?.data?.data || response.data?.data || response.data || [];
+      const studyPacks = Array.isArray(data) ? data : [];
+
+      // Filter only active study packs
+      const activeStudyPacks = studyPacks.filter((pack: StudyPack) => pack.isActive);
+
+      setState({
+        studyPacks: activeStudyPacks,
+        loading: false,
+        error: null,
+      });
+    } catch (error: any) {
+      console.error('Failed to fetch study packs for homepage:', error);
+      setState({
+        studyPacks: [],
+        loading: false,
+        error: 'Impossible de charger les packs d\'étude.',
+      });
+    }
+  }, []);
 
   useEffect(() => {
     fetchStudyPacks();

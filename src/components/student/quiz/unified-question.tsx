@@ -1,19 +1,20 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  CheckCircle, 
-  Circle, 
-  Check, 
-  X, 
-  Lightbulb, 
-  Edit3, 
-  FileText, 
-  Stethoscope, 
-  User, 
-  Calendar, 
-  MapPin 
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  CheckCircle,
+  Circle,
+  Check,
+  X,
+  Lightbulb,
+  Edit3,
+  FileText,
+  Stethoscope,
+  User,
+  Calendar,
+  MapPin,
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +51,7 @@ interface ClinicalCase extends QuizQuestion {
 }
 
 export function UnifiedQuestion({ question, type }: Props) {
-  const { state, submitAnswer, updateAnswer, revealAnswer } = useQuiz();
+  const { state, submitAnswer, updateAnswer, revealAnswer, clearAnswer } = useQuiz();
   const { session, isAnswerRevealed } = state;
 
   // Auto-detect type from question if not provided
@@ -65,37 +66,54 @@ export function UnifiedQuestion({ question, type }: Props) {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
-  const userAnswer = session.userAnswers[String(question.id)];
-  const existingAnswer = userAnswer?.selectedOptions || [];
-  const existingTextAnswer = userAnswer?.textAnswer || '';
+  const userAnswer = (state.localAnswers?.[Number(question.id)]) || session.userAnswers[String(question.id)];
+
+  // Memoize arrays to prevent infinite re-renders
+  const existingAnswer = useMemo(() =>
+    userAnswer?.selectedOptions || [],
+    [userAnswer?.selectedOptions]
+  );
+
+  const existingTextAnswer = useMemo(() =>
+    userAnswer?.textAnswer || '',
+    [userAnswer?.textAnswer]
+  );
 
   // Initialize state based on question type and existing answers
   useEffect(() => {
     if (isTextQuestion) {
       if (existingTextAnswer) {
-        setTextAnswer(existingTextAnswer);
-        setHasSubmitted(true);
+        setTextAnswer(prev => prev !== existingTextAnswer ? existingTextAnswer : prev);
+        setHasSubmitted(prev => prev !== true ? true : prev);
       } else {
-        setTextAnswer('');
-        setHasSubmitted(false);
+        setTextAnswer(prev => prev !== '' ? '' : prev);
+        setHasSubmitted(prev => prev !== false ? false : prev);
       }
     } else {
       if (existingAnswer.length > 0) {
-        setSelectedOptions(existingAnswer);
-        setHasSubmitted(true);
+        setSelectedOptions(prev =>
+          JSON.stringify(prev) !== JSON.stringify(existingAnswer) ? existingAnswer : prev
+        );
+        setHasSubmitted(prev => prev !== true ? true : prev);
       } else {
-        setSelectedOptions([]);
-        setHasSubmitted(false);
+        setSelectedOptions(prev => prev.length !== 0 ? [] : prev);
+        setHasSubmitted(prev => prev !== false ? false : prev);
       }
     }
-    setEditMode(false);
+    setEditMode(prev => prev !== false ? false : prev);
   }, [question.id, existingAnswer, existingTextAnswer, isTextQuestion]);
+
+  // Memoize the current radio value to prevent unnecessary re-renders
+  const currentRadioValue = useMemo(() =>
+    selectedOptions[0] || '',
+    [selectedOptions]
+  );
 
   // Handle option selection for multiple choice questions
   const handleOptionToggle = useCallback((optionId: string) => {
     if (isMultipleChoice) {
-      setSelectedOptions(prev => 
-        prev.includes(optionId) 
+      setSelectedOptions(prev =>
+        prev.includes(optionId)
           ? prev.filter(id => id !== optionId)
           : [...prev, optionId]
       );
@@ -104,8 +122,23 @@ export function UnifiedQuestion({ question, type }: Props) {
     }
   }, [isMultipleChoice]);
 
+  // Handle keyboard shortcuts for answer selection
+  const handleKeyboardSelection = useCallback((key: string) => {
+    if (hasSubmitted || isAnswerRevealed) return;
+
+    const keyUpper = key.toUpperCase();
+    const optionIndex = keyUpper.charCodeAt(0) - 65; // A=0, B=1, C=2, etc.
+
+    if (optionIndex >= 0 && optionIndex < (question.options?.length || 0)) {
+      const option = question.options?.[optionIndex];
+      if (option) {
+        handleOptionToggle(option.id);
+      }
+    }
+  }, [hasSubmitted, isAnswerRevealed, question.options, handleOptionToggle]);
+
   // Handle text answer submission for QROC questions
-  const handleTextSubmit = () => {
+  const handleTextSubmit = useCallback(() => {
     if (!textAnswer.trim()) return;
     if (session.status === 'completed' || session.status === 'COMPLETED') {
       console.warn('Cannot submit answer: Quiz session is completed');
@@ -118,63 +151,125 @@ export function UnifiedQuestion({ question, type }: Props) {
       isCorrect,
     });
     setHasSubmitted(true);
-  };
+    // Reveal immediately to match Enter/button behavior
+    revealAnswer();
+  }, [textAnswer, session.status, question.correctAnswers, submitAnswer, revealAnswer]);
 
   // Simple keyword matching for QROC scoring
-  const checkAnswerCorrectness = (userText: string, correctAnswers: string[]): boolean => {
+  const checkAnswerCorrectness = useCallback((userText: string, correctAnswers: string[]): boolean => {
     const userTextLower = userText.toLowerCase().trim();
     return correctAnswers.some(correctAnswer => {
       const keywords = correctAnswer.toLowerCase().split(/[\s,;]+/);
-      const matchedKeywords = keywords.filter(keyword => 
+      const matchedKeywords = keywords.filter(keyword =>
         keyword.length > 2 && userTextLower.includes(keyword)
       );
       return matchedKeywords.length >= Math.ceil(keywords.length * 0.6);
     });
-  };
+  }, []);
 
   // Handle choice submission for multiple choice questions
-  const handleChoiceSubmit = () => {
+  const handleChoiceSubmit = useCallback(() => {
     if (selectedOptions.length === 0) return;
     if (session.status === 'completed' || session.status === 'COMPLETED') {
       console.warn('Cannot submit answer: Quiz session is completed');
       return;
     }
 
-    const correctOptions = question.options?.filter(opt => opt.isCorrect).map(opt => opt.id) || [];
-    const isCorrect = isMultipleChoice 
-      ? selectedOptions.length === correctOptions.length && 
-        selectedOptions.every(id => correctOptions.includes(id))
-      : selectedOptions.length === 1 && correctOptions.includes(selectedOptions[0]);
+    // Normalize IDs to strings for reliable comparison
+    const correctIds = (question.options?.filter(opt => opt.isCorrect).map(opt => String(opt.id)) || []);
+    const selectedIds = selectedOptions.map(String);
+
+    const isCorrect = isMultipleChoice
+      ? selectedIds.length === correctIds.length && selectedIds.every(id => correctIds.includes(id))
+      : selectedIds.length === 1 && correctIds.includes(selectedIds[0]);
 
     submitAnswer({
       selectedOptions,
       isCorrect,
     });
     setHasSubmitted(true);
-  };
+    // Reveal immediately to match Enter/button behavior
+    revealAnswer();
+  }, [selectedOptions, session.status, question.options, isMultipleChoice, submitAnswer, revealAnswer]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (isTextQuestion) {
       setTextAnswer('');
     } else {
       setSelectedOptions([]);
     }
     setHasSubmitted(false);
-  };
 
-  const getOptionStatus = (option: any) => {
+    // Clear the answer from the global state as well
+    clearAnswer(question.id);
+  }, [isTextQuestion, question.id, clearAnswer]);
+
+  // Add keyboard event listener for answer selection
+  useEffect(() => {
+    // Check if device has a physical keyboard (not mobile/touch device)
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                          ('ontouchstart' in window) ||
+                          (navigator.maxTouchPoints > 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't handle shortcuts on mobile devices to avoid conflicts
+      if (isMobileDevice) {
+        return;
+      }
+
+      // Don't handle shortcuts if user is typing in an input field
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement ||
+        (event.target as HTMLElement)?.contentEditable === 'true'
+      ) {
+        return;
+      }
+
+      // Don't handle shortcuts if any modal/dialog is open
+      if (document.querySelector('[role="dialog"]') || document.querySelector('.modal-open')) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      // Handle A, B, C, D, etc. for answer selection
+      if (key >= 'a' && key <= 'z' && !isTextQuestion) {
+        event.preventDefault();
+        event.stopPropagation(); // Prevent global keyboard handler from also firing
+        handleKeyboardSelection(key);
+      }
+
+      // Handle Enter for submit
+      if (key === 'enter' && !isTextQuestion) {
+        event.preventDefault();
+        event.stopPropagation(); // Prevent global keyboard handler from also firing
+        if (!hasSubmitted && selectedOptions.length > 0) {
+          handleChoiceSubmit();
+        } else if (hasSubmitted && !isAnswerRevealed) {
+          revealAnswer();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyboardSelection, hasSubmitted, selectedOptions, isAnswerRevealed, isTextQuestion, handleChoiceSubmit, revealAnswer]);
+
+  const getOptionStatus = useCallback((option: any) => {
     if (!isAnswerRevealed) return 'default';
-    
+
     const isSelected = selectedOptions.includes(option.id);
     const isCorrect = option.isCorrect;
-    
+
     if (isSelected && isCorrect) return 'correct-selected';
     if (!isSelected && isCorrect) return 'correct-unselected';
     if (isSelected && !isCorrect) return 'incorrect-selected';
     return 'default';
-  };
+  }, [isAnswerRevealed, selectedOptions]);
 
-  const getOptionStyles = (status: string) => {
+  const getOptionStyles = useCallback((status: string) => {
     switch (status) {
       case 'correct-selected':
         return 'border-green-500 bg-green-50';
@@ -185,7 +280,7 @@ export function UnifiedQuestion({ question, type }: Props) {
       default:
         return 'border-border bg-card';
     }
-  };
+  }, []);
 
   const correctCount = question.options?.filter(opt => opt.isCorrect).length || 0;
   const optionCount = question.options?.length || 0;
@@ -196,18 +291,18 @@ export function UnifiedQuestion({ question, type }: Props) {
   const containerClass = isUltraCompactMode ? 'quiz-ultra-compact-mode' : isCompactMode ? 'quiz-compact-mode' : 'quiz-compact-mode';
 
   // Calculate dynamic spacing based on option count - Minimal space between question and answers
-  const getSpacing = () => {
+  const getSpacing = useMemo(() => {
     if (optionCount > 4) return 'space-y-0';
     if (optionCount >= 3) return 'space-y-0';
     return 'space-y-0';
-  };
+  }, [optionCount]);
 
   // Get card padding and gap overrides to reduce vertical spacing - More aggressive
-  const getCardSpacing = () => {
+  const getCardSpacing = useMemo(() => {
     if (optionCount > 4) return 'py-0.5 gap-0.5';
     if (optionCount >= 3) return 'py-0.5 gap-0.5';
     return 'py-0.5 gap-0.5';
-  };
+  }, [optionCount]);
 
   // Clinical case specific rendering
   const renderClinicalInfo = () => {
@@ -303,7 +398,7 @@ export function UnifiedQuestion({ question, type }: Props) {
   return (
     <div className={cn(
       "h-full flex flex-col quiz-space-optimized",
-      getSpacing(),
+      getSpacing,
       containerClass
     )}>
       {/* Clinical Case Information (if applicable) */}
@@ -408,11 +503,11 @@ export function UnifiedQuestion({ question, type }: Props) {
           // Multiple Choice Questions (QCM/QCS/CAS)
           isMultipleChoice ? (
             // QCM: Multiple choice without RadioGroup wrapper
-            <div className={`${getSpacing()} flex flex-col h-full`}>
+            <div className={`${getSpacing} flex flex-col h-full`}>
               {question.options?.map((option, index) => {
                 const status = getOptionStatus(option);
                 const isSelected = selectedOptions.includes(option.id);
-                const isDisabled = !editMode && (isAnswerRevealed && hasSubmitted);
+                const isDisabled = !editMode && (hasSubmitted || session.status === 'completed' || session.status === 'COMPLETED');
                 const alphabetPrefix = String.fromCharCode(65 + index);
 
                 return (
@@ -421,7 +516,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                     className={cn(
                       "group cursor-pointer transition-all duration-200 ease-out hover:shadow-md border-2 flex-shrink-0 rounded-lg quiz-option-card",
                       // Override default Card py-6 gap-6 with reduced spacing
-                      getCardSpacing(),
+                      getCardSpacing,
                       getOptionStyles(status),
                       isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary",
                       !isSelected && !isAnswerRevealed && "hover:border-primary/30 hover:bg-primary/5",
@@ -479,16 +574,16 @@ export function UnifiedQuestion({ question, type }: Props) {
           ) : (
             // QCS: Single choice with RadioGroup wrapper
             <RadioGroup
-              value={selectedOptions[0] || ''}
+              value={currentRadioValue}
               onValueChange={(value) => handleOptionToggle(value)}
-              disabled={!editMode && ((isAnswerRevealed && hasSubmitted) || session.status === 'completed' || session.status === 'COMPLETED')}
+              disabled={!editMode && (hasSubmitted || session.status === 'completed' || session.status === 'COMPLETED')}
               className="h-full"
             >
-              <div className={`${getSpacing()} flex flex-col h-full`}>
+              <div className={`${getSpacing} flex flex-col h-full`}>
                 {question.options?.map((option, index) => {
                   const status = getOptionStatus(option);
                   const isSelected = selectedOptions.includes(option.id);
-                  const isDisabled = !editMode && (isAnswerRevealed && hasSubmitted);
+                  const isDisabled = !editMode && (hasSubmitted || session.status === 'completed' || session.status === 'COMPLETED');
                   const alphabetPrefix = String.fromCharCode(65 + index);
 
                   return (
@@ -497,7 +592,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                       className={cn(
                         "group cursor-pointer transition-all duration-200 ease-out hover:shadow-md border-2 flex-shrink-0 rounded-lg quiz-option-card",
                         // Override default Card py-6 gap-6 with reduced spacing
-                        getCardSpacing(),
+                        getCardSpacing,
                         getOptionStyles(status),
                         isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary",
                         !isSelected && !isAnswerRevealed && "hover:border-primary/30 hover:bg-primary/5",
@@ -576,26 +671,54 @@ export function UnifiedQuestion({ question, type }: Props) {
             </div>
           )}
 
-          {/* Center - Show Explanation Button */}
-          {hasSubmitted && !isAnswerRevealed && (
-            <div className="flex-1 flex justify-center">
+          {/* Center - Submit Button (when answer selected but not submitted) or Show Explanation Button (when submitted) */}
+          <div className="flex-1 flex justify-center">
+            {!hasSubmitted && selectedOptions.length > 0 && !isTextQuestion && (
+              <Button
+                variant="default"
+                size={isUltraCompactMode ? "sm" : "default"}
+                onClick={handleChoiceSubmit}
+                className={`gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm hover:shadow-md transition-all duration-200 touch-manipulation ${
+                  isUltraCompactMode ? 'px-3 py-1 text-sm min-h-[36px]' : 'px-4 py-2 text-base min-h-[44px]'
+                }`}
+              >
+                <Send className={`${isUltraCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                Submit Answer
+              </Button>
+            )}
+
+            {!hasSubmitted && textAnswer.trim() && isTextQuestion && (
+              <Button
+                variant="default"
+                size={isUltraCompactMode ? "sm" : "default"}
+                onClick={handleTextSubmit}
+                className={`gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm hover:shadow-md transition-all duration-200 touch-manipulation ${
+                  isUltraCompactMode ? 'px-3 py-1 text-sm min-h-[36px]' : 'px-4 py-2 text-base min-h-[44px]'
+                }`}
+              >
+                <Send className={`${isUltraCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                Submit Answer
+              </Button>
+            )}
+
+            {hasSubmitted && !isAnswerRevealed && (
               <Button
                 variant="outline"
                 size={isUltraCompactMode ? "sm" : "default"}
                 onClick={revealAnswer}
-                className={`gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold shadow-sm hover:shadow-md transition-all duration-200 ${
-                  isUltraCompactMode ? 'px-3 py-1 text-sm' : 'px-4 py-2 text-base'
+                className={`gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold shadow-sm hover:shadow-md transition-all duration-200 touch-manipulation ${
+                  isUltraCompactMode ? 'px-3 py-1 text-sm min-h-[36px]' : 'px-4 py-2 text-base min-h-[44px]'
                 }`}
               >
                 <Lightbulb className={`${isUltraCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
                 Show Explanation
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Right side - Submit/Edit/Reset buttons */}
+          {/* Right side - Edit/Reset buttons */}
           <div className="flex gap-1">
-            {hasSubmitted && !isAnswerRevealed && (
+            {false && hasSubmitted && !isAnswerRevealed && (
               <Button
                 variant="outline"
                 size="sm"
@@ -607,7 +730,7 @@ export function UnifiedQuestion({ question, type }: Props) {
               </Button>
             )}
 
-            {hasSubmitted && !editMode && !isAnswerRevealed && (
+            {false && hasSubmitted && !editMode && !isAnswerRevealed && (
               <Button
                 variant="outline"
                 size="sm"
@@ -616,18 +739,6 @@ export function UnifiedQuestion({ question, type }: Props) {
               >
                 <Edit3 className="h-3 w-3" />
                 Edit
-              </Button>
-            )}
-
-            {(!hasSubmitted || editMode) && (
-              <Button
-                onClick={isTextQuestion ? handleTextSubmit : handleChoiceSubmit}
-                disabled={isTextQuestion ? !textAnswer.trim() : selectedOptions.length === 0}
-                size="sm"
-                className="gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <Check className="h-3 w-3" />
-                {editMode ? 'Update' : 'Submit'}
               </Button>
             )}
           </div>

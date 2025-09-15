@@ -63,24 +63,7 @@ export function AccountForm() {
     })
   }
 
-  const getAccountStatus = () => {
-    if (!profile) return { status: 'unknown', color: 'secondary', text: 'Unknown' }
 
-    if (profile.emailVerified) {
-      return { status: 'verified', color: 'default', text: 'Verified' }
-    } else {
-      return { status: 'unverified', color: 'destructive', text: 'Unverified' }
-    }
-  }
-
-  const handleResendVerification = async () => {
-    try {
-      // This would be implemented when the API endpoint is available
-      toast.info('Verification email functionality will be available soon')
-    } catch (error) {
-      toast.error('Failed to send verification email')
-    }
-  }
 
   if (isLoading) {
     return (
@@ -90,56 +73,11 @@ export function AccountForm() {
     )
   }
 
-  const accountStatus = getAccountStatus()
+
 
   return (
     <div className="space-y-6">
-      {/* Account Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Account Status
-          </CardTitle>
-          <CardDescription>
-            Overview of your account security and verification status.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Email Verification</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={accountStatus.color as any}>
-                {profile?.emailVerified ? (
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                ) : (
-                  <XCircle className="h-3 w-3 mr-1" />
-                )}
-                {accountStatus.text}
-              </Badge>
-            </div>
-          </div>
 
-          {!profile?.emailVerified && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Your email address is not verified. Please check your inbox for a verification email.
-                <Button
-                  variant="link"
-                  className="p-0 h-auto ml-1"
-                  onClick={handleResendVerification}
-                >
-                  Resend verification email
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Account Information */}
       <Card>

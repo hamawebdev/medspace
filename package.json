@@ -30,6 +30,8 @@
     "test:quiz:quick": "node src/tests/api-tests/quiz-workflow-quick-check.js",
     "test:api:improvements": "node src/tests/api-tests/validate-api-improvements.test.js",
     "test:quiz:redirection": "node src/tests/api-tests/quiz-creation-redirection.test.js",
+    "test:labels:session": "node src/tests/api-tests/label-session-creation.test.js",
+    "test:exam:workflow": "node src/tests/api-tests/exam-creation-workflow.test.js",
     "test:admin": "node api-admin-tests/run-admin-tests.js",
     "test:admin:content": "node api-admin-tests/run-admin-tests.js content",
     "test:admin:quiz": "node api-admin-tests/run-admin-tests.js quiz",

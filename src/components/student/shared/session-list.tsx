@@ -476,28 +476,16 @@ export function SessionList({
                     )}
 
                     {session.status === 'IN_PROGRESS' && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/session/${session.id}`);
-                          }}
-                        >
-                          Continue
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenRetake(session);
-                          }}
-                        >
-                          Retake
-                        </Button>
-                      </>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/session/${session.id}`);
+                        }}
+                      >
+                        Continue
+                      </Button>
                     )}
 
                     {session.status === 'COMPLETED' && (

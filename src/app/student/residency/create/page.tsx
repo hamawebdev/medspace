@@ -127,12 +127,22 @@ export default function ResidencyCreatePage() {
         return;
       }
 
-      // Step 4: Create Session
-      console.debug('[Residency/Create] Creating RESIDENCY session with question IDs:', questionIds);
-      const created = await QuizService.createSessionByQuestions({
-        type: 'RESIDENCY',
-        questionIds,
+      // Step 4: Create Session using documented endpoint
+      // Extract course IDs from the selected questions
+      const courseIds = [...new Set(
+        uniqueQuestions.map((q: any) => q.course?.id).filter((id: any) => id)
+      )];
+
+      if (courseIds.length === 0) {
+        throw new Error('No courses found for the selected questions');
+      }
+
+      console.debug('[Residency/Create] Creating RESIDENCY session with course IDs:', courseIds);
+      const created = await QuizService.createSession({
         title: createPayload.title,
+        questionCount: questionIds.length,
+        courseIds,
+        sessionType: 'EXAM' // Residency sessions are treated as exams
       });
 
       // Session data is now directly in result.data with id field

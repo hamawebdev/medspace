@@ -42,18 +42,11 @@ export default function LabelDetailsPage() {
     }
   }
 
-  // Load existing sessions for this label
+  // REMOVED: Legacy label sessions loading
+  // Labels now only support creating new sessions, not retrieving existing ones
   const loadLabelSessions = async () => {
-    try {
-      const response = await StudentService.getLabelSessions(id)
-      if (response.success && response.data) {
-        setLabelSessions(response.data)
-      }
-    } catch (error) {
-      console.error('Error loading label sessions:', error)
-      // If the endpoint doesn't exist yet, just continue
-      setLabelSessions([])
-    }
+    // No longer supported - labels are for creating new sessions only
+    setLabelSessions([])
   }
 
   // Load an existing session using GET /quiz-sessions/{sessionId}
@@ -95,7 +88,7 @@ export default function LabelDetailsPage() {
       .substring(0, 100);             // Limit length to 100 characters
   }
 
-  // Create practice session from label using create-session-by-questions endpoint
+  // Create new practice session from label
   const handleStartPractice = async () => {
     if (!label?.questionIds || label.questionIds.length === 0) {
       toast.error('No questions available in this label')
@@ -105,20 +98,30 @@ export default function LabelDetailsPage() {
     try {
       setCreatingSession(true)
 
-      // Create session using the unified endpoint with label's question IDs
-      const response = await QuizService.createSessionByQuestions({
-        type: 'PRACTICE',
-        questionIds: label.questionIds,
-        title: `Practice Session - ${label.name}`
-      })
+      // Step 1: Create practice session by label
+      console.log('🚀 Creating practice session for label:', id)
+      const createResponse = await QuizService.createLabelSession(id)
 
-      if (response.success && response.data) {
-        const sessionId = response.data.sessionId || response.data.id
-        toast.success(`Practice session created with ${label.questionIds.length} questions!`)
-        router.push(`/session/${sessionId}`)
-      } else {
-        throw new Error(response.error || 'Failed to create practice session')
+      if (!createResponse.success || !createResponse.data) {
+        throw new Error(createResponse.error || 'Unable to create label session')
       }
+
+      const { sessionId, questionCount, title } = createResponse.data
+      console.log('✅ Session created:', { sessionId, questionCount, title })
+
+      // Step 2: Fetch the full session data
+      console.log('📋 Fetching session details for sessionId:', sessionId)
+      const sessionResponse = await QuizService.getQuizSession(sessionId)
+
+      if (!sessionResponse.success || !sessionResponse.data) {
+        throw new Error(sessionResponse.error || 'Session not found. Please try again.')
+      }
+
+      console.log('✅ Session data retrieved, redirecting to session...')
+      toast.success(`Practice session created with ${questionCount} questions!`)
+
+      // Step 3: Redirect to session
+      router.push(`/session/${sessionId}`)
     } catch (error) {
       console.error('Error creating practice session:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to create practice session'
@@ -199,54 +202,7 @@ export default function LabelDetailsPage() {
             </div>
           </div>
 
-          {/* Existing Sessions */}
-          {labelSessions && labelSessions.length > 0 && (
-            <Card className="border-border/50 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg">Existing Sessions</CardTitle>
-                <CardDescription>Resume previous practice sessions for this label</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {labelSessions.slice(0, 5).map((session: any) => (
-                    <Button
-                      key={session.id}
-                      variant="outline"
-                      className="w-full justify-start h-auto p-4"
-                      onClick={() => handleLoadSession(session.id)}
-                      disabled={loadingSession}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-3">
-                          {loadingSession ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                          <div className="text-left">
-                            <div className="font-medium">{session.title || `Session ${session.id}`}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {session.createdAt && new Date(session.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-                        {session.status && (
-                          <Badge variant="secondary">
-                            {session.status}
-                          </Badge>
-                        )}
-                      </div>
-                    </Button>
-                  ))}
-                  {labelSessions.length > 5 && (
-                    <div className="text-sm text-muted-foreground text-center pt-2">
-                      +{labelSessions.length - 5} more sessions
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Existing Sessions - REMOVED: No longer supported */}
 
           {/* Start New Practice Session Button */}
           <Button
@@ -257,12 +213,12 @@ export default function LabelDetailsPage() {
             {creatingSession ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Session...
+                Loading Session...
               </>
             ) : (
               <>
                 <Play className="mr-2 h-4 w-4" />
-                Start New Practice ({label?.questionIds?.length || 0} questions)
+                Start Practice Session ({label?.questionIds?.length || 0} questions)
               </>
             )}
           </Button>

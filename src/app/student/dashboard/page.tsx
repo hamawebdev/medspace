@@ -3,15 +3,16 @@
 
 import { useEffect } from 'react';
 import { useStudentAuth } from '@/hooks/use-auth';
-import { useStudentDashboard } from '@/hooks/use-student-dashboard';
+import { useStudentDashboardStats } from '@/hooks/use-student-dashboard-stats';
 import { ErrorBoundary, ApiError } from '@/components/error-boundary';
 
 // Import dashboard components
 import { WelcomeHeader } from '@/components/student/welcome-header';
 import { PerformanceOverview } from '@/components/student/performance-overview';
-import { RecentActivityFeed } from '@/components/student/recent-activity-feed';
+import { RecentActivityCard } from '@/components/student/recent-activity-card';
+import { TodosToday } from '@/components/student/todos-today';
 import { WeeklyPerformanceChart } from '@/components/student/weekly-performance-chart';
-import { EmailVerificationBanner } from '@/components/student/email-verification-banner';
+
 import { DashboardStatsCards } from '@/components/student/dashboard-stats-cards';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +44,13 @@ export default function StudentDashboard() {
   // Use the student auth hook for proper authentication
   const { isAuthenticated, user, loading, checkAndRedirect } = useStudentAuth();
 
-  // Use the API hook for dashboard data
+  // Use the new API hook for dashboard stats data
   const {
-    performance,
+    derivedData,
     loading: apiLoading,
     error: apiError,
     refresh: refreshDashboard,
-  } = useStudentDashboard();
+  } = useStudentDashboardStats();
 
   // Check authentication and redirect if needed
   useEffect(() => {
@@ -79,12 +80,7 @@ export default function StudentDashboard() {
             year: user?.currentYear ? getYearNumber(user.currentYear) : null
           }} />
 
-          {/* Email Verification Banner */}
-          {user && !user.emailVerified && (
-            <EmailVerificationBanner
-              userEmail={user.email}
-            />
-          )}
+
 
           {/* Dashboard Stats Cards */}
           <DashboardStatsCards />
@@ -115,10 +111,10 @@ export default function StudentDashboard() {
                 <div className='text-red-600'>⚠️</div>
                 <div>
                   <p className='text-sm font-medium text-red-700 dark:text-red-300'>
-                    Unable to load dashboard data
+                    Impossible de charger les statistiques du tableau de bord.
                   </p>
                   <p className='text-xs text-red-600 dark:text-red-400 mt-[calc(var(--spacing)*1)]'>
-                    Please check your connection and try refreshing the page.
+                    Veuillez vérifier votre connexion et essayer de rafraîchir la page.
                   </p>
                 </div>
                 <button
@@ -132,51 +128,32 @@ export default function StudentDashboard() {
           )}
 
           {/* Dashboard Content - Only show when data is available */}
-          {performance ? (
+          {derivedData ? (
             <>
 
 
               {/* Main Content Layout - Enhanced Visual Hierarchy */}
               <div className='space-y-8'>
-                {/* Recent Activity - Full Width */}
-                <RecentActivityFeed activities={performance.recentActivity || []} />
+                {/* Two Column Layout */}
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+                  {/* Recent Activity */}
+                  <RecentActivityCard
+                    session={derivedData.recentActivity}
+                    loading={apiLoading}
+                  />
 
-                {/* Analytics & Actions Section */}
-                <section className='space-y-8'>
-                  {/* Vertical Stacked Content Layout */}
-                  <div className='space-y-6'>
-                    {/* Primary Analytics Section */}
-                    <div className='space-y-6'>
-                      {/* Performance Analytics Section */}
-                      <div className='space-y-6'>
-                        <WeeklyPerformanceChart
-                          weeklyPerformance={performance.weeklyStats?.map((week, index) => {
-                            // Calculate actual date for each week based on current date
-                            const currentDate = new Date();
-                            const weekStartDate = new Date(currentDate);
-                            // Go back to the start of current week (Sunday) then subtract weeks
-                            weekStartDate.setDate(currentDate.getDate() - currentDate.getDay() - (7 * (performance.weeklyStats.length - 1 - index)));
+                  {/* Todos Today */}
+                  <TodosToday
+                    todos={derivedData.todosToday || []}
+                    loading={apiLoading}
+                  />
+                </div>
 
-                            const totalQuestions = week.sessionsCompleted * 10; // Estimate 10 questions per session
-                            const correctAnswers = Math.round((totalQuestions * week.averageScore) / 100);
-                            const incorrectAnswers = totalQuestions - correctAnswers;
-
-                            return {
-                              date: weekStartDate.toISOString().split('T')[0], // Use actual calculated date
-                              correct: correctAnswers,
-                              incorrect: incorrectAnswers,
-                              viewed: totalQuestions
-                            };
-                          }) || []}
-                        />
-                      </div>
-
-
-                    </div>
-
-
-                  </div>
-                </section>
+                {/* Weekly Performance Chart - Full Width */}
+                <WeeklyPerformanceChart
+                  weeklyPerformance={derivedData.weeklyPerformance || []}
+                  loading={apiLoading}
+                />
               </div>
 
             </>

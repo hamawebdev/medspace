@@ -34,7 +34,7 @@ export default function StudentSessionRunnerPage() {
   useEffect(() => {
     if (apiSession) {
       // Parse response according to session-doc.md structure
-      // Expected structure: { success: true, data: { id, title, type, status, questions, answers, ... } }
+      // Expected structure: { success: true, data: { id, title, type, status, questions, answers, timeSpent, ... } }
       const responseData = apiSession.data || apiSession;
       const sessionData = responseData.data || responseData;
 
@@ -48,6 +48,27 @@ export default function StudentSessionRunnerPage() {
       const serverStatus = sessionData.status;
       const isServerCompleted = serverStatus === 'COMPLETED';
 
+      // Handle session completion redirect
+      if (isServerCompleted && !searchParams?.get('review')) {
+        console.log('🏁 Session is completed, redirecting to results...', {
+          sessionId,
+          status: serverStatus,
+          type: sessionType
+        });
+        router.push(`/session/${sessionId}/results`);
+        return;
+      }
+
+      // Log session resumption details
+      console.log('🔄 Resuming session from API:', {
+        sessionId,
+        type: sessionType,
+        status: serverStatus,
+        timeSpent: sessionData.timeSpent,
+        answersCount: sessionData.answers?.length || 0,
+        questionsCount: sessionData.questions?.length || 0
+      });
+
       // Extract questions from the documented structure
       const extractedQuestions = Array.isArray(sessionData.questions) ? sessionData.questions : [];
 
@@ -60,54 +81,71 @@ export default function StudentSessionRunnerPage() {
         });
       }
 
-      // Build userAnswers map from API answers according to session-doc.md structure
-      // The answers array contains objects with questionId only (no selected answers in this structure)
+      // Build userAnswers map from API answers according to getsessioninprogress.md structure
+      // The answers array contains objects with questionId, selectedAnswerId, isCorrect, answeredAt for answered questions
+      // and objects with only questionId for unanswered questions
       const answersArr = Array.isArray(sessionData.answers) ? sessionData.answers : [];
-      const builtUserAnswers = (() => {
+      const { builtUserAnswers, nextUnansweredIndex } = (() => {
         const map: Record<string, any> = {};
+        let nextUnanswered = 0;
+        const answeredQuestionIds = new Set();
 
-        // According to session-doc.md, answers array contains objects like { "questionId": 1 }
-        // This indicates which questions have been answered, but not the actual selected answers
-        // The actual selected answers would be stored separately or retrieved from submission history
+        // Process answers from API response
         for (const answer of answersArr) {
           const qid = String(answer.questionId);
           if (qid) {
-            map[qid] = {
-              questionId: qid,
-              selectedOptions: [], // Will be populated from local storage or submission data
-            };
+            if (answer.selectedAnswerId) {
+              // This is an answered question
+              answeredQuestionIds.add(answer.questionId);
+              map[qid] = {
+                questionId: qid,
+                selectedOptions: [String(answer.selectedAnswerId)],
+                isCorrect: answer.isCorrect,
+                timeSpent: 0,
+                isBookmarked: false,
+                notes: '',
+                flags: [],
+                answeredAt: answer.answeredAt,
+                locked: true, // Lock previously submitted answers so they cannot be changed
+              };
+            } else {
+              // This is an unanswered question (only has questionId)
+              map[qid] = {
+                questionId: qid,
+                selectedOptions: [],
+                isCorrect: false,
+                timeSpent: 0,
+                isBookmarked: false,
+                notes: '',
+                flags: [],
+                locked: false,
+              };
+            }
           }
         }
 
-        // Compute isCorrect per question when possible using documented structure
-        const questionById: Record<string, any> = {};
-        (extractedQuestions || []).forEach((q: any) => { questionById[String(q.id)] = q; });
-        for (const [qid, entry] of Object.entries(map)) {
-          const q = questionById[qid];
-          const selected = new Set((entry as any).selectedOptions || []);
-
-          // According to session-doc.md, answers are in questionAnswers array
-          const correctIds = new Set(
-            (q?.questionAnswers || [])
-              .filter((ans: any) => ans.isCorrect)
-              .map((ans: any) => String(ans.id))
-          );
-
-          if (correctIds.size > 0) {
-            const sameSize = selected.size === correctIds.size;
-            const allMatch = sameSize && Array.from(selected).every(id => correctIds.has(id));
-            (entry as any).isCorrect = !!allMatch;
+        // Find the first unanswered question to navigate to
+        if (extractedQuestions && Array.isArray(extractedQuestions)) {
+          for (let i = 0; i < extractedQuestions.length; i++) {
+            if (!answeredQuestionIds.has(extractedQuestions[i].id)) {
+              nextUnanswered = i;
+              break;
+            }
+          }
+          // If all questions are answered, stay on the last question
+          if (nextUnanswered === 0 && answeredQuestionIds.size === extractedQuestions.length) {
+            nextUnanswered = extractedQuestions.length - 1;
           }
         }
 
-        return map;
+        return { builtUserAnswers: map, nextUnansweredIndex: nextUnanswered };
       })();
 
 
 
       const isReview = searchParams?.get('review') === '1';
       const transformedSession = {
-        // Use documented session structure from session-doc.md
+        // Use documented session structure from session-doc.md and getsessioninprogress.md
         id: sessionData.id,
         title: sessionData.title || 'Quiz Session',
         type: sessionData.type || 'PRACTICE',
@@ -127,12 +165,17 @@ export default function StudentSessionRunnerPage() {
           randomizeOptions: false,
           ...(sessionData.settings || {}),
         },
-        currentQuestionIndex: sessionData.currentQuestionIndex || 0,
+        // Use API-determined current question index for session resumption
+        currentQuestionIndex: isReview ? 0 : nextUnansweredIndex,
         totalQuestions: extractedQuestions.length || 0,
         userAnswers: builtUserAnswers,
         subject: sessionData.subject || (sessionType === 'EXAM' ? 'Exam' : 'General'),
         unit: sessionData.unit || (sessionType === 'EXAM' ? 'Exam Session' : 'Practice'),
         timeLimit: sessionData.settings?.timeLimit,
+
+        // Resume session state from API
+        timeSpent: sessionData.timeSpent || 0, // Resume timer from where user left off
+        resumeFromApi: true, // Flag to indicate this session is being resumed from API
       };
 
       setQuizSession(transformedSession);

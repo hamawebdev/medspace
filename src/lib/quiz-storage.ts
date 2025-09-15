@@ -167,11 +167,31 @@ class QuizStorageService {
   }
 
   /**
+   * Remove a specific answer from session
+   */
+  removeAnswer(sessionId: number, questionId: number): void {
+    try {
+      const sessionState = this.loadSessionState(sessionId);
+      if (!sessionState) {
+        console.warn(`Cannot remove answer: Session ${sessionId} not found`);
+        return;
+      }
+
+      delete sessionState.answers[questionId];
+      sessionState.lastUpdatedAt = new Date();
+      this.saveSessionState(sessionState);
+      console.log(`🗑️ Removed answer for question ${questionId} from session ${sessionId}`);
+    } catch (error) {
+      console.error(`Failed to remove answer for question ${questionId}:`, error);
+    }
+  }
+
+  /**
    * Get all answers ready for submission
    */
   getAnswersForSubmission(sessionId: number): QuizAnswer[] {
     const answers = this.getSessionAnswers(sessionId);
-    return Object.values(answers).filter(answer => 
+    return Object.values(answers).filter(answer =>
       answer.selectedAnswerId || answer.selectedAnswerIds?.length || answer.textAnswer
     );
   }

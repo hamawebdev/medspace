@@ -24,6 +24,7 @@ import {
   Play
 } from 'lucide-react';
 import ExamService, { ExamModule, ValidationResult, ModuleAvailabilityCheck } from '@/lib/api/exam-service';
+import { analyzeSessionCreationError, logErrorDetails, getUserErrorMessage, getSuggestedActions } from '@/utils/session-error-handler';
 
 interface ExamCreationFormProps {
   onExamCreated: (examSession: any) => void;
@@ -130,45 +131,25 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
     }
   };
 
-  // Validate selected modules before creating exam
-  const validateSelection = async () => {
+  // Validate selected modules before creating exam (simplified validation)
+  const validateSelection = () => {
     if (config.selectedModules.length === 0) {
       toast.error('Please select at least one module');
       return false;
     }
 
-    try {
-      setValidating(true);
-      const validation = await ExamService.preValidateExamSession({
-        moduleIds: config.selectedModules,
-        year: config.selectedYear
-      });
-
-      setValidationResult(validation);
-
-      if (!validation.isValid) {
-        toast.error(validation.message || 'No questions available for the selected modules and year');
-        return false;
-      }
-
-      if (validation.unavailableModules.length > 0) {
-        toast.warning(validation.message || 'Some modules have limited questions available');
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to validate selection:', error);
-      toast.error('Failed to validate selection. Please try again.');
+    if (config.selectedModules.length > 50) {
+      toast.error('Cannot select more than 50 modules');
       return false;
-    } finally {
-      setValidating(false);
     }
+
+    return true;
   };
 
   // Create exam session
   const handleCreateExam = async () => {
     // First validate the selection
-    const isValid = await validateSelection();
+    const isValid = validateSelection();
     if (!isValid) return;
 
     try {
@@ -196,14 +177,20 @@ export function ExamCreationForm({ onExamCreated, onCancel, userProfile }: ExamC
       });
 
     } catch (error) {
-      console.error('Failed to create exam session:', error);
+      console.error('💥 [ExamCreationForm] Exception during session creation:', error);
 
-      // Provide more specific error message based on the error
-      if (error instanceof Error && error.message.includes('404')) {
-        toast.error('No questions found for the selected modules and year. Please try different selections.');
-      } else {
-        toast.error('Failed to create exam session. Please try again.');
-      }
+      // Use comprehensive error analysis
+      const errorDetails = analyzeSessionCreationError(error, 'EXAM');
+      logErrorDetails(errorDetails, 'Multi-Module Exam Session Creation');
+
+      const userMessage = getUserErrorMessage(errorDetails);
+      const suggestedActions = getSuggestedActions(errorDetails);
+
+      // Show user-friendly error message
+      toast.error(userMessage);
+
+      // Log suggested actions for debugging
+      console.log('💡 [ExamCreationForm] Suggested actions for user:', suggestedActions);
     } finally {
       setCreating(false);
     }

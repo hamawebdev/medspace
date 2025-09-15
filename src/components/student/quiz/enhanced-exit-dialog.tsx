@@ -12,16 +12,21 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  BarChart3, 
-  Trophy, 
-  Home, 
+import {
+  BarChart3,
+  Trophy,
+  Home,
   X,
   TrendingUp,
   Clock,
-  Target
+  Target,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import { QuizStatisticsDisplay } from './quiz-statistics-display';
+import { SessionStatusManager } from '@/lib/session-status-manager';
+import { QuizService } from '@/lib/api-services';
+import { toast } from 'sonner';
 
 interface EnhancedExitDialogProps {
   open: boolean;
@@ -39,6 +44,8 @@ interface EnhancedExitDialogProps {
     status?: string;
     sessionId?: number;
   };
+  onShowStats?: () => void;
+  statsError?: string | null;
 }
 
 export function EnhancedExitDialog({
@@ -48,61 +55,226 @@ export function EnhancedExitDialog({
   timer,
   localAnswers,
   apiSessionId,
-  apiSessionResults
+  apiSessionResults,
+  onShowStats,
+  statsError
 }: EnhancedExitDialogProps) {
   const router = useRouter();
   const [showStats, setShowStats] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const handleShowStats = () => {
-    setShowStats(true);
-  };
-
-  const handleShowResults = async () => {
-    onOpenChange(false);
-
-    try {
-      const sessionId = apiSessionId || session.id;
-
-      if (!sessionId) {
-        console.error('No session ID available for results navigation');
-        // Fallback to dashboard if no session ID
-        router.push('/student/practice');
-        return;
-      }
-
-      // For API sessions, ensure the session is marked as completed before navigating
-      if (apiSessionId) {
-        try {
-          // Import QuizService dynamically to avoid circular dependencies
-          const { QuizService } = await import('@/lib/api-services');
-          await QuizService.updateQuizSessionStatus(apiSessionId, 'COMPLETED');
-          console.log(`✅ Session ${apiSessionId} marked as COMPLETED for results view`);
-        } catch (error) {
-          console.warn('Failed to mark session as completed:', error);
-          // Continue anyway - the results page will handle incomplete sessions
-        }
-      }
-
-      // Navigate to results with a query parameter to indicate this is from exit dialog
-      router.push(`/session/${sessionId}/results?from=exit`);
-    } catch (error) {
-      console.error('Error navigating to results:', error);
-      // Fallback navigation
-      router.push('/student/practice');
+    if (onShowStats) {
+      onShowStats();
+    } else {
+      // Fallback to showing stats in dialog if no callback provided
+      setShowStats(true);
     }
   };
 
-  const handleExitToDashboard = () => {
-    onOpenChange(false);
-    router.push('/student/practice');
+  /**
+   * Submit all current answers to the API
+   * Returns the submission response data for parsing scores and stats
+   */
+  const submitAllAnswers = async (): Promise<any> => {
+    if (!apiSessionId || !localAnswers) {
+      throw new Error('No session ID or answers available for submission');
+    }
+
+    // Convert localAnswers to API format
+    const answersToSubmit = Object.entries(localAnswers)
+      .filter(([questionId, answer]) => {
+        // Only submit answers that have actual selections
+        return answer && (
+          answer.selectedAnswerId ||
+          answer.selectedAnswerIds?.length ||
+          answer.selectedOptions?.length ||
+          answer.textAnswer
+        );
+      })
+      .map(([questionId, answer]) => {
+        const qId = Number(questionId);
+
+        // Determine question type from session data
+        const question = session.questions?.find((q: any) => Number(q.id) === qId);
+        const questionType = question?.questionType || 'SINGLE_CHOICE';
+
+        const isSingle = questionType === 'SINGLE_CHOICE' || questionType === 'QCS';
+        const isMulti = questionType === 'MULTIPLE_CHOICE' || questionType === 'QCM';
+
+        if (isSingle) {
+          // For single choice, use selectedAnswerId or first from array
+          const selectedId = answer.selectedAnswerId ||
+            (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? answer.selectedAnswerIds[0] :
+            (Array.isArray(answer.selectedOptions) && answer.selectedOptions.length ? Number(answer.selectedOptions[0]) : undefined));
+
+          return {
+            questionId: qId,
+            ...(Number.isFinite(selectedId) ? { selectedAnswerId: Number(selectedId) } : {}),
+            timeSpent: answer.timeSpent || 0
+          };
+        }
+
+        if (isMulti) {
+          // For multiple choice, use selectedAnswerIds array
+          const ids = answer.selectedAnswerIds ||
+            (Array.isArray(answer.selectedOptions) ? answer.selectedOptions.map(Number).filter(n => Number.isFinite(n)) : []);
+
+          return {
+            questionId: qId,
+            ...(ids.length ? { selectedAnswerIds: ids } : {}),
+            timeSpent: answer.timeSpent || 0
+          };
+        }
+
+        // Fallback for other question types
+        return {
+          questionId: qId,
+          ...(answer.selectedAnswerId ? { selectedAnswerId: answer.selectedAnswerId } :
+              answer.selectedAnswerIds?.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {}),
+          ...(answer.textAnswer ? { textAnswer: answer.textAnswer } : {}),
+          timeSpent: answer.timeSpent || 0
+        };
+      })
+      .filter(answer => answer.selectedAnswerId || answer.selectedAnswerIds || answer.textAnswer);
+
+    if (answersToSubmit.length === 0) {
+      console.log('No answers to submit');
+      return { success: true, data: null };
+    }
+
+    console.log(`📤 Submitting ${answersToSubmit.length} answers for session ${apiSessionId}...`);
+
+    // Calculate total time spent
+    const totalTimeSpent = timer?.totalTime || 0;
+
+    // Submit answers using the bulk submission endpoint
+    const response = await QuizService.submitAnswersBulk(apiSessionId, answersToSubmit, totalTimeSpent);
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to submit answers');
+    }
+
+    console.log('✅ Successfully submitted all answers:', response.data);
+    return response.data;
+  };
+
+  const handleShowResults = async () => {
+    if (!apiSessionId) {
+      // For non-API sessions, just navigate to results
+      const sessionId = session.id;
+      if (sessionId) {
+        router.push(`/session/${sessionId}/results?from=exit`);
+      } else {
+        router.push('/student/practice');
+      }
+      onOpenChange(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmissionError(null);
+
+    try {
+      // Step 1: Submit all current answers
+      console.log('🔄 Submitting answers before showing results...');
+      const submissionData = await submitAllAnswers();
+
+      // Step 2: Update session status to COMPLETED
+      console.log('🔄 Updating session status to COMPLETED...');
+      const statusUpdateSuccess = await SessionStatusManager.setCompleted(apiSessionId, {
+        showToast: false,
+        silent: true
+      });
+
+      if (!statusUpdateSuccess) {
+        console.warn('Failed to update session status to COMPLETED, but continuing to results');
+      }
+
+      // Step 3: Navigate to results page
+      console.log('✅ Successfully submitted answers and updated status, navigating to results...');
+      onOpenChange(false);
+      router.push(`/session/${apiSessionId}/results`);
+
+    } catch (error) {
+      console.error('❌ Failed to submit answers for results:', error);
+      setSubmissionError(error instanceof Error ? error.message : 'Failed to submit answers');
+
+      // Don't navigate to results if submission failed
+      toast.error('Failed to submit answers. Please try again or continue without submitting.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleExitToDashboard = async () => {
+    if (!apiSessionId) {
+      // For non-API sessions, just navigate to dashboard
+      onOpenChange(false);
+      router.push('/student/dashboard');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmissionError(null);
+
+    try {
+      // Step 1: Submit all current answers
+      console.log('🔄 Submitting answers before exiting to dashboard...');
+      const submissionData = await submitAllAnswers();
+
+      // Step 2: Update session status to IN_PROGRESS (since user is exiting before completion)
+      console.log('🔄 Updating session status to IN_PROGRESS...');
+      const statusUpdateSuccess = await SessionStatusManager.setInProgress(apiSessionId, {
+        showToast: false,
+        silent: true
+      });
+
+      if (!statusUpdateSuccess) {
+        console.warn('Failed to update session status to IN_PROGRESS, but continuing to dashboard');
+      }
+
+      // Step 3: Navigate to dashboard
+      console.log('✅ Successfully submitted answers and updated status, navigating to dashboard...');
+      onOpenChange(false);
+      router.push('/student/dashboard');
+
+    } catch (error) {
+      console.error('❌ Failed to submit answers for dashboard exit:', error);
+      setSubmissionError(error instanceof Error ? error.message : 'Failed to submit answers');
+
+      // Don't navigate to dashboard if submission failed
+      toast.error('Failed to submit answers. Please try again or continue without submitting.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBackToOptions = () => {
     setShowStats(false);
+    setSubmissionError(null);
   };
 
   const handleContinueQuiz = () => {
     onOpenChange(false);
+    setSubmissionError(null);
+  };
+
+  const handleRetrySubmission = () => {
+    setSubmissionError(null);
+  };
+
+  const handleForceExit = (destination: 'dashboard' | 'results') => {
+    console.log(`⚠️ User chose to force exit to ${destination} without submitting answers`);
+    onOpenChange(false);
+
+    if (destination === 'dashboard') {
+      router.push('/student/dashboard');
+    } else {
+      const sessionId = apiSessionId || session.id;
+      router.push(`/session/${sessionId}/results?from=exit`);
+    }
   };
 
   // Calculate basic stats for preview - prioritize API data when available
@@ -115,7 +287,7 @@ export function EnhancedExitDialog({
     }).length || 0
   );
   const progressPercentage = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
-  const timeSpent = apiSessionResults?.timeSpent ?? timer.totalTime || 0;
+  const timeSpent = (apiSessionResults?.timeSpent ?? timer.totalTime) || 0;
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -172,12 +344,54 @@ export function EnhancedExitDialog({
               </CardContent>
             </Card>
 
+            {/* Error Message */}
+            {submissionError && (
+              <Card className="border-destructive/50 bg-destructive/5">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-destructive mb-1">Submission Failed</h4>
+                      <p className="text-sm text-muted-foreground mb-3">{submissionError}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          onClick={handleRetrySubmission}
+                          size="sm"
+                          variant="outline"
+                          className="border-destructive/30 hover:bg-destructive/10"
+                        >
+                          Try Again
+                        </Button>
+                        <Button
+                          onClick={() => handleForceExit('dashboard')}
+                          size="sm"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          Continue to Dashboard
+                        </Button>
+                        <Button
+                          onClick={() => handleForceExit('results')}
+                          size="sm"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          Continue to Results
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Action Buttons */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Button
                   onClick={handleShowStats}
                   variant="outline"
+                  disabled={isSubmitting}
                   className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary/30"
                 >
                   <TrendingUp className="h-6 w-6 text-primary" />
@@ -190,24 +404,42 @@ export function EnhancedExitDialog({
                 <Button
                   onClick={handleShowResults}
                   variant="outline"
+                  disabled={isSubmitting}
                   className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-chart-1/5 hover:border-chart-1/30"
                 >
-                  <Trophy className="h-6 w-6 text-chart-1" />
+                  {isSubmitting ? (
+                    <Loader2 className="h-6 w-6 text-chart-1 animate-spin" />
+                  ) : (
+                    <Trophy className="h-6 w-6 text-chart-1" />
+                  )}
                   <div className="text-center">
-                    <div className="font-semibold">Show Results</div>
-                    <div className="text-xs text-muted-foreground">View full results page</div>
+                    <div className="font-semibold">
+                      {isSubmitting ? 'Submitting...' : 'Show Results'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {isSubmitting ? 'Please wait' : 'View full results page'}
+                    </div>
                   </div>
                 </Button>
 
                 <Button
                   onClick={handleExitToDashboard}
                   variant="outline"
+                  disabled={isSubmitting}
                   className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-chart-2/5 hover:border-chart-2/30"
                 >
-                  <Home className="h-6 w-6 text-chart-2" />
+                  {isSubmitting ? (
+                    <Loader2 className="h-6 w-6 text-chart-2 animate-spin" />
+                  ) : (
+                    <Home className="h-6 w-6 text-chart-2" />
+                  )}
                   <div className="text-center">
-                    <div className="font-semibold">Exit to Dashboard</div>
-                    <div className="text-xs text-muted-foreground">Return to main menu</div>
+                    <div className="font-semibold">
+                      {isSubmitting ? 'Submitting...' : 'Exit to Dashboard'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {isSubmitting ? 'Please wait' : 'Return to main menu'}
+                    </div>
                   </div>
                 </Button>
               </div>
@@ -216,6 +448,7 @@ export function EnhancedExitDialog({
               <div className="flex justify-center pt-4 border-t">
                 <Button
                   onClick={handleContinueQuiz}
+                  disabled={isSubmitting}
                   className="px-8"
                 >
                   Continue Quiz
@@ -243,6 +476,7 @@ export function EnhancedExitDialog({
                 localAnswers={localAnswers}
                 showTitle={false}
                 apiSessionResults={apiSessionResults}
+                statsError={statsError}
               />
             </div>
 
@@ -251,6 +485,7 @@ export function EnhancedExitDialog({
               <Button
                 onClick={handleBackToOptions}
                 variant="outline"
+                disabled={isSubmitting}
                 className="gap-2"
               >
                 <X className="h-4 w-4" />
@@ -259,21 +494,32 @@ export function EnhancedExitDialog({
               <Button
                 onClick={handleShowResults}
                 variant="outline"
+                disabled={isSubmitting}
                 className="gap-2"
               >
-                <Trophy className="h-4 w-4" />
-                Show Results
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trophy className="h-4 w-4" />
+                )}
+                {isSubmitting ? 'Submitting...' : 'Show Results'}
               </Button>
               <Button
                 onClick={handleExitToDashboard}
                 variant="outline"
+                disabled={isSubmitting}
                 className="gap-2"
               >
-                <Home className="h-4 w-4" />
-                Exit to Dashboard
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Home className="h-4 w-4" />
+                )}
+                {isSubmitting ? 'Submitting...' : 'Exit to Dashboard'}
               </Button>
               <Button
                 onClick={handleContinueQuiz}
+                disabled={isSubmitting}
                 className="gap-2"
               >
                 Continue Quiz

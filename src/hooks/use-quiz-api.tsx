@@ -112,23 +112,75 @@ export function useQuizSession(sessionId: number): UseQuizSessionResult {
       setLoading(true);
       setError(null);
 
-      console.log(`🔄 Fetching session ${sessionId} via unified endpoint`);
+      console.log('🔄 [useQuizSession] Fetching session:', {
+        sessionId,
+        endpoint: `GET /quiz-sessions/${sessionId}`
+      });
+
       const response = await QuizService.getQuizSession(sessionId);
+
+      console.log('📋 [useQuizSession] API response:', {
+        success: response.success,
+        hasData: !!response.data,
+        questionsCount: response.data?.questions?.length || 0,
+        statusCode: response.statusCode || 'unknown'
+      });
 
       if (response.success) {
         // Handle nested response structure from unified API
         const sessionData = response.data?.data || response.data;
 
-        console.log(`✅ Loaded session ${sessionId}:`, sessionData);
+        if (!sessionData || !sessionData.id) {
+          console.error('❌ [useQuizSession] Invalid session data structure:', {
+            sessionId,
+            hasData: !!response.data,
+            dataKeys: response.data ? Object.keys(response.data) : [],
+            sessionData
+          });
+          setError('Invalid session data received from server');
+          return;
+        }
+
+        if (!sessionData.questions || sessionData.questions.length === 0) {
+          console.error('❌ [useQuizSession] Session has no questions:', {
+            sessionId,
+            hasQuestions: !!sessionData.questions,
+            questionsLength: sessionData.questions?.length || 0
+          });
+          setError('Session has no questions available');
+          return;
+        }
+
+        console.log('✅ [useQuizSession] Session loaded successfully:', {
+          sessionId: sessionData.id,
+          title: sessionData.title,
+          questionsCount: sessionData.questions.length,
+          status: sessionData.status
+        });
+
         setSession(sessionData);
       } else {
+        console.error('❌ [useQuizSession] API request failed:', {
+          sessionId,
+          endpoint: `GET /quiz-sessions/${sessionId}`,
+          statusCode: response.statusCode || 'unknown',
+          error: response.error,
+          responseBody: response
+        });
+
         const errorMsg = response.error || 'Failed to fetch session';
-        console.error(`❌ Failed to fetch session ${sessionId}:`, errorMsg);
         setError(errorMsg);
       }
     } catch (err: any) {
+      console.error('❌ [useQuizSession] Unexpected error:', {
+        sessionId,
+        endpoint: `GET /quiz-sessions/${sessionId}`,
+        message: err?.message,
+        statusCode: err?.statusCode || err?.response?.status,
+        error: err
+      });
+
       const errorMsg = err.message || 'Failed to fetch session';
-      console.error(`❌ Session fetch error for ${sessionId}:`, err);
       setError(errorMsg);
     } finally {
       setLoading(false);

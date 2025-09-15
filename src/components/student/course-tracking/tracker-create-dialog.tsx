@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/loading-states';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ import { NewApiService } from '@/lib/api/new-api-services';
 import { UnitModuleSelection, CardCreateRequest } from '@/types/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { suiviCoursStorage } from '@/lib/suivi-cours-storage';
 
 interface Course {
   id: number;
@@ -104,6 +106,14 @@ export function TrackerCreateDialog({
   };
 
   const handleCourseToggle = (courseId: number) => {
+    // Check if course is already being tracked in another suivi
+    const isTrackedElsewhere = suiviCoursStorage.isCourseTracked(courseId);
+    if (isTrackedElsewhere) {
+      const trackerInfo = suiviCoursStorage.getTrackerForCourse(courseId);
+      toast.error(`Ce cours est déjà suivi dans le tracker "${trackerInfo?.trackerTitle || 'un autre tracker'}"`);
+      return;
+    }
+
     const newSelected = new Set(selectedCourses);
     if (newSelected.has(courseId)) {
       newSelected.delete(courseId);
@@ -155,30 +165,68 @@ export function TrackerCreateDialog({
 
       const response = await NewApiService.createCard(createRequest);
 
-      if (response.success && response.data?.id) {
-        const trackerId = response.data.id;
-        toast.success('Suivi de cours créé avec succès');
+      console.log('📋 [TrackerCreateDialog] Create card response:', {
+        success: response.success,
+        hasData: !!response.data,
+        dataId: response.data?.id,
+        nestedDataId: response.data?.data?.id,
+        dataType: typeof response.data?.id,
+        nestedDataType: typeof response.data?.data?.id,
+        fullResponse: response
+      });
 
-        // Reset form
-        setTitle('');
-        setDescription('');
-        setSelectedCourses(new Set());
-        setSearchTerm('');
+      if (response.success) {
+        // Check for ID in both possible locations: response.data.id or response.data.data.id
+        const actualData = response.data?.data || response.data;
+        const trackerId = actualData?.id;
 
-        onOpenChange(false);
+        if (trackerId !== undefined && trackerId !== null) {
+          console.log('✅ [TrackerCreateDialog] Redirecting to tracker:', trackerId);
 
-        // Redirect to the tracker page
-        router.push(`/student/suivi-cours/tracker/${trackerId}`);
+          // Save tracked courses to localStorage
+          try {
+            suiviCoursStorage.addTrackedCourses(
+              trackerId,
+              title.trim(),
+              Array.from(selectedCourses)
+            );
+          } catch (error) {
+            console.error('Failed to save tracked courses to localStorage:', error);
+            // Don't block the success flow for localStorage errors
+          }
 
-        // Call onSuccess with the tracker ID for any additional handling
-        onSuccess?.(trackerId);
-      } else if (response.success && !response.data?.id) {
-        // Handle case where creation was successful but no ID was returned
-        console.error('Tracker created but no ID returned:', response);
-        toast.error('Suivi créé mais impossible de rediriger. Veuillez vérifier la liste des suivis.');
-        onOpenChange(false);
-        onSuccess?.();
+          toast.success('Suivi de cours créé avec succès');
+
+          // Reset form
+          setTitle('');
+          setDescription('');
+          setSelectedCourses(new Set());
+          setSearchTerm('');
+
+          onOpenChange(false);
+
+          // Redirect to the tracker page
+          router.push(`/student/suivi-cours/tracker/${trackerId}`);
+
+          // Call onSuccess with the tracker ID for any additional handling
+          onSuccess?.(trackerId);
+        } else {
+          // Handle case where creation was successful but no ID was returned
+          console.error('❌ [TrackerCreateDialog] Tracker created but no ID returned:', {
+            response,
+            dataExists: !!response.data,
+            dataKeys: response.data ? Object.keys(response.data) : 'no data',
+            nestedDataExists: !!response.data?.data,
+            nestedDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no nested data',
+            actualData,
+            actualDataKeys: actualData ? Object.keys(actualData) : 'no actual data'
+          });
+          toast.error('Suivi créé mais impossible de rediriger. Veuillez vérifier la liste des suivis.');
+          onOpenChange(false);
+          onSuccess?.();
+        }
       } else {
+        console.error('❌ [TrackerCreateDialog] Create card failed:', response);
         throw new Error(response.error || 'Failed to create tracker');
       }
     } catch (err) {
@@ -307,38 +355,74 @@ export function TrackerCreateDialog({
                 </div>
               ) : (
                 <div className="p-4 space-y-2">
-                  {filteredCourses.map((course) => (
-                    <div
-                      key={course.id}
-                      className={cn(
-                        "flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer",
-                        selectedCourses.has(course.id)
-                          ? "bg-primary/10 border-primary/30"
-                          : "bg-background border-border hover:bg-muted/50"
+                  {filteredCourses.map((course) => {
+                    const isTrackedElsewhere = suiviCoursStorage.isCourseTracked(course.id);
+                    const trackerInfo = isTrackedElsewhere ? suiviCoursStorage.getTrackerForCourse(course.id) : null;
+                    const isDisabled = isTrackedElsewhere;
+
+                    return (
+                      <TooltipProvider key={course.id}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={cn(
+                                "flex items-center space-x-3 p-3 rounded-lg border transition-colors",
+                                isDisabled
+                                  ? "opacity-60 cursor-not-allowed bg-muted/20 border-muted"
+                                  : "cursor-pointer",
+                                !isDisabled && selectedCourses.has(course.id)
+                                  ? "bg-primary/10 border-primary/30"
+                                  : !isDisabled && "bg-background border-border hover:bg-muted/50"
+                              )}
+                              onClick={() => !isDisabled && handleCourseToggle(course.id)}
+                            >
+                        <Checkbox
+                          checked={selectedCourses.has(course.id)}
+                          onChange={() => !isDisabled && handleCourseToggle(course.id)}
+                          disabled={isDisabled}
+                          className="size-5 border-2 transition-all duration-200 shadow-sm hover:shadow-md"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className={cn(
+                              "font-medium truncate",
+                              isDisabled ? "text-muted-foreground" : "text-foreground"
+                            )}>
+                              {course.name}
+                            </h4>
+                            {isDisabled && (
+                              <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                                Déjà suivi
+                              </span>
+                            )}
+                          </div>
+                          {course.description && (
+                            <p className="text-sm text-muted-foreground truncate">
+                              {course.description}
+                            </p>
+                          )}
+                          {course.module && (
+                            <p className="text-xs text-muted-foreground">
+                              Module: {course.module.name}
+                            </p>
+                          )}
+                          {isDisabled && trackerInfo && (
+                            <p className="text-xs text-muted-foreground italic">
+                              Dans: {trackerInfo.trackerTitle}
+                            </p>
+                          )}
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      {isDisabled && (
+                        <TooltipContent>
+                          <p>Ce cours est déjà suivi dans le tracker "{trackerInfo?.trackerTitle}"</p>
+                        </TooltipContent>
                       )}
-                      onClick={() => handleCourseToggle(course.id)}
-                    >
-                      <Checkbox
-                        checked={selectedCourses.has(course.id)}
-                        onChange={() => handleCourseToggle(course.id)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-foreground truncate">
-                          {course.name}
-                        </h4>
-                        {course.description && (
-                          <p className="text-sm text-muted-foreground truncate">
-                            {course.description}
-                          </p>
-                        )}
-                        {course.module && (
-                          <p className="text-xs text-muted-foreground">
-                            Module: {course.module.name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+                  })}
                 </div>
               )}
             </div>

@@ -8,6 +8,7 @@ import {
   RefreshTokenRequest,
   ApiUser,
   StudentDashboardPerformance,
+  StudentDashboardStats,
   StudyPack,
   StudyPackDetails,
   QuizFilters,
@@ -61,6 +62,9 @@ import {
   SubjectAnalytics,
   PerformanceComparisonParams,
   PerformanceComparison,
+  // New Analytics types
+  AnalyticsSessionsResponse,
+  SessionType,
   // Admin types
   DashboardStats,
   AdminSubscription,
@@ -155,7 +159,17 @@ export class AuthService {
    * Refresh authentication token
    */
   static async refreshToken(refreshTokenData: RefreshTokenRequest): Promise<ApiResponse<LoginResponse>> {
-    return apiClient.post<LoginResponse>('/auth/refresh', refreshTokenData);
+    // Send JSON body per docs; also include Authorization: Bearer <refreshToken> when provided to support backends that require it
+    const headers: any = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (refreshTokenData?.refreshToken) {
+      headers['Authorization'] = `Bearer ${refreshTokenData.refreshToken}`;
+      // Also add ngrok hint header if using ngrok baseURL (handled globally too)
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
+    return apiClient.post<LoginResponse>('/auth/refresh', refreshTokenData, { headers });
   }
 
   /**
@@ -199,19 +213,7 @@ export class AuthService {
     return apiClient.post<void>('/auth/reset-password', resetData);
   }
 
-  /**
-   * Verify email with token
-   */
-  static async verifyEmail(token: string): Promise<ApiResponse<{ message: string }>> {
-    return apiClient.post<{ message: string }>('/auth/verify-email', { token });
-  }
 
-  /**
-   * Resend verification email
-   */
-  static async resendVerificationEmail(email: string): Promise<ApiResponse<{ message: string }>> {
-    return apiClient.post<{ message: string }>('/auth/resend-verification', { email });
-  }
 }
 
 // Settings Services
@@ -296,6 +298,13 @@ export class StudentService {
    */
   static async getDashboardPerformance(): Promise<ApiResponse<StudentDashboardPerformance>> {
     return apiClient.get<StudentDashboardPerformance>('/students/dashboard/performance');
+  }
+
+  /**
+   * Get student dashboard statistics (new endpoint)
+   */
+  static async getDashboardStats(): Promise<ApiResponse<StudentDashboardStats>> {
+    return apiClient.get<StudentDashboardStats>('/students/dashboard/stats');
   }
 
   /**
@@ -1122,14 +1131,8 @@ export class StudentService {
     return apiClient.delete<{ success: boolean }>(`/students/labels/${labelId}`);
   }
 
-  /**
-   * Get quiz sessions for a specific label
-   * This would need to be implemented on the backend
-   * GET /api/v1/students/labels/{labelId}/sessions
-   */
-  static async getLabelSessions(labelId: number): Promise<ApiResponse<any[]>> {
-    return apiClient.get<any[]>(`/students/labels/${labelId}/sessions`);
-  }
+  // REMOVED: Legacy getLabelSessions endpoint
+  // Labels now use GET /quiz-sessions/{sessionId} for individual session retrieval only
 
 
 
@@ -1428,6 +1431,14 @@ export class StudentService {
     const url = queryParams.toString() ? `/students/analytics/comparison?${queryParams.toString()}` : '/students/analytics/comparison';
     return apiClient.get<PerformanceComparison>(url);
   }
+
+  /**
+   * Get quiz sessions by type for analytics
+   * GET /api/v1/quiz-sessions/type/{SESSION_TYPE}
+   */
+  static async getQuizSessionsByType(sessionType: SessionType): Promise<ApiResponse<AnalyticsSessionsResponse>> {
+    return apiClient.get<AnalyticsSessionsResponse>(`/quiz-sessions/type/${sessionType}`);
+  }
 }
 
 // Content Services
@@ -1663,7 +1674,6 @@ export class QuizService {
    */
   static async createSession(sessionData: {
     title: string;
-    questionCount: number;
     courseIds: number[];
     sessionType: 'PRACTISE' | 'EXAM';
     questionTypes?: Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>;
@@ -1673,6 +1683,22 @@ export class QuizService {
     questionSourceIds?: number[];
   }): Promise<ApiResponse<any>> {
     return apiClient.post<any>('/quizzes/sessions', sessionData);
+  }
+
+  /**
+   * Create practice session by label
+   * POST /api/v1/quiz-sessions/practice/{labelId}
+   */
+  static async createLabelSession(labelId: number): Promise<ApiResponse<{
+    sessionId: number;
+    questionCount: number;
+    title: string;
+  }>> {
+    return apiClient.post<{
+      sessionId: number;
+      questionCount: number;
+      title: string;
+    }>(`/quiz-sessions/practice/${labelId}`);
   }
 
   /**
@@ -1769,31 +1795,99 @@ export class QuizService {
     status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'
   ): Promise<ApiResponse<any>> {
     const body = { status };
+    console.log('🔄 [QuizService] Updating session status:', {
+      sessionId,
+      status,
+      endpoint: `PATCH /students/quiz-sessions/${sessionId}/status`
+    });
+
     try {
-      return await apiClient.patch<any>(`/students/quiz-sessions/${sessionId}/status`, body);
+      const response = await apiClient.patch<any>(`/students/quiz-sessions/${sessionId}/status`, body);
+
+      console.log('✅ [QuizService] Session status updated:', {
+        sessionId,
+        status,
+        success: response.success
+      });
+
+      return response;
     } catch (err: any) {
-      const isRouteMissing = err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || ''));
-      if (isRouteMissing) {
-        return await apiClient.patch<any>(`/quiz-sessions/${sessionId}/status`, body);
-      }
+      console.error('❌ [QuizService] Failed to update session status:', {
+        sessionId,
+        status,
+        error: err?.message,
+        statusCode: err?.statusCode || err?.response?.status
+      });
       throw err;
     }
   }
 
   /**
-   * Create a custom session from specific question IDs
-   * POST /quizzes/create-session-by-questions
+   * Update quiz session status with retry logic and error handling
+   * Implements the requirements for session status management
    */
-  static async createSessionByQuestions(payload: { type: 'EXAM' | 'PRACTICE'; questionIds: number[]; title?: string }): Promise<ApiResponse<any>> {
-    return apiClient.post<any>('/quizzes/create-session-by-questions', payload);
+  static async updateQuizSessionStatusWithRetry(
+    sessionId: number,
+    status: 'IN_PROGRESS' | 'COMPLETED',
+    retryCount: number = 1
+  ): Promise<{ success: boolean; error?: string }> {
+    // Validate status enum values
+    if (!['IN_PROGRESS', 'COMPLETED'].includes(status)) {
+      const error = `Invalid status value: ${status}. Must be IN_PROGRESS or COMPLETED`;
+      console.error('❌ [QuizService] Status validation failed:', error);
+      return { success: false, error };
+    }
+
+    let lastError: string | undefined;
+
+    for (let attempt = 1; attempt <= retryCount + 1; attempt++) {
+      try {
+        console.log(`🔄 [QuizService] Status update attempt ${attempt}/${retryCount + 1}:`, {
+          sessionId,
+          status
+        });
+
+        const response = await this.updateQuizSessionStatus(sessionId, status);
+
+        if (response.success) {
+          console.log(`✅ [QuizService] Session status updated successfully on attempt ${attempt}:`, {
+            sessionId,
+            status
+          });
+          return { success: true };
+        } else {
+          lastError = response.error || 'Unknown error';
+          console.warn(`⚠️ [QuizService] Status update failed on attempt ${attempt}:`, lastError);
+        }
+      } catch (err: any) {
+        lastError = err?.message || 'Network error';
+        console.warn(`⚠️ [QuizService] Status update error on attempt ${attempt}:`, {
+          sessionId,
+          status,
+          error: lastError,
+          willRetry: attempt <= retryCount
+        });
+      }
+
+      // Wait before retry (exponential backoff)
+      if (attempt <= retryCount) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    console.error(`❌ [QuizService] All status update attempts failed:`, {
+      sessionId,
+      status,
+      attempts: retryCount + 1,
+      lastError
+    });
+
+    return { success: false, error: lastError || 'Failed to update session status after retries' };
   }
 
-  // Note: startPracticeSessionFromLabel has been removed as the endpoint doesn't exist
-  // Use createSessionByQuestions instead with the label's questionIds
-
-  // Note: Exam session creation methods have been moved to NewApiService
-  // Use apiServices.newApi.getExamSessionFilters(), getQuestionsByUniteOrModule(),
-  // and createExamSessionByQuestions() instead.
+  // REMOVED: Legacy createSessionByQuestions endpoint
+  // Use only documented POST /quizzes/sessions endpoint for session creation
 
   /**
    * Submit multiple answers for questions in a quiz session (bulk submission)
@@ -1827,17 +1921,8 @@ export class QuizService {
       ...(sessionTimeSpent > 0 ? { timeSpent: sessionTimeSpent } : {})
     };
 
-    try {
-      // Primary endpoint as per Postman collection documentation
-      return await apiClient.post<SubmitAnswerResponse>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
-    } catch (err: any) {
-      const isRouteMissing = (err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || '')));
-      if (isRouteMissing) {
-        // Fallback to non-student-scoped route for legacy envs
-        return await apiClient.post<SubmitAnswerResponse>(`/quiz-sessions/${sessionId}/submit-answer`, requestBody);
-      }
-      throw err;
-    }
+    // Use documented endpoint from session-doc.md
+    return await apiClient.post<SubmitAnswerResponse>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
   }
 
   /**
@@ -1853,23 +1938,8 @@ export class QuizService {
     return this.submitAnswersBulk(sessionId, [answerData]);
   }
 
-  /**
-   * Update answer for a specific question
-   */
-  static async updateAnswer(sessionId: number, questionId: number, answerData: {
-    selectedAnswerId: number;
-    timeSpent?: number;
-  }): Promise<ApiResponse<any>> {
-    try {
-      return await apiClient.put<any>(`/quiz-sessions/${sessionId}/questions/${questionId}/answer`, answerData);
-    } catch (err: any) {
-      const isRouteMissing = (err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || '')));
-      if (isRouteMissing) {
-        return await apiClient.put<any>(`/students/quiz-sessions/${sessionId}/questions/${questionId}/answer`, answerData);
-      }
-      throw err;
-    }
-  }
+  // REMOVED: Legacy updateAnswer endpoint
+  // Review mode must rely solely on GET /quiz-sessions/{sessionId} response structure
 
   /**
    * Complete a quiz session
@@ -1920,72 +1990,71 @@ export class ExamService {
     return apiClient.get<Exam>(`/exams/${examId}`);
   }
 
-  /**
-   * Create exam session from predefined exam using unified endpoint
-   */
-  static async createExamSession(examId: number): Promise<ApiResponse<ExamSession>> {
-    try {
-      // First, get the exam questions
-      const examResponse = await apiClient.get<any>(`/exams/${examId}/questions`);
-
-      if (!examResponse.data?.questions || examResponse.data.questions.length === 0) {
-        throw new Error('No questions found for this exam');
-      }
-
-      const questionIds = examResponse.data.questions.map((q: any) => q.id);
-
-      // Get exam details for title
-      const examDetails = await apiClient.get<any>(`/exams/${examId}`);
-      const examTitle = examDetails.data?.title || `Exam Session ${examId}`;
-
-      // Create session using unified endpoint
-      return await apiClient.post<ExamSession>('/quizzes/create-session-by-questions', {
-        type: 'EXAM',
-        questionIds,
-        title: examTitle
-      });
-    } catch (error) {
-      console.error('Failed to create exam session:', error);
-      throw error;
-    }
-  }
+  // REMOVED: Legacy exam session creation
+  // Use only documented POST /quizzes/sessions endpoint
 
   /**
-   * Create exam session from multiple modules using unified endpoint
-   * POST /api/v1/quizzes/create-session-by-questions
+   * Create exam session from multiple modules using documented endpoint
+   * POST /quizzes/sessions
+   * Note: This method now uses content filters to extract course IDs instead of the deprecated endpoint
    */
   static async createExamSessionFromModules(payload: { moduleIds: number[]; year: number; title?: string }): Promise<ApiResponse<any>> {
     try {
-      // Get questions for the selected modules and year
-      const questions: any[] = [];
+      // Get course IDs from content filters instead of deprecated endpoint
+      const contentFiltersResponse = await apiClient.get<any>('/students/content/filters');
 
+      if (!contentFiltersResponse.success || !contentFiltersResponse.data) {
+        throw new Error('Failed to fetch content structure');
+      }
+
+      const courseIds: number[] = [];
+      const contentData = contentFiltersResponse.data;
+
+      // Extract course IDs from selected modules
       for (const moduleId of payload.moduleIds) {
-        try {
-          const response = await apiClient.get<any>(`/quizzes/questions-by-unite-or-module?moduleId=${moduleId}`);
-          if (response.data?.data?.questions) {
-            // Filter by year if specified
-            const moduleQuestions = response.data.data.questions.filter((q: any) =>
-              !payload.year || q.examYear === payload.year
-            );
-            questions.push(...moduleQuestions);
+        // Search in unites
+        if (contentData.unites) {
+          for (const unite of contentData.unites) {
+            if (unite.modules) {
+              for (const module of unite.modules) {
+                if (module.id === moduleId && module.courses) {
+                  const moduleCourseIds = module.courses.map((c: any) => c.id);
+                  courseIds.push(...moduleCourseIds);
+                }
+              }
+            }
           }
-        } catch (err) {
-          console.warn(`Failed to fetch questions for module ${moduleId}:`, err);
+        }
+
+        // Search in independent modules
+        if (contentData.independentModules) {
+          for (const module of contentData.independentModules) {
+            if (module.id === moduleId && module.courses) {
+              const moduleCourseIds = module.courses.map((c: any) => c.id);
+              courseIds.push(...moduleCourseIds);
+            }
+          }
         }
       }
 
-      if (questions.length === 0) {
-        throw new Error('No questions found for the selected modules and year');
+      if (courseIds.length === 0) {
+        throw new Error('No courses found for the selected modules');
       }
 
-      const questionIds = questions.slice(0, 100).map(q => q.id);
+      // Remove duplicates
+      const uniqueCourseIds = [...new Set(courseIds)];
 
-      // Create session using unified endpoint
-      return await apiClient.post<any>('/quizzes/create-session-by-questions', {
-        type: 'EXAM',
-        questionIds,
-        title: payload.title || `Exam Session - ${new Date().toLocaleDateString()}`
-      });
+      // Create session using documented endpoint with fixed question types for EXAM
+      const sessionData = {
+        title: payload.title || `Exam Session - ${new Date().toLocaleDateString()}`,
+        courseIds: uniqueCourseIds,
+        sessionType: 'EXAM' as const,
+        questionTypes: ['SINGLE_CHOICE', 'MULTIPLE_CHOICE'] as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>,
+        years: [payload.year],
+        rotations: [] // Default to empty array
+      };
+
+      return await this.createSession(sessionData);
     } catch (error) {
       console.error('Failed to create exam session from modules:', error);
       throw error;
@@ -2034,17 +2103,8 @@ export class ExamService {
       ],
     };
 
-    try {
-      // Primary endpoint as per Postman collection documentation
-      return await apiClient.post<{ success: boolean; message: string }>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
-    } catch (err: any) {
-      // Fallback to non-student-scoped route for legacy envs
-      const isRouteMissing = (err && (err.statusCode === 404 || /Endpoint not found/i.test(err.error || '')));
-      if (isRouteMissing) {
-        return await apiClient.post<{ success: boolean; message: string }>(`/quiz-sessions/${sessionId}/submit-answer`, requestBody);
-      }
-      throw err;
-    }
+    // Use documented endpoint from session-doc.md
+    return await apiClient.post<{ success: boolean; message: string }>(`/students/quiz-sessions/${sessionId}/submit-answer`, requestBody);
   }
 
   /**

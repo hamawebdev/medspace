@@ -132,10 +132,94 @@ export function ModernRegisterForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setValue,
+    watch,
+    trigger,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    mode: 'onBlur', // Validate on blur instead of onChange for better performance
+    mode: 'onChange', // Changed to onChange for real-time validation
   });
+
+  // Watch all form fields for validation
+  const firstName = watch('firstName');
+  const lastName = watch('lastName');
+  const email = watch('email');
+  const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
+  const universityId = watch('universityId');
+  const specialtyId = watch('specialtyId');
+  const currentYear = watch('currentYear');
+
+  // Real-time validation functions
+  const validateNameField = useCallback(async (fieldName: 'firstName' | 'lastName', value: string) => {
+    if (value && value.length > 0) {
+      await trigger(fieldName);
+    }
+  }, [trigger]);
+
+  // Validate names on input change
+  useEffect(() => {
+    if (firstName !== undefined) {
+      validateNameField('firstName', firstName);
+    }
+  }, [firstName, validateNameField]);
+
+  useEffect(() => {
+    if (lastName !== undefined) {
+      validateNameField('lastName', lastName);
+    }
+  }, [lastName, validateNameField]);
+
+  // Real-time password matching validation
+  useEffect(() => {
+    if (password !== undefined && confirmPassword !== undefined) {
+      // Trigger validation for both password fields when either changes
+      trigger(['password', 'confirmPassword']);
+    }
+  }, [password, confirmPassword, trigger]);
+
+  // Check if all fields are valid and filled
+  const isFormValid = useMemo(() => {
+    const hasAllRequiredFields = !!(
+      firstName?.trim() &&
+      lastName?.trim() &&
+      email?.trim() &&
+      password?.trim() &&
+      confirmPassword?.trim() &&
+      universityId &&
+      specialtyId &&
+      currentYear
+    );
+
+    const hasNoErrors = !(
+      errors.firstName ||
+      errors.lastName ||
+      errors.email ||
+      errors.password ||
+      errors.confirmPassword ||
+      errors.universityId ||
+      errors.specialtyId ||
+      errors.currentYear
+    );
+
+    return hasAllRequiredFields && hasNoErrors;
+  }, [
+    firstName,
+    lastName,
+    email,
+    password,
+    confirmPassword,
+    universityId,
+    specialtyId,
+    currentYear,
+    errors.firstName,
+    errors.lastName,
+    errors.email,
+    errors.password,
+    errors.confirmPassword,
+    errors.universityId,
+    errors.specialtyId,
+    errors.currentYear,
+  ]);
 
   // Memoized helper function to convert year number to API format
   const convertYearToApiFormat = useMemo(() => {
@@ -190,7 +274,6 @@ export function ModernRegisterForm() {
               universityId: userProfile.universityId,
               specialtyId: userProfile.specialtyId,
               currentYear: userProfile.currentYear,
-              emailVerified: userProfile.emailVerified,
               isActive: userProfile.isActive,
               createdAt: userProfile.createdAt,
               updatedAt: userProfile.updatedAt,
@@ -295,7 +378,12 @@ export function ModernRegisterForm() {
                       id="firstName"
                       type="text"
                       placeholder="Enter your first name"
-                      className="pl-10 h-10 border border-border"
+                      className={cn(
+                        "pl-10 h-10 border",
+                        errors.firstName 
+                          ? "border-destructive focus:border-destructive focus:ring-destructive" 
+                          : "border-border"
+                      )}
                       {...register("firstName")}
                     />
                   </div>
@@ -312,7 +400,12 @@ export function ModernRegisterForm() {
                       id="lastName"
                       type="text"
                       placeholder="Enter your last name"
-                      className="pl-10 h-10 border border-border"
+                      className={cn(
+                        "pl-10 h-10 border",
+                        errors.lastName 
+                          ? "border-destructive focus:border-destructive focus:ring-destructive" 
+                          : "border-border"
+                      )}
                       {...register("lastName")}
                     />
                   </div>
@@ -537,23 +630,30 @@ export function ModernRegisterForm() {
               </div>
 
               {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isSubmitting || isLoading}
-                className="w-full h-10 btn-modern btn-interactive group"
-              >
-                {isSubmitting || isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="size-4 animate-spin" />
-                    Creating account...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    Create Account
-                    <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
+              <div className="space-y-2">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isLoading || !isFormValid}
+                  className="w-full h-10 btn-modern btn-interactive group"
+                >
+                  {isSubmitting || isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="size-4 animate-spin" />
+                      Creating account...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      Create Account
+                      <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  )}
+                </Button>
+                {!isFormValid && !isSubmitting && !isLoading && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Please fill in all fields correctly to continue
+                  </p>
                 )}
-              </Button>
+              </div>
             </motion.form>
 
             {/* Sign In Link */}

@@ -15,9 +15,8 @@
  * - POST /api/v1/students/labels - Create new label
  * - PUT /api/v1/students/labels/{id} - Update label
  * - DELETE /api/v1/students/labels/{id} - Delete label
- * - GET /api/v1/students/labels/{labelId}/sessions - Get existing sessions for a label
- * - POST /api/v1/quizzes/create-session-by-questions - Create new practice session
- * - GET /api/v1/quiz-sessions/{sessionId} - Load existing session
+ * - POST /api/v1/quiz-sessions/practice/{labelId} - Create new practice session from label
+ * - GET /api/v1/quiz-sessions/{sessionId} - Load session details
  */
 
 import { useState, useEffect } from 'react'
@@ -156,19 +155,11 @@ export default function LabelsPage() {
       .substring(0, 100);             // Limit length to 100 characters
   }
 
-  // Fetch existing sessions for a label
+  // REMOVED: Legacy label sessions fetching
+  // Labels now only support creating new sessions, not retrieving existing ones
   const fetchLabelSessions = async (labelId: number) => {
-    try {
-      const response = await StudentService.getLabelSessions(labelId)
-      if (response.success && response.data) {
-        return response.data
-      }
-      return []
-    } catch (error) {
-      console.error('Error fetching label sessions:', error)
-      // If the endpoint doesn't exist yet, return empty array
-      return []
-    }
+    // No longer supported - labels are for creating new sessions only
+    return []
   }
 
   // Load an existing session using GET /quiz-sessions/{sessionId}
@@ -193,7 +184,7 @@ export default function LabelsPage() {
     }
   }
 
-  // Create practice session from label using create-session-by-questions endpoint
+  // Create new practice session from label
   const handleStartPractice = async (label: any) => {
     if (!label.questionIds || label.questionIds.length === 0) {
       toast.error('No questions available in this label')
@@ -203,20 +194,30 @@ export default function LabelsPage() {
     try {
       setCreatingSessionId(label.id)
 
-      // Create session using the unified endpoint with label's question IDs
-      const response = await QuizService.createSessionByQuestions({
-        type: 'PRACTICE',
-        questionIds: label.questionIds,
-        title: `Practice Session - ${label.name}`
-      })
+      // Step 1: Create practice session by label
+      console.log('🚀 Creating practice session for label:', label.id)
+      const createResponse = await QuizService.createLabelSession(label.id)
 
-      if (response.success && response.data) {
-        const sessionId = response.data.sessionId || response.data.id
-        toast.success(`Practice session created with ${label.questionIds.length} questions!`)
-        router.push(`/session/${sessionId}`)
-      } else {
-        throw new Error(response.error || 'Failed to create practice session')
+      if (!createResponse.success || !createResponse.data) {
+        throw new Error(createResponse.error || 'Unable to create label session')
       }
+
+      const { sessionId, questionCount, title } = createResponse.data
+      console.log('✅ Session created:', { sessionId, questionCount, title })
+
+      // Step 2: Fetch the full session data
+      console.log('📋 Fetching session details for sessionId:', sessionId)
+      const sessionResponse = await QuizService.getQuizSession(sessionId)
+
+      if (!sessionResponse.success || !sessionResponse.data) {
+        throw new Error(sessionResponse.error || 'Session not found. Please try again.')
+      }
+
+      console.log('✅ Session data retrieved, redirecting to session...')
+      toast.success(`Practice session created with ${questionCount} questions!`)
+
+      // Step 3: Redirect to session
+      router.push(`/session/${sessionId}`)
     } catch (error) {
       console.error('Error creating practice session:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to create practice session'
@@ -234,21 +235,11 @@ export default function LabelsPage() {
 
   const hasLabels = labelsData && labelsData.length > 0
 
-  // Load sessions for all labels
+  // REMOVED: Legacy label sessions loading
+  // Labels now only support creating new sessions, not retrieving existing ones
   const loadAllLabelSessions = async () => {
-    if (!labelsData || labelsData.length === 0) return
-
-    const sessionsMap: {[labelId: number]: any[]} = {}
-
-    // Fetch sessions for each label
-    await Promise.all(
-      labelsData.map(async (label) => {
-        const sessions = await fetchLabelSessions(label.id)
-        sessionsMap[label.id] = sessions
-      })
-    )
-
-    setLabelSessions(sessionsMap)
+    // No longer supported - labels are for creating new sessions only
+    setLabelSessions({})
   }
 
   // Fetch labels on component mount
@@ -427,43 +418,7 @@ export default function LabelsPage() {
                               </div>
                             </div>
 
-                            {/* Existing Sessions */}
-                            {labelSessions[l.id] && labelSessions[l.id].length > 0 && (
-                              <div className="space-y-2">
-                                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                  Existing Sessions
-                                </div>
-                                <div className="space-y-1">
-                                  {labelSessions[l.id].slice(0, 2).map((session: any) => (
-                                    <Button
-                                      key={session.id}
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full h-8 text-xs justify-start"
-                                      onClick={() => handleLoadSession(session.id, l.id)}
-                                      disabled={loadingSessionId === l.id}
-                                    >
-                                      {loadingSessionId === l.id ? (
-                                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <Play className="mr-2 h-3 w-3" />
-                                      )}
-                                      {session.title || `Session ${session.id}`}
-                                      {session.status && (
-                                        <Badge variant="secondary" className="ml-auto text-xs">
-                                          {session.status}
-                                        </Badge>
-                                      )}
-                                    </Button>
-                                  ))}
-                                  {labelSessions[l.id].length > 2 && (
-                                    <div className="text-xs text-muted-foreground text-center">
-                                      +{labelSessions[l.id].length - 2} more sessions
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                            {/* Existing Sessions - REMOVED: No longer supported */}
 
                             {/* Action Buttons */}
                             <div className="flex flex-col gap-3 pt-2">
@@ -476,12 +431,12 @@ export default function LabelsPage() {
                                 {creatingSessionId === l.id ? (
                                   <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating...
+                                    Loading...
                                   </>
                                 ) : (
                                   <>
                                     <Play className="mr-2 h-4 w-4" />
-                                    Start New Session
+                                    Start Practice Session
                                   </>
                                 )}
                               </Button>

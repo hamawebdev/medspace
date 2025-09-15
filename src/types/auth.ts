@@ -65,7 +65,6 @@ export interface User {
   universityId: number;
   specialtyId: number;
   currentYear: CurrentYear;
-  emailVerified: boolean;
   isActive: boolean;
   lastLogin: string;
   createdAt: string;
@@ -84,7 +83,6 @@ export interface LegacyUser {
   universityId: number;
   specialtyId: number;
   currentYear: CurrentYear;
-  emailVerified: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -160,10 +158,7 @@ export interface PasswordResetData {
   newPassword: string;
 }
 
-// Email verification data
-export interface EmailVerificationData {
-  token: string;
-}
+
 
 // Forgot password data
 export interface ForgotPasswordData {
@@ -205,7 +200,6 @@ export function convertApiUserToLegacy(apiUser: User): LegacyUser {
     universityId: apiUser.universityId,
     specialtyId: apiUser.specialtyId,
     currentYear: apiUser.currentYear,
-    emailVerified: apiUser.emailVerified,
     isActive: apiUser.isActive,
     createdAt: apiUser.createdAt,
     updatedAt: apiUser.updatedAt,

@@ -16,12 +16,14 @@ export function MultiSelect({
   onChange,
   placeholder = "Select",
   className,
+  disabled = false,
 }: {
   options: MultiOption[];
   value: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const selected = React.useMemo(
@@ -41,9 +43,15 @@ export function MultiSelect({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} className={cn("w-full justify-between min-h-[40px] h-auto", className)}>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn("w-full justify-between min-h-[40px] h-auto", className)}
+        >
           <div className="flex flex-wrap gap-1 items-center flex-1 min-w-0">
             {selected.length === 0 && <span className="text-muted-foreground truncate">{placeholder}</span>}
             {selected.slice(0, 2).map((s) => (

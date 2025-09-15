@@ -66,8 +66,9 @@ export function ExamSessionCard({
   }, [session.elapsedSeconds, session.lastStartedAt, now]);
 
   const startOrContinue = () => {
-    onUpdate(session.id, { lastStartedAt: new Date().toISOString() });
-    router.push(`/student/exams/session/${session.id}`);
+    // All exam sessions now use the unified session page
+    // which handles API-based session resumption properly
+    router.push(`/session/${session.id}`);
   };
 
   const retake = () => {
@@ -155,14 +156,16 @@ export function ExamSessionCard({
               </TooltipTrigger>
               <TooltipContent>{elapsed > 0 || session.lastStartedAt || (session.currentQuestionIndex ?? 0) > 0 ? 'Continue session' : 'Start session'}</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" onClick={retake}>
-                  <RotateCcw className="w-4 h-4 mr-1" /> Retake
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Reset elapsed time</TooltipContent>
-            </Tooltip>
+            {!running && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="outline" onClick={retake}>
+                    <RotateCcw className="w-4 h-4 mr-1" /> Retake
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reset elapsed time</TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="sm" variant="outline" onClick={() => setShowInfo(true)}>

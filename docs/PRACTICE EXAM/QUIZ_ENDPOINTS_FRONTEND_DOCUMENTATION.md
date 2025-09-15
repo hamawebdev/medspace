@@ -112,7 +112,7 @@ Content-Type: application/json
 ```json
 {
   "courseIds": [1, 2, 3],
-  "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICES"],
+  "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICE"],
   "years": [2022, 2023, 2024],
   "rotations": ["R1", "R2"],
   "universityIds": [1, 2],
@@ -139,7 +139,7 @@ Content-Type: application/json
     "accessibleQuestionCount": 120,
     "filtersApplied": {
       "courseIds": [1, 2, 3],
-      "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICES"],
+      "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICE"],
       "years": [2022, 2023, 2024],
       "rotations": ["R1", "R2"],
       "universityIds": [1, 2],
@@ -199,9 +199,9 @@ Content-Type: application/json
   "questionCount": 20,
   "courseIds": [1, 2, 3],
   "sessionType": "PRACTISE",
-  "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICES"],
+  "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICE"],
   "years": [2022, 2023, 2024],
-  "rotations": ["R1", "R2"],
+  "rotations": [],
   "universityIds": [1, 2],
   "questionSourceIds": [1, 2]
 }
@@ -214,7 +214,7 @@ Content-Type: application/json
 - `sessionType`: Either `"PRACTISE"` or `"EXAM"`
 
 **Optional Fields:**
-- `questionTypes`: Array of question types (`"SINGLE_CHOICE"`, `"MULTIPLE_CHOICES"`)
+- `questionTypes`: Array of question types (`"SINGLE_CHOICE"`, `"MULTIPLE_CHOICE"`)
 - `years`: Array of years (1900 to current year + 10)
 - `rotations`: Array of rotations (`"R1"`, `"R2"`, `"R3"`, `"R4"`)
 - `universityIds`: Array of university IDs (maximum 10)
@@ -230,7 +230,7 @@ Content-Type: application/json
     "questionCount": 20,
     "filtersApplied": {
       "courseIds": [1, 2, 3],
-      "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICES"],
+      "questionTypes": ["SINGLE_CHOICE", "MULTIPLE_CHOICE"],
       "years": [2022, 2023, 2024],
       "rotations": ["R1", "R2"],
       "universityIds": [1, 2],
@@ -294,7 +294,7 @@ const createSession = async (sessionData) => {
 ### Question Types Validation
 - Must be an array
 - Maximum 2 question types
-- Valid values: `"SINGLE_CHOICE"`, `"MULTIPLE_CHOICES"`
+- Valid values: `"SINGLE_CHOICE"`, `"MULTIPLE_CHOICE"`
 
 ### Years Validation
 - Must be an array

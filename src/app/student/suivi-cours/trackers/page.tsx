@@ -9,21 +9,23 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { LoadingSpinner, FullPageLoading } from '@/components/loading-states';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { 
-  ArrowLeft, 
-  Plus, 
-  Eye, 
-  Trash2, 
-  BookOpen, 
+import {
+  ArrowLeft,
+  Plus,
+  Eye,
+  Trash2,
+  BookOpen,
   Target,
   TrendingUp,
   Calendar,
-  MoreVertical
+  MoreVertical,
+  Edit
 } from 'lucide-react';
 import { NewApiService } from '@/lib/api/new-api-services';
 import { StudyCard, CardProgressResponse } from '@/types/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { suiviCoursStorage } from '@/lib/suivi-cours-storage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,15 +42,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TrackerCardProps {
   tracker: StudyCard;
   progress?: CardProgressResponse;
   onView: () => void;
   onDelete: () => void;
+  onEdit: (updatedTracker: StudyCard) => void;
 }
 
-function TrackerCard({ tracker, progress, onView, onDelete }: TrackerCardProps) {
+function TrackerCard({ tracker, progress, onView, onDelete, onEdit }: TrackerCardProps) {
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -70,6 +89,57 @@ function TrackerCard({ tracker, progress, onView, onDelete }: TrackerCardProps) 
   }, { c1: 0, c2: 0, c3: 0, qcm: 0 }) || { c1: 0, c2: 0, c3: 0, qcm: 0 };
 
   const totalCourses = progress?.totalCourses || courseCount;
+
+  const handleEdit = () => {
+    setEditTitle(tracker.title || '');
+    setEditDescription(tracker.description || '');
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    const trimmedTitle = (editTitle || '').trim();
+    const trimmedDescription = (editDescription || '').trim();
+
+    if (!trimmedTitle) {
+      toast.error('Le titre est requis');
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+
+      const response = await NewApiService.updateCard(tracker.id, {
+        title: trimmedTitle,
+        description: trimmedDescription || undefined
+      });
+
+      if (response.success) {
+        // Update the tracker with new data
+        const updatedTracker = {
+          ...tracker,
+          title: trimmedTitle,
+          description: trimmedDescription || undefined
+        };
+
+        onEdit(updatedTracker);
+        setEditDialogOpen(false);
+        toast.success('Suivi mis à jour avec succès');
+      } else {
+        throw new Error(response.error || 'Failed to update tracker');
+      }
+    } catch (err) {
+      console.error('Error updating tracker:', err);
+      toast.error('Erreur lors de la mise à jour du suivi');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditDialogOpen(false);
+    setEditTitle('');
+    setEditDescription('');
+  };
 
   return (
     <Card className="group transition-all duration-200 hover:shadow-lg border-border/50 hover:border-primary/30">
@@ -95,6 +165,10 @@ function TrackerCard({ tracker, progress, onView, onDelete }: TrackerCardProps) 
               <DropdownMenuItem onClick={onView}>
                 <Eye className="h-4 w-4 mr-2" />
                 Voir la liste des cours
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEdit}>
+                <Edit className="h-4 w-4 mr-2" />
+                Modifier
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onDelete} className="text-destructive">
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -187,6 +261,61 @@ function TrackerCard({ tracker, progress, onView, onDelete }: TrackerCardProps) 
           </Button>
         </div>
       </CardContent>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Modifier le suivi</DialogTitle>
+            <DialogDescription>
+              Modifiez le titre et la description de votre suivi de cours.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-title">Titre</Label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Entrez le titre du suivi"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Entrez une description (optionnel)"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleEditCancel}
+              disabled={editLoading}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleEditSave}
+              disabled={editLoading || !(editTitle || '').trim()}
+            >
+              {editLoading ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  Sauvegarde...
+                </>
+              ) : (
+                'Sauvegarder'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -227,11 +356,34 @@ export default function TrackersPage() {
 
       const response = await NewApiService.getCardsByUnitOrModule(params);
 
+      console.log('📋 [TrackersPage] Cards response:', {
+        success: response.success,
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        hasNestedData: !!response.data?.data,
+        nestedDataType: typeof response.data?.data,
+        isNestedArray: Array.isArray(response.data?.data),
+        fullResponse: response
+      });
+
       if (response.success && response.data) {
-        setTrackers(response.data);
-        
+        // Handle both possible response structures: response.data or response.data.data
+        const actualData = Array.isArray(response.data) ? response.data : response.data.data;
+
+        if (!Array.isArray(actualData)) {
+          console.error('❌ [TrackersPage] Expected array but got:', {
+            actualData,
+            dataType: typeof actualData,
+            responseStructure: response.data
+          });
+          throw new Error('Invalid response structure: expected array of trackers');
+        }
+
+        setTrackers(actualData);
+
         // Fetch progress for each tracker
-        const progressPromises = response.data.map(async (tracker: StudyCard) => {
+        const progressPromises = actualData.map(async (tracker: StudyCard) => {
           try {
             const progressResponse = await NewApiService.getCardProgress(tracker.id);
             if (progressResponse.success && progressResponse.data) {
@@ -253,6 +405,19 @@ export default function TrackersPage() {
         });
 
         setTrackerProgress(progressMap);
+
+        // Sync localStorage with actual tracker data
+        try {
+          const trackersForSync = trackers.map(tracker => ({
+            id: tracker.id,
+            title: tracker.title,
+            courses: tracker.courses || []
+          }));
+          await suiviCoursStorage.syncWithTrackers(trackersForSync);
+        } catch (error) {
+          console.error('Failed to sync tracked courses with localStorage:', error);
+          // Don't block the main flow for localStorage sync errors
+        }
       } else {
         throw new Error(response.error || 'Failed to fetch trackers');
       }
@@ -285,6 +450,15 @@ export default function TrackersPage() {
     setDeleteDialogOpen(true);
   };
 
+  const handleEditTracker = (updatedTracker: StudyCard) => {
+    // Update the tracker in the local state
+    setTrackers(prevTrackers =>
+      prevTrackers.map(tracker =>
+        tracker.id === updatedTracker.id ? updatedTracker : tracker
+      )
+    );
+  };
+
   const confirmDelete = async () => {
     if (!trackerToDelete) return;
 
@@ -292,6 +466,14 @@ export default function TrackersPage() {
       const response = await NewApiService.deleteCard(trackerToDelete.id);
       
       if (response.success) {
+        // Remove tracked courses from localStorage
+        try {
+          suiviCoursStorage.removeTrackedCourses(trackerToDelete.id);
+        } catch (error) {
+          console.error('Failed to remove tracked courses from localStorage:', error);
+          // Don't block the success flow for localStorage errors
+        }
+
         toast.success('Suivi de cours supprimé avec succès');
         setTrackers(prev => prev.filter(t => t.id !== trackerToDelete.id));
         setTrackerProgress(prev => {
@@ -396,6 +578,7 @@ export default function TrackersPage() {
                 progress={trackerProgress[tracker.id]}
                 onView={() => handleViewTracker(tracker)}
                 onDelete={() => handleDeleteTracker(tracker)}
+                onEdit={handleEditTracker}
               />
             ))}
           </div>

@@ -27,7 +27,7 @@ export function Footer() {
     {
       name: 'Email',
       icon: Mail,
-      href: 'mailto:contact@quizy.com',
+      href: 'mailto:contact@medcortex.com',
       label: 'Email'
     }
   ];
@@ -59,7 +59,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="text-center">
           <p className="text-sm text-white/80">
-            Tous les droits sont réservés © {currentYear} EURL QUIZY
+            Tous les droits sont réservés © {currentYear} MEDCORTEX
           </p>
         </div>
       </div>

@@ -13,11 +13,12 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { Slider } from "@/components/ui/slider";
 import { ChevronLeft, ChevronRight, CheckCircle2, X, CheckSquare, Square, RefreshCw } from "lucide-react";
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from "@/hooks/use-subscription";
-import { ContentService } from "@/lib/api-services";
 
 import { useQuizFilters } from "@/hooks/use-quiz-api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useContentFilters, useQuizSessionFilters, useQuestionCount } from "@/hooks/use-content-filters";
+import { useUniversitySelection } from "@/hooks/use-university-selection";
+import { UniversitySelector } from "@/components/ui/university-selector";
 
 export type PracticeSessionPayload = {
   title: string;
@@ -39,9 +40,11 @@ export type PracticeSessionPayload = {
 export function SessionWizard({
   onCancel,
   onCreate,
+  isCreating = false,
 }: {
   onCancel: () => void;
   onCreate: (payload: PracticeSessionPayload) => void;
+  isCreating?: boolean;
 }) {
   const [step, setStep] = useState(1);
 
@@ -49,8 +52,16 @@ export function SessionWizard({
   const { subscriptions, loading: subsLoading } = useUserSubscriptions();
   const { filters: quizFilters } = useQuizFilters();
   const { filters: contentFilters, loading: contentLoading, error: contentError } = useContentFilters();
-  const { filters: sessionFilters, loading: sessionFiltersLoading, error: sessionFiltersError } = useQuizSessionFilters();
+  const { filters: sessionFilters, loading: sessionFiltersLoading, error: sessionFiltersError, refetch: refetchSessionFilters } = useQuizSessionFilters();
   const { questionCount: availableQuestionCount, totalQuestionCount, loading: questionCountLoading, error: questionCountError, refetch: refetchQuestionCount } = useQuestionCount();
+
+  // University selection logic
+  const universitySelection = useUniversitySelection({
+    universities: sessionFilters?.universities || [],
+    allowMultiple: true, // Practice sessions allow multiple universities
+    required: false, // Universities are optional for practice sessions
+    initialSelection: []
+  });
 
   // Step 1
   const [title, setTitle] = useState("");
@@ -62,6 +73,7 @@ export function SessionWizard({
   const [types, setTypes] = useState<string[]>([]);
   const [quizYears, setQuizYears] = useState<number[]>([]);
   const [quizSourceIds, setQuizSourceIds] = useState<number[]>([]);
+  // Rotations removed from practice creation - always send empty array
   const [questionCount, setQuestionCount] = useState<number>(0);
 
   // Step 3 finalize
@@ -342,6 +354,10 @@ export function SessionWizard({
 
   const areAllSourcesSelected = availableSourceOptions.length > 0 && quizSourceIds.length === availableSourceOptions.length;
 
+
+
+  // Rotations removed from practice creation
+
   // Handle selecting/deselecting all question types
   const availableTypeOptions = [{ label: 'QCM', value: 'qcm' }, { label: 'QCS', value: 'qcs' }];
   const selectAllTypes = () => {
@@ -407,7 +423,9 @@ export function SessionWizard({
     questionTypes: mappedTypes.length > 0 ? mappedTypes as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'> : undefined,
     years: quizYears.length > 0 ? quizYears : undefined,
     questionSourceIds: quizSourceIds.length > 0 ? quizSourceIds : undefined,
-  }), [selectedCourseIdsNum, mappedTypes, quizYears, quizSourceIds]);
+    universityIds: universitySelection.selectedUniversityIds.length > 0 ? universitySelection.selectedUniversityIds : undefined,
+    rotations: [], // Always empty for practice sessions
+  }), [selectedCourseIdsNum, mappedTypes, quizYears, quizSourceIds, universitySelection.selectedUniversityIds]);
 
   const debouncedFilters = useDebounce(filtersForCounts, 300);
 
@@ -475,10 +493,10 @@ export function SessionWizard({
   const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= totalAvailable && !questionCountError;
 
   const canNext = useMemo(() => {
-    if (step === 1) return step1Valid && !contentLoading && !contentError;
-    if (step === 2) return step2Valid && !questionCountLoading;
+    if (step === 1) return step1Valid && !contentLoading && !contentError && !sessionFiltersLoading && !sessionFiltersError;
+    if (step === 2) return step2Valid && !questionCountLoading && !sessionFiltersLoading && !sessionFiltersError;
     return true;
-  }, [step, step1Valid, step2Valid, contentLoading, contentError, questionCountLoading, questionCountError]);
+  }, [step, step1Valid, step2Valid, contentLoading, contentError, questionCountLoading, questionCountError, sessionFiltersLoading, sessionFiltersError]);
 
   const handleCreate = () => {
     const finalTitle = (title.trim() || suggestedTitle || 'Practice Session').slice(0, 200);
@@ -498,8 +516,10 @@ export function SessionWizard({
     // Prepare filters for the new API format
     const sessionFilters = {
       questionTypes: types.map(t => t.toUpperCase() === 'QCM' ? 'MULTIPLE_CHOICE' : 'SINGLE_CHOICE') as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>,
-      questionSourceIds: quizSourceIds,
+      questionSourceIds: quizSourceIds.length ? quizSourceIds : undefined,
       years: quizYears.length ? quizYears : undefined,
+      universityIds: universitySelection.selectedUniversityIds.length ? universitySelection.selectedUniversityIds : undefined,
+      rotations: [], // Always empty for practice sessions
     };
 
     onCreate({
@@ -514,6 +534,8 @@ export function SessionWizard({
         types,
         quizSourceIds,
         quizYears: quizYears.length ? quizYears : undefined,
+        universityIds: universitySelection.selectedUniversityIds.length ? universitySelection.selectedUniversityIds : undefined,
+        rotations: [], // Always empty for practice sessions
       },
       // New API format filters
       sessionFilters,
@@ -539,6 +561,28 @@ export function SessionWizard({
             <p className="text-sm text-destructive">
               Failed to load content: {contentError}
             </p>
+          </div>
+        )}
+
+        {/* Session filters error handling */}
+        {sessionFiltersError && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-destructive font-medium">Failed to load session filters</p>
+                <p className="text-xs text-destructive/80 mt-1">{sessionFiltersError}</p>
+              </div>
+              <Button
+                onClick={refetchSessionFilters}
+                variant="outline"
+                size="sm"
+                disabled={sessionFiltersLoading}
+                className="text-destructive border-destructive/20 hover:bg-destructive/10"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${sessionFiltersLoading ? 'animate-spin' : ''}`} />
+                Retry
+              </Button>
+            </div>
           </div>
         )}
 
@@ -759,7 +803,17 @@ export function SessionWizard({
               <p className="text-sm text-muted-foreground">Add filters</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
+            {/* Session filters loading state */}
+            {sessionFiltersLoading && (
+              <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                <div className="text-sm text-muted-foreground">
+                  Loading filter options...
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4" aria-live="polite">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>
@@ -832,10 +886,11 @@ export function SessionWizard({
                   )}
                 </div>
                 <MultiSelect
-                  options={(quizFilters?.availableQuizYears || quizFilters?.availableYears || []).map((y: number) => ({ label: String(y), value: String(y) }))}
+                  options={(sessionFilters?.questionYears || []).map((y: number) => ({ label: String(y), value: String(y) }))}
                   value={quizYears.map(String)}
                   onChange={(vals) => setQuizYears(vals.map((v) => Number(v)))}
-                  placeholder="Select years (optional)"
+                  placeholder={sessionFiltersLoading ? "Loading years..." : sessionFiltersError ? "Error loading years" : "Select years (optional)"}
+                  disabled={sessionFiltersLoading || !!sessionFiltersError}
                 />
               </div>
 
@@ -872,22 +927,34 @@ export function SessionWizard({
                   )}
                 </div>
                 <MultiSelect
-                  options={(quizFilters?.quizSources || []).map((s: any) => ({ value: String(s.id), label: s.name }))}
+                  options={(sessionFilters?.questionSources || []).map((s: any) => ({ value: String(s.id), label: s.name }))}
                   value={quizSourceIds.map(String)}
                   onChange={(vals) => setQuizSourceIds(vals.map((v) => Number(v)))}
-                  placeholder="Select sources (optional)"
+                  placeholder={sessionFiltersLoading ? "Loading sources..." : sessionFiltersError ? "Error loading sources" : "Select sources (optional)"}
+                  disabled={sessionFiltersLoading || !!sessionFiltersError}
                 />
               </div>
+
+              <UniversitySelector
+                universitySelection={universitySelection}
+                allowMultiple={true}
+                required={false}
+                loading={sessionFiltersLoading}
+                label="Universités"
+                sessionType="PRACTICE"
+              />
+
+              {/* Rotations dropdown removed from practice creation */}
 
               {/* Keep years and sources consistent: prune selected years if not allowed by selected sources */}
               <React.Fragment>
                 {(() => {
                   const selectedSourceYears = new Set<number>();
-                  (quizFilters?.quizSources || [])
+                  (sessionFilters?.questionSources || [])
                     .filter((s: any) => quizSourceIds.includes(Number(s.id)))
                     .forEach((s: any) => (s.availableYears || []).forEach((y: number) => selectedSourceYears.add(y)));
-                  // Union of allowed by selected sources; if none selected, allow all availableQuizYears
-                  const allowedYears = selectedSourceYears.size ? Array.from(selectedSourceYears) : (quizFilters?.availableQuizYears || []);
+                  // Union of allowed by selected sources; if none selected, allow all questionYears
+                  const allowedYears = selectedSourceYears.size ? Array.from(selectedSourceYears) : (sessionFilters?.questionYears || []);
                   if (quizYears.length && allowedYears.length) {
                     const pruned = quizYears.filter((y) => allowedYears.includes(y));
                     if (pruned.length !== quizYears.length) setQuizYears(pruned);
@@ -917,7 +984,7 @@ export function SessionWizard({
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Max available: {questionCountLoading ? '...' : questionCountError ? 'Error loading' : totalAvailable}
+                Max available: {questionCountLoading ? '...' : questionCountError ? 'Unavailable' : totalAvailable}
               </p>
             </div>
 
@@ -926,8 +993,15 @@ export function SessionWizard({
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-destructive font-medium">Failed to load question count</p>
-                    <p className="text-xs text-destructive/80 mt-1">{questionCountError}</p>
+                    <p className="text-sm text-destructive font-medium">
+                      {questionCountError === 'Question count unavailable. Please try again.'
+                        ? 'Question count unavailable. Please try again.'
+                        : 'Failed to load question count'
+                      }
+                    </p>
+                    {questionCountError !== 'Question count unavailable. Please try again.' && (
+                      <p className="text-xs text-destructive/80 mt-1">{questionCountError}</p>
+                    )}
                   </div>
                   <Button
                     onClick={() => {
@@ -995,16 +1069,6 @@ export function SessionWizard({
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="program">Program</Label>
-                <Input
-                  id="program"
-                  placeholder="e.g. Medicine L2"
-                  value={program}
-                  onChange={(e) => setProgram(e.target.value)}
-                  className="quiz-input-enhanced"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Title</Label>
                 <Input
                   placeholder="Session title"
@@ -1071,11 +1135,18 @@ export function SessionWizard({
             ) : (
               <Button
                 onClick={handleCreate}
-                disabled={!(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError}
+                disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
                 className="practice-button"
-                aria-disabled={!(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError}
+                aria-disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
               >
-                Create Session
+                {isCreating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Session'
+                )}
               </Button>
             )}
           </div>

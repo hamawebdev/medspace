@@ -155,11 +155,6 @@ export default function ProfileForm() {
               <h3 className="text-xl font-semibold">{profile?.fullName}</h3>
               <p className="text-sm text-muted-foreground">{profile?.email}</p>
               <div className="flex items-center gap-2">
-                {profile?.emailVerified ? (
-                  <Badge variant="default" className="text-xs">Verified</Badge>
-                ) : (
-                  <Badge variant="secondary" className="text-xs">Unverified</Badge>
-                )}
               </div>
             </div>
           </div>

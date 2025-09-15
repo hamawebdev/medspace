@@ -11,10 +11,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { LoadingSpinner, FullPageLoading } from '@/components/loading-states';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { 
-  ArrowLeft, 
-  Edit, 
-  BookOpen, 
+
+import {
+  ArrowLeft,
+  BookOpen,
   Target,
   TrendingUp,
   ChevronDown,
@@ -34,56 +34,84 @@ interface CircularProgressProps {
   strokeWidth?: number;
   label: string;
   className?: string;
+  color?: string;
 }
 
-function CircularProgress({ 
-  value, 
-  size = 80, 
-  strokeWidth = 8, 
-  label, 
-  className 
+function CircularProgress({
+  value,
+  size = 100,
+  strokeWidth = 10,
+  label,
+  className,
+  color
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (value / 100) * circumference;
 
+  // Determine color based on label or use provided color
+  const getProgressColor = () => {
+    if (color) return color;
+
+    switch (label) {
+      case 'Couche 1':
+        return '#f97316'; // Orange
+      case 'Couche 2':
+        return '#eab308'; // Yellow
+      case 'Couche 3':
+        return '#3b82f6'; // Blue
+      case 'Couche QCM':
+        return '#8b5cf6'; // Purple
+      default:
+        return '#10b981'; // Green
+    }
+  };
+
+  const progressColor = getProgressColor();
+
   return (
-    <div className={cn("flex flex-col items-center space-y-2", className)}>
+    <div className={cn("flex flex-col items-center space-y-3", className)}>
       <div className="relative">
         <svg
           width={size}
           height={size}
-          className="transform -rotate-90"
+          className="transform -rotate-90 drop-shadow-sm"
         >
+          {/* Background circle */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="hsl(var(--muted))"
+            stroke="#e5e7eb"
             strokeWidth={strokeWidth}
             fill="none"
+            opacity={0.3}
           />
+          {/* Progress circle */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="hsl(var(--primary))"
+            stroke={progressColor}
             strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={strokeDasharray}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className="transition-all duration-300 ease-in-out"
+            className="transition-all duration-500 ease-in-out"
+            style={{
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+            }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-semibold text-foreground">
+          <span className="text-lg font-bold" style={{ color: progressColor }}>
             {Math.round(value)}%
           </span>
         </div>
       </div>
-      <span className="text-xs text-muted-foreground text-center font-medium">
+      <span className="text-sm font-semibold text-center" style={{ color: progressColor }}>
         {label}
       </span>
     </div>
@@ -93,11 +121,38 @@ function CircularProgress({
 interface CourseItemProps {
   course: CourseProgressDetails;
   onLayerToggle: (courseId: number, layerNumber: number, completed: boolean) => void;
+  checkboxLoadingStates: Record<string, boolean>;
+  optimisticUpdates: Record<string, boolean>;
 }
 
-function CourseItem({ course, onLayerToggle }: CourseItemProps) {
+function CourseItem({ course, onLayerToggle, checkboxLoadingStates, optimisticUpdates }: CourseItemProps) {
   const handleLayerChange = (layerNumber: number, checked: boolean) => {
     onLayerToggle(course.courseId, layerNumber, checked);
+  };
+
+  // Helper function to get the current checkbox state (optimistic or actual)
+  const getCheckboxState = (layerNumber: number): boolean => {
+    const checkboxKey = `${course.courseId}-${layerNumber}`;
+
+    // If there's an optimistic update, use that
+    if (checkboxKey in optimisticUpdates) {
+      return optimisticUpdates[checkboxKey];
+    }
+
+    // Otherwise use the actual data
+    switch (layerNumber) {
+      case 1: return course.layerProgress.layer1;
+      case 2: return course.layerProgress.layer2;
+      case 3: return course.layerProgress.layer3;
+      case 4: return course.layerProgress.qcmLayer;
+      default: return false;
+    }
+  };
+
+  // Helper function to check if a checkbox is loading
+  const isCheckboxLoading = (layerNumber: number): boolean => {
+    const checkboxKey = `${course.courseId}-${layerNumber}`;
+    return checkboxLoadingStates[checkboxKey] || false;
   };
 
   return (
@@ -115,57 +170,117 @@ function CourseItem({ course, onLayerToggle }: CourseItemProps) {
       </div>
       
       <div className="flex items-center space-x-4 ml-4">
-        <div className="flex items-center space-x-1">
-          <Checkbox
-            id={`c1-${course.courseId}`}
-            checked={course.layerProgress.layer1}
-            onCheckedChange={(checked) => handleLayerChange(1, checked as boolean)}
-          />
-          <label 
+        <div className="flex flex-col items-center space-y-2">
+          <div className="relative">
+            <Checkbox
+              id={`c1-${course.courseId}`}
+              checked={getCheckboxState(1)}
+              onCheckedChange={(checked) => handleLayerChange(1, checked as boolean)}
+              disabled={isCheckboxLoading(1)}
+              className={cn(
+                "size-7 border-2 transition-all duration-200 shadow-sm hover:shadow-md",
+                getCheckboxState(1)
+                  ? "border-green-500 bg-green-500 hover:bg-green-600 shadow-green-200"
+                  : "border-orange-400 hover:border-orange-500 hover:bg-orange-50 shadow-orange-100",
+                isCheckboxLoading(1) && "opacity-50"
+              )}
+            />
+            {isCheckboxLoading(1) && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <LoadingSpinner size="xs" />
+              </div>
+            )}
+          </div>
+          <label
             htmlFor={`c1-${course.courseId}`}
-            className="text-xs text-muted-foreground cursor-pointer"
+            className="text-sm font-semibold cursor-pointer text-orange-600 hover:text-orange-700 transition-colors"
           >
             C1
           </label>
         </div>
-        
-        <div className="flex items-center space-x-1">
-          <Checkbox
-            id={`c2-${course.courseId}`}
-            checked={course.layerProgress.layer2}
-            onCheckedChange={(checked) => handleLayerChange(2, checked as boolean)}
-          />
-          <label 
+
+        <div className="flex flex-col items-center space-y-2">
+          <div className="relative">
+            <Checkbox
+              id={`c2-${course.courseId}`}
+              checked={getCheckboxState(2)}
+              onCheckedChange={(checked) => handleLayerChange(2, checked as boolean)}
+              disabled={isCheckboxLoading(2)}
+              className={cn(
+                "size-7 border-2 transition-all duration-200 shadow-sm hover:shadow-md",
+                getCheckboxState(2)
+                  ? "border-green-500 bg-green-500 hover:bg-green-600 shadow-green-200"
+                  : "border-yellow-400 hover:border-yellow-500 hover:bg-yellow-50 shadow-yellow-100",
+                isCheckboxLoading(2) && "opacity-50"
+              )}
+            />
+            {isCheckboxLoading(2) && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <LoadingSpinner size="xs" />
+              </div>
+            )}
+          </div>
+          <label
             htmlFor={`c2-${course.courseId}`}
-            className="text-xs text-muted-foreground cursor-pointer"
+            className="text-sm font-semibold cursor-pointer text-yellow-600 hover:text-yellow-700 transition-colors"
           >
             C2
           </label>
         </div>
-        
-        <div className="flex items-center space-x-1">
-          <Checkbox
-            id={`c3-${course.courseId}`}
-            checked={course.layerProgress.layer3}
-            onCheckedChange={(checked) => handleLayerChange(3, checked as boolean)}
-          />
-          <label 
+
+        <div className="flex flex-col items-center space-y-2">
+          <div className="relative">
+            <Checkbox
+              id={`c3-${course.courseId}`}
+              checked={getCheckboxState(3)}
+              onCheckedChange={(checked) => handleLayerChange(3, checked as boolean)}
+              disabled={isCheckboxLoading(3)}
+              className={cn(
+                "size-7 border-2 transition-all duration-200 shadow-sm hover:shadow-md",
+                getCheckboxState(3)
+                  ? "border-green-500 bg-green-500 hover:bg-green-600 shadow-green-200"
+                  : "border-blue-400 hover:border-blue-500 hover:bg-blue-50 shadow-blue-100",
+                isCheckboxLoading(3) && "opacity-50"
+              )}
+            />
+            {isCheckboxLoading(3) && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <LoadingSpinner size="xs" />
+              </div>
+            )}
+          </div>
+          <label
             htmlFor={`c3-${course.courseId}`}
-            className="text-xs text-muted-foreground cursor-pointer"
+            className="text-sm font-semibold cursor-pointer text-blue-600 hover:text-blue-700 transition-colors"
           >
             C3
           </label>
         </div>
-        
-        <div className="flex items-center space-x-1">
-          <Checkbox
-            id={`qcm-${course.courseId}`}
-            checked={course.layerProgress.qcmLayer}
-            onCheckedChange={(checked) => handleLayerChange(4, checked as boolean)}
-          />
-          <label 
+
+        <div className="flex flex-col items-center space-y-2">
+          <div className="relative">
+            <Checkbox
+              id={`qcm-${course.courseId}`}
+              checked={getCheckboxState(4)}
+              onCheckedChange={(checked) => handleLayerChange(4, checked as boolean)}
+              disabled={isCheckboxLoading(4)}
+              className={cn(
+                "size-7 border-2 transition-all duration-200 shadow-sm hover:shadow-md",
+                getCheckboxState(4)
+                  ? "border-green-500 bg-green-500 hover:bg-green-600 shadow-green-200"
+                  : "border-purple-400 hover:border-purple-500 hover:bg-purple-50 shadow-purple-100",
+                isCheckboxLoading(4) && "opacity-50"
+              )}
+            />
+            {isCheckboxLoading(4) && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <LoadingSpinner size="xs" />
+              </div>
+            )}
+          </div>
+          <label
             htmlFor={`qcm-${course.courseId}`}
-            className="text-xs text-muted-foreground cursor-pointer"
+            className="text-sm font-semibold cursor-pointer text-purple-600 hover:text-purple-700 transition-colors"
           >
             QCM
           </label>
@@ -186,7 +301,13 @@ export default function TrackerDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  // Fetch tracker details and progress
+  // State for individual checkbox loading and optimistic updates
+  const [checkboxLoadingStates, setCheckboxLoadingStates] = useState<Record<string, boolean>>({});
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, boolean>>({});
+
+
+
+  // Fetch tracker details and progress (with global loading)
   const fetchTrackerData = async () => {
     try {
       setLoading(true);
@@ -202,14 +323,67 @@ export default function TrackerDetailPage() {
 
       // Fetch progress
       const progressResponse = await NewApiService.getCardProgress(trackerId);
+      console.log('📊 [TrackerDetailPage] Progress response:', {
+        success: progressResponse.success,
+        hasData: !!progressResponse.data,
+        dataKeys: progressResponse.data ? Object.keys(progressResponse.data) : 'no data',
+        totalCourses: progressResponse.data?.totalCourses,
+        courseProgressCount: progressResponse.data?.courseProgress?.length || 0,
+        courseProgressExists: !!progressResponse.data?.courseProgress,
+        courseProgressType: typeof progressResponse.data?.courseProgress,
+        courseProgressIsArray: Array.isArray(progressResponse.data?.courseProgress),
+        firstCourse: progressResponse.data?.courseProgress?.[0] || 'no courses',
+        // Check for nested structure
+        hasNestedData: !!progressResponse.data?.data,
+        nestedDataKeys: progressResponse.data?.data ? Object.keys(progressResponse.data.data) : 'no nested data',
+        nestedCourseProgress: progressResponse.data?.data?.courseProgress,
+        nestedCoursesCount: progressResponse.data?.data?.courseProgress?.length || 0,
+        fullProgressData: progressResponse.data
+      });
+
       if (progressResponse.success && progressResponse.data) {
-        setProgress(progressResponse.data);
+        // Handle potential nested response structure like other APIs
+        const actualProgressData = progressResponse.data?.data || progressResponse.data;
+        console.log('📊 [TrackerDetailPage] Using progress data:', {
+          isNested: !!progressResponse.data?.data,
+          actualTotalCourses: actualProgressData?.totalCourses,
+          actualCourseProgressCount: actualProgressData?.courseProgress?.length || 0,
+          actualProgressData
+        });
+        setProgress(actualProgressData);
+      } else {
+        console.warn('⚠️ [TrackerDetailPage] No progress data received:', progressResponse);
       }
     } catch (err) {
       console.error('Error fetching tracker data:', err);
       setError('Failed to load tracker details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Lightweight refresh function without global loading (for checkbox updates)
+  const refreshProgressData = async () => {
+    try {
+      console.log('🔄 [TrackerDetailPage] Refreshing progress data silently...');
+
+      // Fetch progress without setting global loading state
+      const progressResponse = await NewApiService.getCardProgress(trackerId);
+
+      if (progressResponse.success && progressResponse.data) {
+        const actualProgressData = progressResponse.data?.data || progressResponse.data;
+        setProgress(actualProgressData);
+
+        // Clear any optimistic updates since we now have fresh data
+        setOptimisticUpdates({});
+
+        console.log('✅ [TrackerDetailPage] Progress data refreshed silently');
+      } else {
+        console.warn('⚠️ [TrackerDetailPage] Failed to refresh progress data:', progressResponse);
+      }
+    } catch (err) {
+      console.error('💥 [TrackerDetailPage] Error refreshing progress data:', err);
+      // Don't throw error here to avoid breaking the UI
     }
   };
 
@@ -223,30 +397,7 @@ export default function TrackerDetailPage() {
     router.back();
   };
 
-  const handleEdit = () => {
-    router.push(`/student/suivi-cours/tracker/${trackerId}/edit`);
-  };
 
-  const handleLayerToggle = async (courseId: number, layerNumber: number, completed: boolean) => {
-    try {
-      const response = await NewApiService.upsertCourseLayer({
-        courseId,
-        layerNumber,
-        completed
-      });
-
-      if (response.success) {
-        // Refresh progress data
-        await fetchTrackerData();
-        toast.success(`Couche ${layerNumber} ${completed ? 'complétée' : 'marquée comme incomplète'}`);
-      } else {
-        throw new Error(response.error || 'Failed to update layer');
-      }
-    } catch (err) {
-      console.error('Error updating layer:', err);
-      toast.error('Erreur lors de la mise à jour de la couche');
-    }
-  };
 
   const toggleCategory = (categoryName: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -257,6 +408,63 @@ export default function TrackerDetailPage() {
     }
     setExpandedCategories(newExpanded);
   };
+
+  const handleLayerToggle = async (courseId: number, layerNumber: number, completed: boolean) => {
+    const checkboxKey = `${courseId}-${layerNumber}`;
+
+    try {
+      console.log(`🎯 [TrackerDetailPage] Toggling layer ${layerNumber} for course ${courseId} to ${completed}`);
+
+      // 1. Optimistic update - immediately update the UI
+      setOptimisticUpdates(prev => ({
+        ...prev,
+        [checkboxKey]: completed
+      }));
+
+      // 2. Set loading state for this specific checkbox
+      setCheckboxLoadingStates(prev => ({
+        ...prev,
+        [checkboxKey]: true
+      }));
+
+      // 3. Make the API call
+      const response = await NewApiService.upsertCourseLayer({
+        courseId,
+        layerNumber,
+        completed
+      });
+
+      if (response.success) {
+        // 4. Success - refresh progress data silently (no global loading)
+        await refreshProgressData();
+        toast.success(`Couche ${layerNumber} ${completed ? 'complétée' : 'marquée comme incomplète'}`);
+
+        console.log(`✅ [TrackerDetailPage] Successfully updated layer ${layerNumber} for course ${courseId}`);
+      } else {
+        throw new Error(response.error || 'Failed to update layer');
+      }
+    } catch (err) {
+      console.error(`💥 [TrackerDetailPage] Error updating layer ${layerNumber} for course ${courseId}:`, err);
+
+      // 5. Error - revert the optimistic update
+      setOptimisticUpdates(prev => {
+        const newUpdates = { ...prev };
+        delete newUpdates[checkboxKey];
+        return newUpdates;
+      });
+
+      toast.error('Erreur lors de la mise à jour de la couche');
+    } finally {
+      // 6. Clear loading state for this checkbox
+      setCheckboxLoadingStates(prev => {
+        const newStates = { ...prev };
+        delete newStates[checkboxKey];
+        return newStates;
+      });
+    }
+  };
+
+
 
   if (loading) {
     return <FullPageLoading message="Chargement du suivi de cours..." />;
@@ -286,6 +494,17 @@ export default function TrackerDetailPage() {
     acc[moduleName].push(course);
     return acc;
   }, {} as Record<string, CourseProgressDetails[]>) || {};
+
+  console.log('📚 [TrackerDetailPage] Course grouping:', {
+    progressExists: !!progress,
+    courseProgressExists: !!progress?.courseProgress,
+    courseProgressLength: progress?.courseProgress?.length || 0,
+    coursesByModuleKeys: Object.keys(coursesByModule),
+    coursesByModuleCount: Object.keys(coursesByModule).length,
+    totalCoursesInGroups: Object.values(coursesByModule).reduce((sum, courses) => sum + courses.length, 0),
+    firstCourseInProgress: progress?.courseProgress?.[0] || 'no courses',
+    coursesByModule
+  });
 
   // Calculate layer progress percentages
   const totalCourses = progress?.totalCourses || 0;
@@ -330,13 +549,6 @@ export default function TrackerDetailPage() {
               )}
             </div>
           </div>
-          <Button 
-            onClick={handleEdit}
-            variant="outline"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Modifier
-          </Button>
         </div>
 
         <Separator />
@@ -433,6 +645,8 @@ export default function TrackerDetailPage() {
                           key={course.courseId}
                           course={course}
                           onLayerToggle={handleLayerToggle}
+                          checkboxLoadingStates={checkboxLoadingStates}
+                          optimisticUpdates={optimisticUpdates}
                         />
                       ))}
                     </div>
@@ -442,6 +656,8 @@ export default function TrackerDetailPage() {
             )}
           </CardContent>
         </Card>
+
+
       </div>
     </ErrorBoundary>
   );

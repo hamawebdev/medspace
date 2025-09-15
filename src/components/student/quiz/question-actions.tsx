@@ -118,22 +118,6 @@ export function QuestionActions() {
     <div className="space-y-3">
       {/* Primary Actions */}
       <div className="flex items-center gap-1">
-          {/* Bookmark */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => bookmarkQuestion(currentQuestion.id)}
-            className={cn(
-              "gap-1",
-              isBookmarked && "text-yellow-600"
-            )}
-          >
-            <Star className={cn("h-4 w-4", isBookmarked && "fill-current")} />
-            <span className="hidden sm:inline">
-              {isBookmarked ? 'Remove' : 'Favorite'}
-            </span>
-          </Button>
-
           {/* Add Note */}
           <Dialog open={showNoteDialog} onOpenChange={setShowNoteDialog}>
             <DialogTrigger asChild>
@@ -165,17 +149,6 @@ export function QuestionActions() {
                   rows={4}
                 />
 
-                <div className="space-y-2">
-                  <UILabel>Label (optional)</UILabel>
-                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto">
-                    {(labels || []).map(l => (
-                      <label key={l.id} className="flex items-center gap-2">
-                        <Checkbox checked={selectedLabelId === l.id} onCheckedChange={() => setSelectedLabelId(l.id)} />
-                        <span className="text-sm">{l.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowNoteDialog(false)}>

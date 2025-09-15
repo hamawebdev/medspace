@@ -13,7 +13,9 @@ import {
   Search,
   BookOpen,
   Target,
-  X
+  X,
+  Check,
+  XIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,14 +42,79 @@ export function QuizSidebar() {
 
   const getQuestionStatus = (questionId: string | number) => {
     const id = Number(questionId);
-    // Use localAnswers from API context instead of session.userAnswers
+    // Prefer most up-to-date local answer; fallback to persisted session answer
     const userAnswer = state.localAnswers?.[id] || session.userAnswers?.[String(id)];
+
     if (!userAnswer) return 'unanswered';
 
-    if (userAnswer.selectedOptions?.length || userAnswer.selectedAnswerId || userAnswer.selectedAnswerIds?.length || userAnswer.textAnswer) {
+    // Check if answer was submitted (has selectedOptions, selectedAnswerIds, or selectedAnswerId) or if session is completed
+    const hasUserInteraction = !!(
+      (Array.isArray(userAnswer.selectedOptions) && userAnswer.selectedOptions.length > 0) ||
+      (Array.isArray(userAnswer.selectedAnswerIds) && userAnswer.selectedAnswerIds.length > 0) ||
+      (userAnswer.selectedAnswerId !== undefined && userAnswer.selectedAnswerId !== null) ||
+      (typeof userAnswer.textAnswer === 'string' && userAnswer.textAnswer.trim().length > 0) ||
+      session.status === 'COMPLETED' ||
+      session.status === 'completed'
+    );
+
+    if (!hasUserInteraction) return 'unanswered';
+
+    // If we have the isCorrect field directly, use it (set at submission time)
+    if (typeof userAnswer.isCorrect === 'boolean') {
+      return userAnswer.isCorrect ? 'correct' : 'incorrect';
+    }
+
+    // Find the question to determine correctness
+    const question = session.questions.find(q => String(q.id) === String(id));
+    if (!question) return 'answered'; // Fallback if question not found
+
+    // Normalize selected answer IDs as trimmed strings
+    let selectedAnswerIds: string[] = [];
+    if (Array.isArray(userAnswer.selectedOptions) && userAnswer.selectedOptions.length) {
+      selectedAnswerIds = userAnswer.selectedOptions.map((v: any) => String(v).trim());
+    } else if (Array.isArray(userAnswer.selectedAnswerIds) && userAnswer.selectedAnswerIds.length) {
+      selectedAnswerIds = userAnswer.selectedAnswerIds.map((v: any) => String(v).trim());
+    } else if (userAnswer.selectedAnswerId !== undefined && userAnswer.selectedAnswerId !== null) {
+      selectedAnswerIds = [String(userAnswer.selectedAnswerId).trim()];
+    }
+
+    // For text answers, without an explicit isCorrect, treat as answered-neutral
+    if ((typeof userAnswer.textAnswer === 'string' && userAnswer.textAnswer.trim().length > 0) && selectedAnswerIds.length === 0) {
       return 'answered';
     }
-    return 'unanswered';
+
+    // Build the array of answer options from the question, preferring documented fields
+    const rawOptions = (question as any).questionAnswers || (question as any).answers || (question as any).options || [];
+
+    // Extract correct IDs with robust field support (handle boolean/number/string forms)
+    const toBool = (v: any) => {
+      if (typeof v === 'boolean') return v;
+      if (typeof v === 'number') return v === 1;
+      if (typeof v === 'string') {
+        const s = v.toLowerCase().trim();
+        return s === 'true' || s === '1' || s === 'yes' || s === 'y';
+      }
+      return false;
+    };
+
+    const correctIds = rawOptions
+      .filter((opt: any) => opt && (toBool(opt.isCorrect) || toBool(opt.correct) || toBool(opt.isRightAnswer) || toBool(opt.isCorrectAnswer)))
+      .map((opt: any) => String(opt.id).trim());
+
+    if (correctIds.length > 0 && selectedAnswerIds.length > 0) {
+      // For multiple choice: exact set match required
+      const selectedSet = new Set(selectedAnswerIds);
+      const correctSet = new Set(correctIds);
+      const isCorrect = selectedSet.size === correctSet.size && [...selectedSet].every(id => correctSet.has(id));
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        // Debug aid to verify why a question is marked red/green
+        console.debug('[Sidebar] Computed status', { questionId: id, selectedAnswerIds, correctIds, isCorrect });
+      }
+      return isCorrect ? 'correct' : 'incorrect';
+    }
+
+    // If we can't determine correctness, mark as answered (neutral), not incorrect
+    return 'answered';
   };
 
   const isQuestionBookmarked = (questionId: string | number) => {
@@ -89,11 +156,12 @@ export function QuizSidebar() {
     }
 
     // Status filter
+    const questionStatus = getQuestionStatus(question.id);
     switch (filterType) {
       case 'answered':
-        return getQuestionStatus(question.id) === 'answered';
+        return ['answered', 'correct', 'incorrect'].includes(questionStatus);
       case 'unanswered':
-        return getQuestionStatus(question.id) === 'unanswered';
+        return questionStatus === 'unanswered';
       case 'bookmarked':
         return isQuestionBookmarked(question.id);
       case 'flagged':
@@ -132,8 +200,32 @@ export function QuizSidebar() {
   };
 
   // Calculate counts using all questions, not just userAnswers keys
+  const correctCount = session.questions.filter(
+    question => {
+      const status = getQuestionStatus(question.id);
+      return status === 'correct';
+    }
+  ).length;
+
+  const incorrectCount = session.questions.filter(
+    question => {
+      const status = getQuestionStatus(question.id);
+      return status === 'incorrect';
+    }
+  ).length;
+
   const answeredCount = session.questions.filter(
-    question => getQuestionStatus(question.id) === 'answered'
+    question => {
+      const status = getQuestionStatus(question.id);
+      return ['answered', 'correct', 'incorrect'].includes(status);
+    }
+  ).length;
+
+  const unansweredCount = session.questions.filter(
+    question => {
+      const status = getQuestionStatus(question.id);
+      return status === 'unanswered';
+    }
   ).length;
 
   const bookmarkedCount = session.questions.filter(
@@ -174,16 +266,16 @@ export function QuizSidebar() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 text-xs">
             <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg" style={{ backgroundColor: '#00B05020', border: '1px solid #00B05040' }}>
-              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#00B050' }}>{answeredCount}</div>
-              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#00B050' }}>Justes</div>
+              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#00B050' }}>{correctCount}</div>
+              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#00B050' }}>Correct</div>
             </div>
             <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg" style={{ backgroundColor: '#FF000020', border: '1px solid #FF000040' }}>
-              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#FF0000' }}>{bookmarkedCount}</div>
-              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#FF0000' }}>Fausses</div>
+              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#FF0000' }}>{incorrectCount}</div>
+              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#FF0000' }}>Incorrect</div>
             </div>
             <div className="text-center p-2 sm:p-3 lg:p-4 xl:p-5 rounded-lg" style={{ backgroundColor: '#BFBFBF20', border: '1px solid #BFBFBF40' }}>
-              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#BFBFBF' }}>{flaggedCount}</div>
-              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#BFBFBF' }}>Consultées</div>
+              <div className="font-bold text-base sm:text-lg lg:text-xl xl:text-2xl" style={{ color: '#BFBFBF' }}>{unansweredCount}</div>
+              <div className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: '#BFBFBF' }}>Unanswered</div>
             </div>
           </div>
         </div>
@@ -208,7 +300,7 @@ export function QuizSidebar() {
           <SelectContent className="bg-background/95 backdrop-blur-sm border-border/50">
             <SelectItem value="all" className="font-medium text-xs sm:text-sm lg:text-base">All Questions ({session.totalQuestions})</SelectItem>
             <SelectItem value="answered" className="font-medium text-xs sm:text-sm lg:text-base">Answered ({answeredCount})</SelectItem>
-            <SelectItem value="unanswered" className="font-medium text-xs sm:text-sm lg:text-base">Unanswered ({session.totalQuestions - answeredCount})</SelectItem>
+            <SelectItem value="unanswered" className="font-medium text-xs sm:text-sm lg:text-base">Unanswered ({unansweredCount})</SelectItem>
             <SelectItem value="bookmarked" className="font-medium text-xs sm:text-sm lg:text-base">Bookmarked ({bookmarkedCount})</SelectItem>
             <SelectItem value="flagged" className="font-medium text-xs sm:text-sm lg:text-base">Flagged ({flaggedCount})</SelectItem>
           </SelectContent>
@@ -225,7 +317,7 @@ export function QuizSidebar() {
             const status = getQuestionStatus(question.id);
             const isBookmarked = isQuestionBookmarked(question.id);
             const flags = getQuestionFlags(question.id);
-            const timeSpent = session.userAnswers[String(question.id)]?.timeSpent || 0;
+            const timeSpent = (state.localAnswers?.[Number(question.id)] || session.userAnswers[String(question.id)])?.timeSpent || 0;
 
             return (
               <Button
@@ -235,7 +327,9 @@ export function QuizSidebar() {
                   "w-full justify-start p-2 sm:p-3 lg:p-3 xl:p-4 h-auto text-left btn-modern focus-ring transition-all duration-300",
                   "min-h-[48px] sm:min-h-[52px] lg:min-h-[56px] xl:min-h-[60px]",
                   isActive && "ring-2 ring-primary/30 shadow-md bg-primary/5",
-                  !isActive && "hover:bg-accent/50 hover:shadow-sm"
+                  !isActive && status === 'correct' && "hover:bg-green-50 bg-green-50/50 border-green-200/50",
+                  !isActive && status === 'incorrect' && "hover:bg-red-50 bg-red-50/50 border-red-200/50",
+                  !isActive && (status === 'answered' || status === 'unanswered') && "hover:bg-accent/50 hover:shadow-sm"
                 )}
                 onClick={() => goToQuestion(originalIndex)}
               >
@@ -249,7 +343,11 @@ export function QuizSidebar() {
                       )}>
                         {originalIndex + 1}
                       </span>
-                      {status === 'answered' ? (
+                      {status === 'correct' ? (
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-green-600" />
+                      ) : status === 'incorrect' ? (
+                        <XIcon className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-red-600" />
+                      ) : status === 'answered' ? (
                         <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-chart-1" />
                       ) : (
                         <Circle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-muted-foreground" />

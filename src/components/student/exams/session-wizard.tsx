@@ -11,7 +11,9 @@ import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, GraduationCap } from "lucide-react";
 import { useContentFilters, useQuizSessionFilters } from '@/hooks/use-content-filters';
 import { useUserSubscriptions, selectEffectiveActiveSubscription } from '@/hooks/use-subscription';
-import { useDebounce } from '@/hooks/use-debounce';
+import { useUniversitySelection, validateUniversitySelection } from '@/hooks/use-university-selection';
+import { analyzeSessionCreationError, logErrorDetails, getUserErrorMessage, getSuggestedActions } from '@/utils/session-error-handler';
+import { UniversitySelector } from '@/components/ui/university-selector';
 import { NewApiService } from '@/lib/api/new-api-services';
 import { LoadingOverlay } from '@/components/loading-states/api-loading-states';
 import { ApiErrorBoundary } from '@/components/error-handling/api-error-boundary';
@@ -54,17 +56,14 @@ export function ExamSessionWizard({
 
   // Exam session filters state
   const [examFilters, setExamFilters] = useState<any>(null);
-  const [universities, setUniversities] = useState<Array<{ id: number; name: string; country: string; questionCount: number }>>([]);
   const [questionSources, setQuestionSources] = useState<Array<{ id: number; name: string; questionCount: number }>>([]);
   const [examYears, setExamYears] = useState<Array<{ year: number; questionCount: number }>>([]);
   const [rotations, setRotations] = useState<Array<{ rotation: string; questionCount: number }>>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
-  const [selectedUniversity, setSelectedUniversity] = useState<string | undefined>(undefined);
   const [selectedSource, setSelectedSource] = useState<string | undefined>(undefined);
   const [selectedYear, setSelectedYear] = useState<string | undefined>(undefined);
   const [selectedRotation, setSelectedRotation] = useState<string | undefined>(undefined);
-  const [questionType, setQuestionType] = useState<'ALL' | 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>('ALL');
 
   // Auto-deselection handlers for unite/module selection
   // AUTO-DESELECTION RULE: Selecting one automatically deselects the other
@@ -78,13 +77,12 @@ export function ExamSessionWizard({
     setSelectedModule(undefined); // Auto-deselect module when unit is selected
 
     // Reset all filters when changing unite/module to ensure consistency
-    setSelectedUniversity(undefined);
+    universitySelection.clearSelection();
     setSelectedSource(undefined);
     setSelectedYear(undefined);
     setSelectedRotation(undefined);
 
-    // Reset question count to trigger recalculation
-    setAvailableCount(0);
+
   };
 
   const handleModuleSelection = (module: { id: number; name: string }) => {
@@ -97,33 +95,32 @@ export function ExamSessionWizard({
     setSelectedUnite(undefined); // Auto-deselect unit when module is selected
 
     // Reset all filters when changing unite/module to ensure consistency
-    setSelectedUniversity(undefined);
+    universitySelection.clearSelection();
     setSelectedSource(undefined);
     setSelectedYear(undefined);
     setSelectedRotation(undefined);
 
-    // Reset question count to trigger recalculation
-    setAvailableCount(0);
+
   };
 
   const handleUniteDeselection = () => {
     console.log('[ExamWizard] Unit deselected - clearing all related filters');
     setSelectedUnite(undefined);
-    setSelectedUniversity(undefined);
+    universitySelection.clearSelection();
     setSelectedSource(undefined);
     setSelectedYear(undefined);
     setSelectedRotation(undefined);
-    setAvailableCount(0);
+
   };
 
   const handleModuleDeselection = () => {
     console.log('[ExamWizard] Independent module deselected - clearing all related filters');
     setSelectedModule(undefined);
-    setSelectedUniversity(undefined);
+    universitySelection.clearSelection();
     setSelectedSource(undefined);
     setSelectedYear(undefined);
     setSelectedRotation(undefined);
-    setAvailableCount(0);
+
   };
 
   // Step 1: Get Content Structure - Use content filters for unite/module structure
@@ -132,7 +129,14 @@ export function ExamSessionWizard({
   const { subscriptions } = useUserSubscriptions();
   const { allowedYearLevels } = selectEffectiveActiveSubscription(subscriptions);
   const allowedYearLevelsKey = React.useMemo(() => (allowedYearLevels || []).join(','), [allowedYearLevels]);
-  const [availableCount, setAvailableCount] = useState<number>(0);
+
+  // University selection logic
+  const universitySelection = useUniversitySelection({
+    universities: sessionFilters?.universities || [],
+    allowMultiple: false, // Exam sessions require single university selection
+    required: true, // Universities are required for exam sessions
+    initialSelection: []
+  });
 
   // Step 1: Build unite and module options from content filters
   React.useEffect(() => {
@@ -175,7 +179,6 @@ export function ExamSessionWizard({
   React.useEffect(() => {
     if (sessionFilters) {
       setExamFilters(sessionFilters);
-      setUniversities(sessionFilters.universities || []);
       setQuestionSources(sessionFilters.questionSources || []);
 
       // Transform questionYears array to expected format
@@ -197,7 +200,8 @@ export function ExamSessionWizard({
   // Validate if all required filters are present for exam sessions
   const areRequiredFiltersComplete = useMemo(() => {
     const hasSelection = !!selectedUnite || !!selectedModule;
-    const hasRequiredFilters = !!selectedUniversity && selectedUniversity !== 'ALL' &&
+    const hasUniversitySelection = universitySelection.isValid && universitySelection.selectedUniversityIds.length > 0;
+    const hasRequiredFilters = hasUniversitySelection &&
                               !!selectedSource && selectedSource !== 'ALL' &&
                               !!selectedYear && selectedYear !== 'ALL';
 
@@ -206,32 +210,16 @@ export function ExamSessionWizard({
       hasRequiredFilters,
       selectedUnite: selectedUnite?.name,
       selectedModule: selectedModule?.name,
-      selectedUniversity,
+      selectedUniversityIds: universitySelection.selectedUniversityIds,
       selectedSource,
       selectedYear,
       isComplete: hasSelection && hasRequiredFilters
     });
 
     return hasSelection && hasRequiredFilters;
-  }, [selectedUnite, selectedModule, selectedUniversity, selectedSource, selectedYear]);
+  }, [selectedUnite, selectedModule, universitySelection.isValid, universitySelection.selectedUniversityIds, selectedSource, selectedYear]);
 
-  // Create filters object for debouncing
-  const filtersForCount = useMemo(() => ({
-    areRequiredFiltersComplete,
-    selectedUnite,
-    selectedModule,
-    selectedUniversity,
-    selectedSource,
-    selectedYear,
-    selectedRotation,
-    questionType
-  }), [areRequiredFiltersComplete, selectedUnite, selectedModule, selectedUniversity, selectedSource, selectedYear, selectedRotation, questionType]);
 
-  const debouncedFilters = useDebounce(filtersForCount, 300);
-
-  // Track last filters to prevent duplicate calls
-  const lastFiltersRef = useRef<string>('');
-  const isLoadingRef = useRef<boolean>(false);
 
   // Helper function to extract course IDs from content filters based on selections
   const extractCourseIdsFromContentFilters = useCallback((): number[] => {
@@ -289,101 +277,19 @@ export function ExamSessionWizard({
     return uniqueCourseIds;
   }, [contentFilters, selectedUnite, selectedModule]);
 
-  // Memoize the computeAvailableCount function
-  const computeAvailableCount = useCallback(async () => {
-    // Prevent concurrent calls
-    if (isLoadingRef.current) {
-      console.log('⏸️ [ExamWizard] Skipping question count fetch - already loading');
-      return;
-    }
 
-    // Only proceed if all required filters are complete
-    if (!debouncedFilters.areRequiredFiltersComplete) {
-      console.log('⏸️ [ExamWizard] Skipping question count fetch - incomplete filters');
-      setAvailableCount(0);
-      return;
-    }
-
-    try {
-      isLoadingRef.current = true;
-
-      // Extract course IDs from the current selection
-      const courseIds = extractCourseIdsFromContentFilters();
-
-      if (courseIds.length === 0) {
-        console.warn('[ExamWizard] No course IDs available for question count');
-        setAvailableCount(0);
-        return;
-      }
-
-      // Build filters for the question count API (all required filters are guaranteed to be present)
-      const filters: any = {
-        courseIds,
-        universityIds: [Number(debouncedFilters.selectedUniversity)],
-        questionSourceIds: [Number(debouncedFilters.selectedSource)],
-        years: [Number(debouncedFilters.selectedYear)]
-      };
-
-      // Add optional filters
-      if (debouncedFilters.selectedRotation && debouncedFilters.selectedRotation !== 'ALL') {
-        filters.rotations = [debouncedFilters.selectedRotation as 'R1' | 'R2' | 'R3' | 'R4'];
-      }
-
-      if (debouncedFilters.questionType && debouncedFilters.questionType !== 'ALL') {
-        filters.questionTypes = [debouncedFilters.questionType === 'MULTIPLE_CHOICE' ? 'MULTIPLE_CHOICES' : 'SINGLE_CHOICE'];
-      }
-
-      console.log('🚀 [ExamWizard] Fetching question count with complete filters:', filters);
-
-      // Call the question count API
-      const response = await NewApiService.getQuestionCount(filters);
-
-      if (response.success && response.data) {
-        // Prioritize accessibleQuestionCount as per API documentation
-        const questionCount = response.data.accessibleQuestionCount || response.data.totalQuestionCount || 0;
-        console.log('[ExamWizard] Question count response:', {
-          totalQuestionCount: response.data.totalQuestionCount,
-          accessibleQuestionCount: response.data.accessibleQuestionCount,
-          finalCount: questionCount,
-          usingAccessibleCount: !!response.data.accessibleQuestionCount
-        });
-        setAvailableCount(questionCount);
-      } else {
-        console.error('[ExamWizard] Question count API failed:', response.error);
-        setAvailableCount(0);
-      }
-    } catch (error) {
-      console.error('[ExamWizard] Failed to fetch question count:', error);
-      setAvailableCount(0);
-    } finally {
-      isLoadingRef.current = false;
-    }
-  }, [debouncedFilters, extractCourseIdsFromContentFilters]);
-
-  // Compute available question count using the /quizzes/question-count endpoint
-  useEffect(() => {
-    // Create a stable key for comparison
-    const filtersKey = JSON.stringify(debouncedFilters);
-
-    // Only fetch if filters have actually changed
-    if (filtersKey !== lastFiltersRef.current) {
-      lastFiltersRef.current = filtersKey;
-      computeAvailableCount();
-    } else {
-      console.log('⏸️ [ExamWizard] Skipping question count fetch - filters unchanged');
-    }
-  }, [debouncedFilters, computeAvailableCount]);
 
   // Require a title, either unite or module selection, and required exam filters
   const canCreate = useMemo(() => {
     const hasTitle = title.trim().length >= 3;
     const hasSelection = !!selectedUnite || !!selectedModule;
-    const hasRequiredFilters = !!selectedUniversity && selectedUniversity !== 'ALL' &&
+    const hasUniversitySelection = universitySelection.isValid && universitySelection.selectedUniversityIds.length > 0;
+    const hasRequiredFilters = hasUniversitySelection &&
                               !!selectedSource && selectedSource !== 'ALL' &&
                               !!selectedYear && selectedYear !== 'ALL';
 
     return hasTitle && hasSelection && hasRequiredFilters;
-  }, [title, selectedUnite, selectedModule, selectedUniversity, selectedSource, selectedYear]);
+  }, [title, selectedUnite, selectedModule, universitySelection.isValid, universitySelection.selectedUniversityIds, selectedSource, selectedYear]);
 
   const handleCreate = async () => {
     try {
@@ -393,103 +299,7 @@ export function ExamSessionWizard({
       }
       setLoading(true);
 
-      // Step 2: Get Available Questions by Unite or Module
-      const apiParams = selectedUnite
-        ? { uniteId: selectedUnite.id }
-        : { moduleId: selectedModule!.id };
-
-      // Validate that we have valid IDs
-      if (selectedUnite && (!selectedUnite.id || isNaN(selectedUnite.id))) {
-        console.error('[ExamWizard] Invalid unite ID:', selectedUnite);
-        toast.error('Invalid unite selected. Please try selecting again.');
-        return;
-      }
-
-      if (selectedModule && (!selectedModule.id || isNaN(selectedModule.id))) {
-        console.error('[ExamWizard] Invalid module ID:', selectedModule);
-        toast.error('Invalid module selected. Please try selecting again.');
-        return;
-      }
-
-      console.debug('[ExamWizard] Fetching questions with params:', apiParams);
-
-      const questionsResponse = await NewApiService.getQuestionsByUniteOrModule(apiParams);
-
-      console.debug('[ExamWizard] Questions response:', {
-        success: questionsResponse.success,
-        hasData: !!questionsResponse.data,
-        dataStructure: questionsResponse.data ? Object.keys(questionsResponse.data) : 'null',
-        questionsCount: questionsResponse.data?.questions?.length || 0,
-        fullResponse: questionsResponse
-      });
-
-      if (!questionsResponse.success) {
-        const contentType = selectedUnite ? 'unite' : 'module';
-        console.error('[ExamWizard] API call failed:', questionsResponse.error);
-        toast.error(`Failed to fetch questions for the selected ${contentType}: ${questionsResponse.error || 'Unknown error'}`);
-        return;
-      }
-
-      if (!questionsResponse.data?.questions || questionsResponse.data.questions.length === 0) {
-        const contentType = selectedUnite ? 'unite' : 'module';
-        console.error('[ExamWizard] No questions in response data:', {
-          data: questionsResponse.data,
-          hasQuestions: !!questionsResponse.data?.questions,
-          questionsLength: questionsResponse.data?.questions?.length
-        });
-        toast.error(`No questions found for the selected ${contentType}`);
-        return;
-      }
-
-      let questions = questionsResponse.data.questions;
-
-      // Step 3: Apply Frontend Filters (client-side filtering)
-      if (selectedUniversity) {
-        const universityId = Number(selectedUniversity);
-        questions = questions.filter((q: any) => q.universityId === universityId);
-      }
-
-      if (selectedSource) {
-        const sourceId = Number(selectedSource);
-        questions = questions.filter((q: any) => q.sourceId === sourceId);
-      }
-
-      if (selectedYear) {
-        const year = Number(selectedYear);
-        questions = questions.filter((q: any) => q.examYear === year);
-      }
-
-      if (selectedRotation) {
-        questions = questions.filter((q: any) => q.rotation === selectedRotation);
-      }
-
-      if (questionType !== 'ALL') {
-        questions = questions.filter((q: any) => q.questionType === questionType);
-      }
-
-      if (questions.length === 0) {
-        toast.error('No questions found for the selected filters');
-        return;
-      }
-
-      // Extract question IDs (limit to 100 questions)
-      const questionIds = questions.slice(0, 100).map((q: any) => q.id);
-
-      console.debug('[ExamWizard] Creating session with questions:', {
-        selectedUnite,
-        selectedModule,
-        totalQuestions: questions.length,
-        selectedQuestions: questionIds.length,
-        filters: {
-          selectedUniversity,
-          selectedSource,
-          selectedYear,
-          selectedRotation,
-          questionType
-        }
-      });
-
-      // Step 4: Create Session using new endpoint
+      // Step 1: Extract course IDs from content filters
       const finalCourseIds = extractCourseIdsFromContentFilters();
 
       // Validation: Ensure course IDs are collected
@@ -503,23 +313,16 @@ export function ExamSessionWizard({
         return;
       }
 
-      // Use the exact question count from the API (no fallback values)
-      if (availableCount === 0) {
-        toast.error('No questions available with the current filters. Please adjust your selection.');
-        return;
-      }
-
-      const questionCount = Math.min(availableCount, 100);
-
-      // For EXAM sessions, Years, University IDs, and Question Source IDs are required
-      // and must contain exactly one item each
+      // Step 2: Validate required fields for EXAM sessions
       if (!selectedYear || selectedYear === 'ALL') {
         toast.error('Please select a specific exam year for the exam session');
         return;
       }
 
-      if (!selectedUniversity || selectedUniversity === 'ALL') {
-        toast.error('Please select a specific university for the exam session');
+      // Validation: University selection is required for exam sessions
+      const universityValidation = validateUniversitySelection(universitySelection, 'EXAM');
+      if (!universityValidation.isValid) {
+        toast.error(universityValidation.errorMessage || 'Please select a university for the exam session');
         return;
       }
 
@@ -528,47 +331,45 @@ export function ExamSessionWizard({
         return;
       }
 
+      // Step 3: Create session using new endpoint directly
       const sessionData = {
         title: title.trim() || 'Custom Exam Session',
-        questionCount,
         courseIds: finalCourseIds,
         sessionType: 'EXAM' as const,
+        // Fixed question types for EXAM sessions as per requirements
+        questionTypes: ['SINGLE_CHOICE', 'MULTIPLE_CHOICE'] as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>,
         // Required fields for EXAM sessions (exactly one item each)
-        universityIds: [Number(selectedUniversity)],
-        questionSourceIds: [Number(selectedSource)],
         years: [Number(selectedYear)],
-        // Optional fields
-        ...(selectedRotation && selectedRotation !== 'ALL' && {
-          rotations: [selectedRotation as 'R1' | 'R2' | 'R3' | 'R4']
-        }),
-        ...(questionType && questionType !== 'ALL' && {
-          questionTypes: [questionType === 'MULTIPLE_CHOICE' ? 'MULTIPLE_CHOICES' : 'SINGLE_CHOICE'] as Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICES'>
-        }),
+        universityIds: universitySelection.selectedUniversityIds,
+        questionSourceIds: [Number(selectedSource)],
+        // Optional rotations field - default to empty array if not selected
+        rotations: (selectedRotation && selectedRotation !== 'ALL')
+          ? [selectedRotation as 'R1' | 'R2' | 'R3' | 'R4']
+          : []
       };
 
       // Validation: Verify payload matches required schema
       console.log('[ExamWizard] Session creation payload validation:', {
         title: sessionData.title,
-        questionCount: sessionData.questionCount,
         courseIdsCount: sessionData.courseIds.length,
         courseIds: sessionData.courseIds,
         sessionType: sessionData.sessionType,
-        hasUniversityFilter: !!sessionData.universityIds,
-        hasSourceFilter: !!sessionData.questionSourceIds,
-        hasYearFilter: !!sessionData.years,
-        hasRotationFilter: !!sessionData.rotations,
-        hasQuestionTypeFilter: !!sessionData.questionTypes,
-        payloadSize: JSON.stringify(sessionData).length
+        questionTypes: sessionData.questionTypes,
+        years: sessionData.years,
+        universityIds: sessionData.universityIds,
+        questionSourceIds: sessionData.questionSourceIds,
+        rotations: sessionData.rotations,
+        payloadSize: JSON.stringify(sessionData).length,
+        universitySelectionState: {
+          isValid: universitySelection.isValid,
+          selectedCount: universitySelection.selectedUniversityIds.length,
+          availableCount: universitySelection.availableUniversities.length
+        }
       });
 
       // Final validation before sending
       if (!sessionData.title || sessionData.title.length < 3) {
         toast.error('Session title must be at least 3 characters long');
-        return;
-      }
-
-      if (sessionData.questionCount < 1 || sessionData.questionCount > 100) {
-        toast.error('Question count must be between 1 and 100');
         return;
       }
 
@@ -586,37 +387,78 @@ export function ExamSessionWizard({
         success: created?.success,
         data: created?.data,
         dataStructure: created?.data ? Object.keys(created.data) : 'null',
-        sessionId: created?.data?.sessionId,  // <- Correct location according to docs
-        wrongId: created?.data?.id,           // <- Wrong location
-        nestedSessionId: created?.data?.data?.id, // <- Also wrong
+        sessionId: created?.data?.sessionId,
         error: created?.error
       });
+
+      // Check if the API returned an error response
+      if (!created || !created.success) {
+        const errorDetails = analyzeSessionCreationError(created, 'EXAM');
+        logErrorDetails(errorDetails, 'Exam Session Creation');
+
+        const userMessage = getUserErrorMessage(errorDetails);
+        const suggestedActions = getSuggestedActions(errorDetails);
+
+        // Show user-friendly error message
+        toast.error(userMessage);
+
+        // Log suggested actions for user guidance
+        console.log('💡 [ExamWizard] Suggested actions for user:', suggestedActions);
+
+        return;
+      }
 
       // According to documentation, sessionId is at response.data.sessionId
       const sessionId = created?.data?.sessionId;
 
       if (sessionId) {
         console.log('✅ [ExamWizard] Session created successfully with ID:', sessionId);
-        toast.success('Exam session created successfully');
-        router.push(`/session/${sessionId}`);
-        return;
+
+        // Step 4: Fetch the complete session data using GET /quiz-sessions/{sessionId}
+        try {
+          const sessionResponse = await NewApiService.getQuizSession(sessionId);
+          if (sessionResponse.success && sessionResponse.data) {
+            console.log('📋 [ExamWizard] Session data retrieved:', sessionResponse.data);
+            toast.success('Exam session created successfully');
+            router.push(`/session/${sessionId}`);
+            return;
+          } else {
+            console.warn('⚠️ [ExamWizard] Failed to retrieve session data, but session was created');
+            toast.success('Exam session created successfully');
+            router.push(`/session/${sessionId}`);
+            return;
+          }
+        } catch (sessionError) {
+          console.warn('⚠️ [ExamWizard] Error retrieving session data:', sessionError);
+          toast.success('Exam session created successfully');
+          router.push(`/session/${sessionId}`);
+          return;
+        }
       }
 
       console.error('❌ [ExamWizard] Session created but no sessionId found in response');
       toast.error('Session created but no sessionId returned');
     } catch (e: any) {
-      console.error('Failed to create exam session:', e);
+      console.error('💥 [ExamWizard] Exception during session creation:', e);
 
-      // Provide more specific error messages
-      if (e?.message?.includes('404')) {
-        toast.error('The selected unite/module was not found. Please try selecting a different option.');
-      } else if (e?.message?.includes('403')) {
-        toast.error('You do not have permission to access questions for this unite/module.');
-      } else if (e?.message?.includes('500')) {
-        toast.error('Server error occurred. Please try again later.');
-      } else {
-        toast.error(e?.message || 'Failed to create exam session. Please try again.');
-      }
+      // Use comprehensive error analysis
+      const errorDetails = analyzeSessionCreationError(e, 'EXAM');
+      logErrorDetails(errorDetails, 'Exam Session Creation Exception');
+
+      const userMessage = getUserErrorMessage(errorDetails);
+      const suggestedActions = getSuggestedActions(errorDetails);
+
+      // Show user-friendly error message
+      toast.error(userMessage);
+
+      // Log suggested actions for debugging
+      console.log('💡 [ExamWizard] Suggested actions for user:', suggestedActions);
+
+      // TODO: Implement UI highlighting for problematic fields
+      // const highlightFields = getHighlightFields(errorDetails);
+      // if (highlightFields.length > 0) {
+      //   console.log('🎯 [ExamWizard] Fields to highlight:', highlightFields);
+      // }
     } finally {
       setLoading(false);
     }
@@ -639,12 +481,6 @@ export function ExamSessionWizard({
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Available Questions</Label>
-              <div className="text-sm text-muted-foreground">
-                {availableCount} question{availableCount === 1 ? '' : 's'} match your filters
-              </div>
-            </div>
         {/* Visual stepper (1 step to keep consistency) */}
         <div className="flex items-center gap-3">
           {[1].map((i) => (
@@ -775,27 +611,14 @@ export function ExamSessionWizard({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">
-                  University <span className="text-red-500">*</span>
-                </Label>
-                <Select value={selectedUniversity || "ALL"} onValueChange={(value) => setSelectedUniversity(value === "ALL" ? undefined : value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={(selectedUnite || selectedModule) ? 'Select University (Required)' : 'Choose unite or module first'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL" disabled>Select a University (Required)</SelectItem>
-                    {universities.map((u) => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        <div className="flex flex-col">
-                          <span>{u.name}</span>
-                          <span className="text-xs text-muted-foreground">{u.country}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <UniversitySelector
+                universitySelection={universitySelection}
+                allowMultiple={false}
+                required={true}
+                loading={sessionFiltersLoading}
+                label="Université"
+                sessionType="EXAM"
+              />
 
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
@@ -841,39 +664,30 @@ export function ExamSessionWizard({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Rotation</Label>
-                <Select value={selectedRotation || "ALL"} onValueChange={(value) => setSelectedRotation(value === "ALL" ? undefined : value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Rotations" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Rotations</SelectItem>
-                    {rotations.map((rotationData) => (
-                      <SelectItem key={rotationData.rotation} value={rotationData.rotation}>
-                        <div className="flex flex-col">
-                          <span>{rotationData.rotation}</span>
-                          <span className="text-xs text-muted-foreground">Residency rotation</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Conditional Rotations dropdown - only show if rotations are available */}
+              {rotations.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Rotation</Label>
+                  <Select value={selectedRotation || "ALL"} onValueChange={(value) => setSelectedRotation(value === "ALL" ? undefined : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Rotations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Rotations</SelectItem>
+                      {rotations.map((rotationData) => (
+                        <SelectItem key={rotationData.rotation} value={rotationData.rotation}>
+                          <div className="flex flex-col">
+                            <span>{rotationData.rotation}</span>
+                            <span className="text-xs text-muted-foreground">Residency rotation</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-              <div className="space-y-2">
-                <Label>Question Type</Label>
-                <Select value={questionType} onValueChange={(v) => setQuestionType(v as any)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Types</SelectItem>
-                    <SelectItem value="SINGLE_CHOICE">Single Choice (QCS)</SelectItem>
-                    <SelectItem value="MULTIPLE_CHOICE">Multiple Choice (QCM)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
             </div>
           </div>
         </div>

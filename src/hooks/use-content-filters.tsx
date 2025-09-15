@@ -303,10 +303,17 @@ export function useQuestionCount(): UseQuestionCountResult {
     const cached = cacheRef.current.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       console.log('🌐 [useQuestionCount] Using cached result for filters:', filters);
-      setQuestionCount(cached.data.accessibleQuestionCount || 0);
-      setTotalQuestionCount(cached.data.totalQuestionCount || 0);
-      setError(null);
-      return;
+
+      // Validate cached data has accessibleQuestionCount
+      if (cached.data.accessibleQuestionCount === undefined || cached.data.accessibleQuestionCount === null) {
+        console.warn('🌐 [useQuestionCount] Cached data missing accessibleQuestionCount, refetching');
+        // Remove invalid cache entry and continue to fetch
+        cacheRef.current.delete(cacheKey);
+      } else {
+        setQuestionCount(cached.data.accessibleQuestionCount || 0);
+        setError(null);
+        return;
+      }
     }
 
     // Check if request is already ongoing
@@ -315,6 +322,12 @@ export function useQuestionCount(): UseQuestionCountResult {
       console.log('🌐 [useQuestionCount] Request already in progress, waiting for result:', filters);
       try {
         const result = await ongoingRequest;
+
+        // Validate result has accessibleQuestionCount
+        if (result.accessibleQuestionCount === undefined || result.accessibleQuestionCount === null) {
+          throw new ApiError('Question count unavailable. Please try again.');
+        }
+
         setQuestionCount(result.accessibleQuestionCount || 0);
         setTotalQuestionCount(result.totalQuestionCount || 0);
         setError(null);
@@ -350,6 +363,12 @@ export function useQuestionCount(): UseQuestionCountResult {
           totalQuestionCount: response.data.totalQuestionCount,
           accessibleQuestionCount: response.data.accessibleQuestionCount
         });
+
+        // Check if accessibleQuestionCount is missing from the response
+        if (response.data.accessibleQuestionCount === undefined || response.data.accessibleQuestionCount === null) {
+          console.warn('🌐 [useQuestionCount] accessibleQuestionCount is missing from API response');
+          throw new ApiError('Question count unavailable. Please try again.');
+        }
 
         // Cache the result
         cacheRef.current.set(cacheKey, {

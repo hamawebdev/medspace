@@ -11,6 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Hero } from '@/components';
+import { PricingToggle, PricingMode } from '@/components/ui/pricing-toggle';
+import { useHomepageStudyPacks } from '@/hooks/use-study-packs';
+import { transformStudyPacksForHomepage, sortStudyPacksForDisplay, getStudyPackDisplayIcon } from '@/utils/study-pack-transform';
 import {
   BookOpen,
   BarChart3,
@@ -38,6 +41,11 @@ import {
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
+  const [pricingMode, setPricingMode] = useState<PricingMode>('YEAR');
+
+  // Fetch study packs from API
+  const { studyPacks, loading: studyPacksLoading, error: studyPacksError, refresh } = useHomepageStudyPacks();
+
   useEffect(() => {
     setIsVisible(true);
   }, []);
@@ -156,71 +164,10 @@ export default function Home() {
   ];
 
 
-  const pricingPlans = [
-    {
-      year: 1,
-      title: '1st Year Foundation',
-      description: 'Essential medical sciences and clinical foundations',
-      price: '12,000 DA',
-      features: ['Basic Sciences Q&A', 'Anatomy & Physiology', '24/7 Support', 'Mobile Access'],
-      popular: false,
-      gradient: 'from-primary to-primary'
-    },
-    {
-      year: 2,
-      title: '2nd Year Advanced',
-      description: 'Pathology, pharmacology, and clinical correlation',
-      price: '12,000 DA',
-      features: ['Advanced Pathology', 'Pharmacology Bank', 'Case Studies', 'Peer Discussions'],
-      popular: false,
-      gradient: 'from-primary to-primary'
-    },
-    {
-      year: 3,
-      title: '3rd Year Clinical',
-      description: 'Clinical rotations and patient care essentials',
-      price: '12,000 DA',
-      features: ['Clinical Cases', 'OSCE Preparation', 'Mentorship Program', 'Advanced Analytics'],
-      popular: true,
-      gradient: 'from-primary to-primary'
-    },
-    {
-      year: 4,
-      title: '4th Year Specialization',
-      description: 'Advanced clinical practice and specialty introduction',
-      price: '12,000 DA',
-      features: ['Specialty Modules', 'Research Tools', 'Publication Guidance', 'Career Planning'],
-      popular: false,
-      gradient: 'from-primary to-primary'
-    },
-    {
-      year: 5,
-      title: '5th Year Mastery',
-      description: 'Clinical excellence and advanced patient management',
-      price: '12,000 DA',
-      features: ['Advanced Diagnostics', 'Treatment Planning', 'Leadership Skills', 'Quality Improvement'],
-      popular: false,
-      gradient: 'from-primary to-primary'
-    },
-    {
-      year: 6,
-      title: '6th Year Preparation',
-      description: 'Final year mastery and residency readiness',
-      price: '12,000 DA',
-      features: ['Residency Prep', 'Board Exam Focus', 'Interview Skills', 'Career Transition'],
-      popular: false,
-      gradient: 'from-primary to-primary'
-    },
-    {
-      year: 'R',
-      title: 'Residency Excellence',
-      description: 'Advanced training for medical residents and fellows',
-      price: '15,000 DA',
-      features: ['Specialty Training', 'Research Methods', 'Teaching Skills', 'Board Certification'],
-      popular: false,
-      gradient: 'from-primary to-primary'
-    },
-  ];
+  // Transform API data for display
+  const pricingPlans = sortStudyPacksForDisplay(
+    transformStudyPacksForHomepage(studyPacks, pricingMode)
+  );
 
   const faqs = [
     {
@@ -492,64 +439,81 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {pricingPlans.map((plan, index) => (
-              <Card
-                key={index}
-                className={`relative hover:shadow-2xl transition-all duration-500 transform hover:scale-105 border border-border bg-card overflow-hidden ${
-                  plan.popular ? 'ring-4 ring-primary shadow-2xl' : 'shadow-lg'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center py-2 text-sm font-bold">
-                    <Star className="w-4 h-4 inline mr-1" />
-                    MOST POPULAR
-                  </div>
-                )}
+          {/* Pricing Toggle */}
+          <PricingToggle
+            value={pricingMode}
+            onChange={setPricingMode}
+          />
 
-                <div className="h-2 bg-primary"></div>
+          {/* Loading State */}
+          {studyPacksLoading && (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          )}
 
-                <CardHeader className="text-center pt-8 pb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    {plan.year === 'R' ? (
-                      <GraduationCap className="h-8 w-8 text-primary-foreground" />
-                    ) : (
-                      <span className="text-primary-foreground font-bold text-xl">{plan.year}</span>
-                    )}
-                  </div>
-                  <CardTitle className="text-lg font-bold text-foreground">{plan.title}</CardTitle>
-                  <CardDescription className="text-sm mt-2 text-muted-foreground">
-                    {plan.description}
-                  </CardDescription>
-                </CardHeader>
+          {/* Error State */}
+          {studyPacksError && !studyPacksLoading && (
+            <div className="text-center py-20">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md mx-auto">
+                <p className="text-destructive font-medium">{studyPacksError}</p>
+                <Button
+                  variant="outline"
+                  onClick={refresh}
+                  className="mt-4"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Réessayer
+                </Button>
+              </div>
+            </div>
+          )}
 
-                <CardContent className="text-center space-y-6">
-                  <div>
-                    <span className="text-3xl font-bold text-foreground">{plan.price}</span>
-                    <span className="text-muted-foreground">/year</span>
-                  </div>
-
-                                      <div className="space-y-3">
-                      {plan.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center text-sm">
-                          <Check className="w-4 h-4 text-primary mr-2 flex-shrink-0" />
-                          <span className="text-foreground">{feature}</span>
-                        </div>
-                      ))}
+          {/* Study Packs Grid */}
+          {!studyPacksLoading && !studyPacksError && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto px-4 sm:px-0">
+              {pricingPlans.map((plan, index) => {
+                return (
+                  <div
+                    key={plan.id}
+                    className="bg-white dark:bg-card rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-border/50"
+                  >
+                    {/* Colored Header Strip with Study Pack Name */}
+                    <div className="bg-primary text-primary-foreground text-center py-4 px-6">
+                      <h3 className="font-bold text-sm uppercase tracking-wide">
+                        {plan.title}
+                      </h3>
                     </div>
 
-                  <Link href="/register">
-                    <Button
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-300"
-                    >
-                      Get Started
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    {/* Card Body */}
+                    <div className="p-6 text-center space-y-6">
+                      {/* Price Display */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-sm text-muted-foreground font-medium">DA</span>
+                          <span className="text-3xl sm:text-4xl font-bold text-foreground break-words">
+                            {plan.priceValue.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Subscribe Button */}
+                      <div className="pt-4">
+                        <Link href="/register">
+                          <Button
+                            variant="outline"
+                            className="w-full border-border hover:bg-muted/50 transition-colors duration-200"
+                          >
+                            S'inscrire
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

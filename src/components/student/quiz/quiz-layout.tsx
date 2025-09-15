@@ -55,6 +55,7 @@ import { useApiQuiz } from './quiz-api-context';
 import { EnhancedQuizFooter } from './enhanced-quiz-footer';
 import { QuizStatisticsDisplay } from './quiz-statistics-display';
 import { EnhancedExitDialog } from './enhanced-exit-dialog';
+import { SessionStatusManager } from '@/lib/session-status-manager';
 
 
 export function QuizLayout() {
@@ -62,9 +63,12 @@ export function QuizLayout() {
   const { state, pauseQuiz, resumeQuiz, nextQuestion, previousQuestion, completeQuiz, goToQuestion, toggleSidebar, submitAllAnswers } = useQuiz();
   const { state: apiState } = useApiQuiz();
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showStatsOverlay, setShowStatsOverlay] = useState(false);
+  const [latestApiResults, setLatestApiResults] = useState<any>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
-  // Extract API session results from the API state
-  const apiSessionResults = apiState.session ? {
+  // Extract API session results from the API state, prioritizing latest API response
+  const apiSessionResults = latestApiResults || (apiState.session ? {
     scoreOutOf20: apiState.session.score,
     percentageScore: apiState.session.percentage,
     timeSpent: apiState.session.timeSpent,
@@ -72,7 +76,7 @@ export function QuizLayout() {
     totalQuestions: apiState.session.totalQuestions,
     status: apiState.session.status,
     sessionId: apiState.apiSessionId
-  } : undefined;
+  } : undefined);
 
   // Global keyboard shortcuts
   useGlobalKeyboardShortcuts({
@@ -125,6 +129,43 @@ export function QuizLayout() {
       }
     }
   }, [session.status, router]);
+
+  // Handle browser close/navigation with session status management
+  useEffect(() => {
+    const apiSessionId = (state as any).apiSessionId;
+    if (!apiSessionId) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      // Only update status if session is not already completed
+      if (session.status !== 'COMPLETED' && session.status !== 'completed') {
+        SessionStatusManager.handleBeforeUnload(
+          apiSessionId,
+          totalQuestions,
+          answeredQuestions
+        );
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      // Handle tab/window visibility changes
+      if (document.hidden && session.status !== 'COMPLETED' && session.status !== 'completed') {
+        // User switched away from tab - update status if there are unanswered questions
+        if (answeredQuestions < totalQuestions && answeredQuestions > 0) {
+          SessionStatusManager.setInProgress(apiSessionId, { silent: true });
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [session.status, totalQuestions, answeredQuestions, state]);
 
   // Show loading while redirecting
   if (session.status === 'completed' || session.status === 'COMPLETED') {
@@ -220,6 +261,117 @@ export function QuizLayout() {
     } else {
       pauseQuiz();
     }
+  };
+
+  const handleShowStatsOverlay = async () => {
+    setShowExitDialog(false); // Close exit dialog first
+    setStatsError(null); // Clear any previous errors
+
+    // Submit answers like pause does (but don't actually pause the timer)
+    try {
+      // Use the same submission logic as pause but without pausing
+      if (state.apiSessionId) {
+        const userAnswers = session?.userAnswers || {};
+        const answersToSubmit = Object.keys(userAnswers).filter(
+          questionId => {
+            const answer = userAnswers[questionId];
+            return answer && (answer.selectedOptions?.length || answer.textAnswer);
+          }
+        );
+
+        if (answersToSubmit.length > 0) {
+          console.log(`📤 Submitting ${answersToSubmit.length} answers for stats display...`);
+
+          // Import QuizService dynamically to avoid circular dependencies
+          const { QuizService } = await import('@/lib/api-services');
+
+          // Convert answers to API format (same logic as pause)
+          const answersForSubmission = answersToSubmit.map(questionId => {
+            const answer = userAnswers[questionId];
+            return {
+              questionId: Number(questionId),
+              selectedAnswerId: answer.selectedOptions?.[0],
+              selectedAnswerIds: answer.selectedOptions,
+              textAnswer: answer.textAnswer,
+              timeSpent: answer.timeSpent || 0
+            };
+          });
+
+          // Build question type lookup
+          const questionTypeById: Record<number, string> = {};
+          (session.questions || []).forEach((q: any) => {
+            const qt = (q.questionType || q.type || '').toString().toUpperCase();
+            questionTypeById[Number(q.id)] = qt || 'SINGLE_CHOICE';
+          });
+
+          // Convert to API format
+          const apiAnswers = answersForSubmission.map(answer => {
+            const qType = questionTypeById[Number(answer.questionId)] || 'SINGLE_CHOICE';
+            const isSingle = qType === 'SINGLE_CHOICE' || qType === 'QCS';
+            const isMulti = qType === 'MULTIPLE_CHOICE' || qType === 'QCM';
+
+            if (isSingle) {
+              const selectedId = typeof answer.selectedAnswerId === 'number'
+                ? answer.selectedAnswerId
+                : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? Number(answer.selectedAnswerIds[0]) : undefined);
+              return {
+                questionId: Number(answer.questionId),
+                ...(Number.isFinite(selectedId as number) ? { selectedAnswerId: Number(selectedId) } : {}),
+                timeSpent: answer.timeSpent,
+              };
+            }
+
+            if (isMulti) {
+              const ids = Array.isArray(answer.selectedAnswerIds) ? answer.selectedAnswerIds.map(Number).filter(n => Number.isFinite(n)) : [];
+              return {
+                questionId: Number(answer.questionId),
+                ...(ids.length ? { selectedAnswerIds: ids } : {}),
+                timeSpent: answer.timeSpent,
+              };
+            }
+
+            return {
+              questionId: Number(answer.questionId),
+              ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
+                : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
+              timeSpent: answer.timeSpent,
+            };
+          }).filter(entry => entry.selectedAnswerId || entry.selectedAnswerIds);
+
+          if (apiAnswers.length > 0) {
+            const totalTimeSpent = timer.totalTime || 0;
+            const response = await QuizService.submitAnswersBulk(state.apiSessionId, apiAnswers, totalTimeSpent);
+
+            if (response.success && response.data) {
+              // Capture the API response data for display
+              console.log('✅ Successfully submitted answers for stats display:', response.data);
+              setLatestApiResults({
+                scoreOutOf20: response.data.scoreOutOf20,
+                percentageScore: response.data.percentageScore,
+                timeSpent: response.data.timeSpent,
+                answeredQuestions: response.data.answeredQuestions,
+                totalQuestions: response.data.totalQuestions,
+                status: response.data.status || 'IN_PROGRESS',
+                sessionId: response.data.sessionId || state.apiSessionId
+              });
+            } else {
+              throw new Error(response.error || 'Failed to submit answers');
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to submit answers for stats display:', error);
+      setStatsError(error instanceof Error ? error.message : 'Failed to submit answers');
+      // Continue to show stats even if submission fails
+    }
+
+    // Show the stats overlay
+    setShowStatsOverlay(true);
+  };
+
+  const handleCloseStatsOverlay = () => {
+    setShowStatsOverlay(false);
   };
 
   const getSessionTypeBadge = (type: string) => {
@@ -583,10 +735,7 @@ export function QuizLayout() {
             answeredQuestions={answeredQuestions}
             onPrevious={previousQuestion}
             onNext={() => {
-              // Lock Next until the current question is answered
-              const currentId = state.session?.questions?.[currentQuestionIndex]?.id;
-              const hasAnswer = !!state.localAnswers?.[currentId];
-              if (!hasAnswer) return;
+              // Allow navigation to next question without requiring an answer
               nextQuestion();
             }}
             onSubmit={async () => {
@@ -594,7 +743,7 @@ export function QuizLayout() {
               await submitAllAnswers();
             }}
             canGoBack={currentQuestionIndex > 0}
-            canGoForward={currentQuestionIndex < totalQuestions - 1 && !!state.localAnswers?.[state.session?.questions?.[currentQuestionIndex]?.id]}
+            canGoForward={currentQuestionIndex < totalQuestions - 1}
             isLastQuestion={currentQuestionIndex === totalQuestions - 1}
             hideSubmit
           />
@@ -629,6 +778,7 @@ export function QuizLayout() {
                 showTitle={false}
                 className="max-w-3xl mx-auto"
                 apiSessionResults={apiSessionResults}
+                statsError={statsError}
               />
 
               {/* Resume Button */}
@@ -647,6 +797,66 @@ export function QuizLayout() {
         </div>
       )}
 
+      {/* Stats Overlay (similar to pause overlay) */}
+      {showStatsOverlay && !(session.status === 'COMPLETED' || session.status === 'completed') && (
+        <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-50 overflow-y-auto">
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl space-y-8 animate-fade-in-up">
+              {/* Header */}
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center animate-pulse-soft">
+                    <span className="text-4xl">📊</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold tracking-tight text-foreground">Quiz Statistics</h2>
+                  <p className="text-lg text-muted-foreground leading-relaxed max-w-md mx-auto">
+                    Your answers have been automatically saved. Review your detailed progress below.
+                  </p>
+                </div>
+              </div>
+
+              {/* Statistics Display */}
+              <QuizStatisticsDisplay
+                session={session}
+                timer={timer}
+                localAnswers={state.localAnswers}
+                showTitle={false}
+                className="max-w-3xl mx-auto"
+                apiSessionResults={apiSessionResults}
+                statsError={statsError}
+              />
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={handleCloseStatsOverlay}
+                  variant="outline"
+                  size="lg"
+                  className="gap-3 btn-modern focus-ring px-8 py-3 text-lg"
+                >
+                  <X className="h-5 w-5" />
+                  Close Stats
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleCloseStatsOverlay();
+                    setShowExitDialog(true);
+                  }}
+                  variant="outline"
+                  size="lg"
+                  className="gap-3 btn-modern focus-ring px-8 py-3 text-lg"
+                >
+                  <Home className="h-5 w-5" />
+                  Exit Options
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Exit Dialog */}
       <EnhancedExitDialog
         open={showExitDialog}
@@ -656,6 +866,8 @@ export function QuizLayout() {
         localAnswers={state.localAnswers}
         apiSessionId={state.apiSessionId}
         apiSessionResults={apiSessionResults}
+        onShowStats={handleShowStatsOverlay}
+        statsError={statsError}
       />
     </div>
   );

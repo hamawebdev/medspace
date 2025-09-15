@@ -143,7 +143,7 @@ export function CourseSelection({
               }
               disabled={isDisabled}
               id={`course-${course.id}`}
-              className={`transition-all duration-300 ${
+              className={`size-5 border-2 transition-all duration-300 shadow-sm hover:shadow-md ${
                 isSelected ? 'data-[state=checked]:bg-primary data-[state=checked]:border-primary' : ''
               }`}
             />

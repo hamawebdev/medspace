@@ -6,10 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { 
   BookOpen, 
   FileText, 
-  GraduationCap, 
   Layers
 } from 'lucide-react';
-import { useDashboardStats } from '@/hooks/use-dashboard-stats';
+import { useStudentDashboardStats } from '@/hooks/use-student-dashboard-stats';
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
@@ -59,23 +58,20 @@ function StatCard({ title, value, icon: Icon, loading, className }: StatCardProp
 }
 
 export function DashboardStatsCards() {
-  const { 
-    availableQuestions, 
-    availableExams, 
-    availableModules, 
-    availableUnits, 
-    loading, 
-    error 
-  } = useDashboardStats();
+  const {
+    derivedData,
+    loading,
+    error
+  } = useStudentDashboardStats();
 
   if (error) {
     return (
-      <div className="grid gap-[calc(var(--spacing)*4)] md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid gap-[calc(var(--spacing)*4)] md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
           <Card key={i} className="relative overflow-hidden bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-[calc(var(--spacing)*2)]">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Error loading data
+                Impossible de charger les statistiques du tableau de bord.
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -87,39 +83,32 @@ export function DashboardStatsCards() {
     );
   }
 
+  const statsCards = derivedData?.statsCards;
+
   return (
-    <div className="grid gap-[calc(var(--spacing)*4)] md:grid-cols-2 lg:grid-cols-4">
-      {/* Available Questions */}
+    <div className="grid gap-[calc(var(--spacing)*4)] md:grid-cols-2 lg:grid-cols-3">
+      {/* Total Questions */}
       <StatCard
-        title="Available Questions"
-        value={availableQuestions}
+        title="Total Questions"
+        value={statsCards?.totalQuestions || 0}
         icon={FileText}
         loading={loading}
         className="hover:bg-gradient-to-br hover:from-chart-1/5 hover:to-chart-1/10"
       />
 
-      {/* Available Exams */}
+      {/* Independent Modules */}
       <StatCard
-        title="Available Exams"
-        value={availableExams}
-        icon={GraduationCap}
-        loading={loading}
-        className="hover:bg-gradient-to-br hover:from-chart-2/5 hover:to-chart-2/10"
-      />
-
-      {/* Available Modules */}
-      <StatCard
-        title="Available Modules"
-        value={availableModules}
+        title="Independent Modules"
+        value={statsCards?.independentModules || 0}
         icon={BookOpen}
         loading={loading}
         className="hover:bg-gradient-to-br hover:from-chart-3/5 hover:to-chart-3/10"
       />
 
-      {/* Available Units */}
+      {/* Total Units */}
       <StatCard
-        title="Available Units"
-        value={availableUnits}
+        title="Total Units"
+        value={statsCards?.totalUnits || 0}
         icon={Layers}
         loading={loading}
         className="hover:bg-gradient-to-br hover:from-chart-4/5 hover:to-chart-4/10"

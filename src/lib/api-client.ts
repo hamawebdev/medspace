@@ -71,8 +71,29 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getStoredToken();
-        if (token) {
+
+        // Do NOT attach Authorization header for auth endpoints that should not require it
+        const url = config.url || '';
+        const isAuthEndpoint = url.includes('/auth/login') ||
+                               url.includes('/auth/register') ||
+                               url.includes('/auth/forgot-password') ||
+                               url.includes('/auth/reset-password') ||
+                               url.includes('/auth/refresh');
+
+        if (!isAuthEndpoint && token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        // Ensure JSON headers are present
+        if (!config.headers['Content-Type']) {
+          config.headers['Content-Type'] = 'application/json';
+        }
+        if (!config.headers['Accept']) {
+          config.headers['Accept'] = 'application/json';
+        }
+        // Add ngrok browser warning skip header if using ngrok
+        if (API_CONFIG.baseURL.includes('ngrok')) {
+          config.headers['ngrok-skip-browser-warning'] = 'true';
         }
 
         // Debug logging for content filters endpoint
@@ -121,9 +142,7 @@ class ApiClient {
         const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
                               error.config?.url?.includes('/auth/register') ||
                               error.config?.url?.includes('/auth/forgot-password') ||
-                              error.config?.url?.includes('/auth/reset-password') ||
-                              error.config?.url?.includes('/auth/verify-email') ||
-                              error.config?.url?.includes('/auth/resend-verification');
+                              error.config?.url?.includes('/auth/reset-password');
 
         if (error.response?.status === 401 && !isAuthEndpoint) {
           this.handleAuthError();

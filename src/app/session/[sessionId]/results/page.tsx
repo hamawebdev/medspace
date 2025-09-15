@@ -28,6 +28,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SessionStatsChart } from '@/components/student/quiz/session-stats-chart';
 
 // Utility function to format time in mm:ss format
 const formatTimeMMSS = (seconds: number): string => {
@@ -372,36 +373,25 @@ export default function QuizCompletionPage() {
 
           {/* Performance Overview */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Main Score Card */}
-            <Card className="lg:col-span-1 relative overflow-hidden">
-              <div className={cn("absolute top-0 left-0 w-full h-1",
-                completionData.percentage >= 80 ? "bg-chart-5" :
-                completionData.percentage >= 60 ? "bg-chart-4" : "bg-destructive"
-              )} />
-              
-              <CardHeader className="text-center pb-4">
-                <div className="flex items-center justify-center mb-2">
-                  <PerformanceIcon className={cn("h-8 w-8", performance.color)} />
-                </div>
-                <CardTitle>Your Score</CardTitle>
-              </CardHeader>
-              
-              <CardContent className="text-center space-y-4">
-                <div className={cn("text-6xl font-bold", performance.color)}>
-                  {completionData.percentage}%
-                </div>
-                
-                <Badge variant={completionData.percentage >= 70 ? 'default' : 'destructive'} className="text-base px-4 py-2">
-                  {completionData.correctCount}/{completionData.totalQuestions} Correct
-                </Badge>
-                
-                <p className="text-muted-foreground font-medium">
-                  {performance.level}
-                </p>
-                
-                <Progress value={completionData.percentage} className="h-3" />
-              </CardContent>
+
+            {/* Circular Chart */}
+            <Card className="lg:col-span-1">
+              <SessionStatsChart
+                data={{
+                  totalQuestions: completionData.totalQuestions,
+                  answeredQuestions: completionData.answeredQuestions || (completionData.correctCount + completionData.incorrectCount),
+                  correctAnswers: completionData.correctCount,
+                  incorrectAnswers: completionData.incorrectCount,
+                  scoreOutOf20: completionData.scoreOutOf20,
+                  percentageScore: completionData.percentage,
+                  timeSpent: completionData.timeSpent,
+                  status: completionData.status
+                }}
+                title="Session Results"
+                size="md"
+                showTitle={true}
+                className="border-0 shadow-none"
+              />
             </Card>
 
             {/* Statistics */}

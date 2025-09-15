@@ -561,44 +561,8 @@ export class NewApiService {
     }
   }
 
-  /**
-   * Create exam session by question IDs
-   * POST /api/v1/quizzes/create-session-by-questions
-   */
-  static async createExamSessionByQuestions(params: {
-    title: string;
-    type: 'EXAM';
-    questionIds: number[];
-  }): Promise<ApiResponse<any>> {
-    try {
-      const url = '/quizzes/create-session-by-questions';
-      console.log('🚀 [NewApiService] Creating exam session with request:', {
-        url,
-        requestBody: params,
-        questionCount: params.questionIds.length
-      });
-
-      const response = await apiClient.post<any>(url, params);
-
-      // Console log the full response to verify and inspect the response structure
-      console.log('📋 [NewApiService] Full session creation response:', {
-        fullResponse: response,
-        success: response.success,
-        status: response.status,
-        data: response.data,
-        dataStructure: response.data ? Object.keys(response.data) : 'null',
-        sessionId: response.data?.sessionId,  // <- Correct location according to docs
-        wrongId: response.data?.id,           // <- Wrong location
-        nestedSessionId: response.data?.data?.id, // <- Also wrong
-        error: response.error
-      });
-
-      return response;
-    } catch (error) {
-      console.error('💥 [NewApiService] Session creation error:', error);
-      handleApiError(error, 'create exam session');
-    }
-  }
+  // REMOVED: Legacy createExamSessionByQuestions endpoint
+  // Use only documented POST /quizzes/sessions endpoint for session creation
 
   /**
    * Get session filters for quiz creation (NEW ENDPOINT)
@@ -678,7 +642,6 @@ export class NewApiService {
    */
   static async createQuizSession(sessionData: {
     title: string;
-    questionCount: number;
     courseIds: number[];
     sessionType: 'PRACTISE' | 'EXAM';
     questionTypes?: Array<'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'>;
@@ -703,7 +666,45 @@ export class NewApiService {
       return response;
     } catch (error) {
       console.error('💥 [NewApiService] Session creation error:', error);
+
+      // For session creation, return error response instead of throwing
+      // This allows the UI to handle errors gracefully
+      if (error?.response?.data) {
+        return {
+          success: false,
+          error: error.response.data.message || error.response.data.error || 'Session creation failed',
+          statusCode: error.response.status,
+          data: null
+        };
+      }
+
+      // For other errors, still throw to maintain existing behavior
       handleApiError(error, 'create quiz session');
+    }
+  }
+
+  /**
+   * Get quiz session by ID (NEW ENDPOINT)
+   * GET /quiz-sessions/{sessionId}
+   */
+  static async getQuizSession(sessionId: number): Promise<ApiResponse<any>> {
+    try {
+      const url = `/quiz-sessions/${sessionId}`;
+      console.log('🚀 [NewApiService] Fetching quiz session:', { url, sessionId });
+
+      const response = await apiClient.get<any>(url);
+
+      console.log('📋 [NewApiService] Quiz session response:', {
+        success: response.success,
+        status: response.status,
+        hasData: !!response.data,
+        sessionId: response.data?.id
+      });
+
+      return response;
+    } catch (error) {
+      console.error('💥 [NewApiService] Quiz session fetch error:', error);
+      handleApiError(error, 'fetch quiz session');
     }
   }
 
@@ -772,15 +773,43 @@ export class NewApiService {
   }): Promise<ApiResponse<any>> {
     try {
       const url = '/students/cards';
-      console.log('🃏 [NewApiService] Creating card:', params);
+      console.log('🃏 [NewApiService] Creating card:', {
+        title: params.title,
+        description: params.description,
+        courseIds: params.courseIds,
+        courseIdsCount: params.courseIds?.length || 0,
+        courseIdsType: typeof params.courseIds,
+        isArray: Array.isArray(params.courseIds)
+      });
 
       const response = await apiClient.post<any>(url, params);
 
       console.log('📥 [NewApiService] Card creation response:', {
         success: response.success,
         cardId: response.data?.id,
-        message: response.message
+        nestedCardId: response.data?.data?.id,
+        message: response.message,
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        responseKeys: response ? Object.keys(response) : 'no response',
+        dataKeys: response.data ? Object.keys(response.data) : 'no data',
+        nestedDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no nested data'
       });
+
+      // Validate response structure - check both possible locations for ID
+      const actualData = response.data?.data || response.data;
+      if (response.success && actualData && typeof actualData.id === 'undefined') {
+        console.warn('⚠️ [NewApiService] Warning: Successful response but no ID found in either location:', {
+          originalData: response.data,
+          actualData,
+          possibleLocations: {
+            'response.data.id': response.data?.id,
+            'response.data.data.id': response.data?.data?.id
+          }
+        });
+      } else if (response.success && actualData?.id) {
+        console.log('✅ [NewApiService] Card created successfully with ID:', actualData.id);
+      }
 
       return response;
     } catch (error) {
@@ -839,8 +868,16 @@ export class NewApiService {
 
       console.log('📥 [NewApiService] Cards by unit/module response:', {
         success: response.success,
-        cardsCount: response.data?.length || 0,
-        params
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        cardsCount: Array.isArray(response.data) ? response.data.length : 0,
+        hasNestedData: !!response.data?.data,
+        nestedDataType: typeof response.data?.data,
+        isNestedArray: Array.isArray(response.data?.data),
+        nestedCardsCount: Array.isArray(response.data?.data) ? response.data.data.length : 0,
+        params,
+        responseKeys: response.data ? Object.keys(response.data) : 'no data'
       });
 
       return response;
@@ -864,8 +901,29 @@ export class NewApiService {
       console.log('📥 [NewApiService] Card by ID response:', {
         success: response.success,
         cardId,
-        coursesCount: response.data?.cardCourses?.length || 0
+        hasData: !!response.data,
+        dataKeys: response.data ? Object.keys(response.data) : 'no data',
+        coursesCount: response.data?.cardCourses?.length || 0,
+        cardCoursesExists: !!response.data?.cardCourses,
+        cardCoursesType: typeof response.data?.cardCourses,
+        cardCoursesIsArray: Array.isArray(response.data?.cardCourses),
+        firstCardCourse: response.data?.cardCourses?.[0] || 'no card courses',
+        // Check for nested structure
+        hasNestedData: !!response.data?.data,
+        nestedDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no nested data',
+        nestedCardCourses: response.data?.data?.cardCourses,
+        nestedCoursesCount: response.data?.data?.cardCourses?.length || 0,
+        fullResponse: response
       });
+
+      // Handle potential nested response structure
+      if (response.success && response.data?.data && !response.data?.cardCourses) {
+        console.log('🔄 [NewApiService] Detected nested card data structure, extracting...');
+        return {
+          ...response,
+          data: response.data.data
+        };
+      }
 
       return response;
     } catch (error) {
@@ -990,8 +1048,30 @@ export class NewApiService {
         success: response.success,
         cardId,
         progressPercentage: response.data?.cardProgressPercentage,
-        coursesCount: response.data?.courseProgress?.length || 0
+        coursesCount: response.data?.courseProgress?.length || 0,
+        totalCourses: response.data?.totalCourses,
+        hasData: !!response.data,
+        dataKeys: response.data ? Object.keys(response.data) : 'no data',
+        courseProgressExists: !!response.data?.courseProgress,
+        courseProgressType: typeof response.data?.courseProgress,
+        courseProgressIsArray: Array.isArray(response.data?.courseProgress),
+        firstCourse: response.data?.courseProgress?.[0] || 'no courses',
+        // Check for nested structure like other APIs
+        hasNestedData: !!response.data?.data,
+        nestedDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no nested data',
+        nestedCourseProgress: response.data?.data?.courseProgress,
+        nestedCoursesCount: response.data?.data?.courseProgress?.length || 0,
+        fullResponse: response
       });
+
+      // Handle potential nested response structure
+      if (response.success && response.data?.data && !response.data?.courseProgress) {
+        console.log('🔄 [NewApiService] Detected nested progress data structure, extracting...');
+        return {
+          ...response,
+          data: response.data.data
+        };
+      }
 
       return response;
     } catch (error) {

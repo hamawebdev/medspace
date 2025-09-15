@@ -75,7 +75,8 @@ export function SessionCard({
   const toggleStar = () => onUpdate(session.id, { favorite: !session.favorite });
 
   const startOrContinue = () => {
-    onUpdate(session.id, { lastStartedAt: new Date().toISOString() });
+    // All sessions now use the unified session page
+    // which handles API-based session resumption properly
     router.push(`/session/${session.id}`);
   };
 
@@ -173,14 +174,16 @@ export function SessionCard({
               </TooltipTrigger>
               <TooltipContent>{hasStarted ? 'Continue session' : 'Start session'}</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" onClick={retake}>
-                  <RotateCcw className="w-4 h-4 mr-1" /> Retake
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Reset elapsed time</TooltipContent>
-            </Tooltip>
+            {!running && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant="outline" onClick={retake}>
+                    <RotateCcw className="w-4 h-4 mr-1" /> Retake
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Reset elapsed time</TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="sm" variant="outline" onClick={openStats}>

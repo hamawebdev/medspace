@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/loading-states';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ import { NewApiService } from '@/lib/api/new-api-services';
 import { ContentFilters, CardCreateRequest } from '@/types/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { suiviCoursStorage } from '@/lib/suivi-cours-storage';
 
 interface Course {
   id: number;
@@ -138,6 +140,14 @@ export function EnhancedTrackerCreateDialog({
   };
 
   const handleCourseSelect = (course: Course) => {
+    // Check if course is already being tracked in another suivi
+    const isTrackedElsewhere = suiviCoursStorage.isCourseTracked(course.id);
+    if (isTrackedElsewhere) {
+      const trackerInfo = suiviCoursStorage.getTrackerForCourse(course.id);
+      toast.error(`Ce cours est déjà suivi dans le tracker "${trackerInfo?.trackerTitle || 'un autre tracker'}"`);
+      return;
+    }
+
     const newCourse: SelectedCourse = {
       id: course.id,
       name: course.name,
@@ -146,7 +156,7 @@ export function EnhancedTrackerCreateDialog({
       uniteName: selectedUnit?.name
     };
 
-    // Check if course is already selected
+    // Check if course is already selected in current session
     const isAlreadySelected = selectedCourses.some(c => c.id === course.id);
     if (isAlreadySelected) {
       toast.error('Ce cours est déjà sélectionné');
@@ -218,25 +228,63 @@ export function EnhancedTrackerCreateDialog({
 
       const response = await NewApiService.createCard(createRequest);
 
-      if (response.success && response.data?.id) {
-        const trackerId = response.data.id;
-        toast.success('Suivi de cours créé avec succès');
+      console.log('📋 [EnhancedTrackerCreateDialog] Create card response:', {
+        success: response.success,
+        hasData: !!response.data,
+        dataId: response.data?.id,
+        nestedDataId: response.data?.data?.id,
+        dataType: typeof response.data?.id,
+        nestedDataType: typeof response.data?.data?.id,
+        fullResponse: response
+      });
 
-        // Reset form
-        handleClose();
+      if (response.success) {
+        // Check for ID in both possible locations: response.data.id or response.data.data.id
+        const actualData = response.data?.data || response.data;
+        const trackerId = actualData?.id;
 
-        // Redirect to the tracker page
-        router.push(`/student/suivi-cours/tracker/${trackerId}`);
+        if (trackerId !== undefined && trackerId !== null) {
+          console.log('✅ [EnhancedTrackerCreateDialog] Redirecting to tracker:', trackerId);
 
-        // Call onSuccess with the tracker ID for any additional handling
-        onSuccess?.(trackerId);
-      } else if (response.success && !response.data?.id) {
-        // Handle case where creation was successful but no ID was returned
-        console.error('Tracker created but no ID returned:', response);
-        toast.error('Suivi créé mais impossible de rediriger. Veuillez vérifier la liste des suivis.');
-        handleClose();
-        onSuccess?.();
+          // Save tracked courses to localStorage
+          try {
+            suiviCoursStorage.addTrackedCourses(
+              trackerId,
+              title.trim(),
+              selectedCourses.map(c => c.id)
+            );
+          } catch (error) {
+            console.error('Failed to save tracked courses to localStorage:', error);
+            // Don't block the success flow for localStorage errors
+          }
+
+          toast.success('Suivi de cours créé avec succès');
+
+          // Reset form
+          handleClose();
+
+          // Redirect to the tracker page
+          router.push(`/student/suivi-cours/tracker/${trackerId}`);
+
+          // Call onSuccess with the tracker ID for any additional handling
+          onSuccess?.(trackerId);
+        } else {
+          // Handle case where creation was successful but no ID was returned
+          console.error('❌ [EnhancedTrackerCreateDialog] Tracker created but no ID returned:', {
+            response,
+            dataExists: !!response.data,
+            dataKeys: response.data ? Object.keys(response.data) : 'no data',
+            nestedDataExists: !!response.data?.data,
+            nestedDataKeys: response.data?.data ? Object.keys(response.data.data) : 'no nested data',
+            actualData,
+            actualDataKeys: actualData ? Object.keys(actualData) : 'no actual data'
+          });
+          toast.error('Suivi créé mais impossible de rediriger. Veuillez vérifier la liste des suivis.');
+          handleClose();
+          onSuccess?.();
+        }
       } else {
+        console.error('❌ [EnhancedTrackerCreateDialog] Create card failed:', response);
         throw new Error(response.error || 'Failed to create tracker');
       }
     } catch (err) {
@@ -458,31 +506,55 @@ export function EnhancedTrackerCreateDialog({
               {coursesToShow.length > 0 ? (
                 coursesToShow.map((course) => {
                   const isSelected = selectedCourses.some(c => c.id === course.id);
+                  const isTrackedElsewhere = suiviCoursStorage.isCourseTracked(course.id);
+                  const trackerInfo = isTrackedElsewhere ? suiviCoursStorage.getTrackerForCourse(course.id) : null;
+                  const isDisabled = isTrackedElsewhere;
+
                   return (
-                    <Card
-                      key={course.id}
-                      className={cn(
-                        "cursor-pointer hover:shadow-md transition-all border-l-[4px]",
-                        isSelected
-                          ? "border-l-primary bg-primary/5 shadow-md"
-                          : "border-l-primary/30 hover:border-l-primary/50"
-                      )}
-                      onClick={() => handleCourseSelect(course)}
-                    >
+                    <TooltipProvider key={course.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Card
+                            className={cn(
+                              "transition-all border-l-[4px]",
+                              isDisabled
+                                ? "opacity-60 cursor-not-allowed border-l-muted bg-muted/20"
+                                : "cursor-pointer hover:shadow-md",
+                              !isDisabled && isSelected
+                                ? "border-l-primary bg-primary/5 shadow-md"
+                                : !isDisabled && "border-l-primary/30 hover:border-l-primary/50"
+                            )}
+                            onClick={() => !isDisabled && handleCourseSelect(course)}
+                          >
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             <div className={cn(
                               "p-3 rounded-lg",
-                              isSelected ? "bg-primary/20" : "bg-primary/10"
+                              isDisabled
+                                ? "bg-muted/30"
+                                : isSelected
+                                  ? "bg-primary/20"
+                                  : "bg-primary/10"
                             )}>
-                              <BookOpen className="h-6 w-6 text-primary" />
+                              <BookOpen className={cn(
+                                "h-6 w-6",
+                                isDisabled ? "text-muted-foreground" : "text-primary"
+                              )} />
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-lg">{course.name}</h4>
-                                {isSelected && (
+                                <h4 className={cn(
+                                  "font-semibold text-lg",
+                                  isDisabled ? "text-muted-foreground" : ""
+                                )}>{course.name}</h4>
+                                {isSelected && !isDisabled && (
                                   <CheckCircle className="h-5 w-5 text-primary" />
+                                )}
+                                {isDisabled && (
+                                  <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                                    Déjà suivi
+                                  </span>
                                 )}
                               </div>
                               {course.description && (
@@ -490,13 +562,29 @@ export function EnhancedTrackerCreateDialog({
                                   {course.description}
                                 </p>
                               )}
+                              {isDisabled && trackerInfo && (
+                                <p className="text-xs text-muted-foreground mt-1 italic">
+                                  Dans: {trackerInfo.trackerTitle}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
+                          <ChevronRight className={cn(
+                            "h-5 w-5",
+                            isDisabled ? "text-muted-foreground/50" : "text-muted-foreground"
+                          )} />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    {isDisabled && (
+                      <TooltipContent>
+                        <p>Ce cours est déjà suivi dans le tracker "{trackerInfo?.trackerTitle}"</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+              );
                 })
               ) : (
                 <Card className="border-dashed">

@@ -144,11 +144,6 @@ export function StudentProfileDropdown() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <p className='text-sm font-semibold text-foreground truncate'>{profile.fullName}</p>
-                  {profile.emailVerified && (
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                      Verified
-                    </Badge>
-                  )}
                 </div>
                 <p className='text-muted-foreground text-xs truncate mb-2'>
                   {profile.email}
