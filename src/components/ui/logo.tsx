@@ -39,8 +39,8 @@ export function Logo({
     )
   }
 
-  // Determine which logo to use based on resolved theme
-  const logoSrc = resolvedTheme === 'light' ? '/logoLightMode.png' : '/logo.png'
+  // Use logo.png for both light and dark modes
+  const logoSrc = '/logo.png'
 
   return (
     <img

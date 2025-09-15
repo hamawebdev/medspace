@@ -20,9 +20,9 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        serif: ['Inter', 'sans-serif'],
-        mono: ['Inter', 'sans-serif'],
+        sans: ['Outfit', 'ui-sans-serif', 'sans-serif', 'system-ui'],
+        serif: ['ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', '"SF Mono"', 'Consolas', '"Liberation Mono"', 'Menlo', 'monospace'],
       },
       colors: {
         border: 'hsl(var(--border))',

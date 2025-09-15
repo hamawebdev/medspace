@@ -1,13 +1,13 @@
 // @ts-nocheck
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Providers } from "@/components/providers";
 import { FrontextInit } from "@/components/frontext-init";
 import "./globals.css";
 
-// Using Inter font for all text
-const inter = Inter({
+// Using Outfit font for all text
+const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
@@ -63,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} font-sans antialiased min-h-screen`}
+        className={`${outfit.variable} font-sans antialiased min-h-screen`}
       >
         <Providers>
           <ThemeProvider

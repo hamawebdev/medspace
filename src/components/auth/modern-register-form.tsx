@@ -299,10 +299,15 @@ export function ModernRegisterForm() {
     }
   }, [router, convertYearToApiFormat]);
 
-  // Memoized background gradient for better performance
+  // Memoized background gradient for better performance - using hero gradient
   const backgroundGradient = useMemo(() => (
     <div className="absolute inset-0 section-bg bg-grid-pattern">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-chart-1/5" />
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(to right, var(--gradient-left), var(--gradient-center), var(--gradient-right))`
+        }}
+      />
     </div>
   ), []);
 
@@ -336,7 +341,7 @@ export function ModernRegisterForm() {
   }, [mounted, windowSize]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 md:p-8 relative">
+    <div className="min-h-screen flex items-center justify-center p-6 md:p-8 relative force-light-mode">
       {/* Optimized animated background */}
       {backgroundGradient}
 
@@ -351,10 +356,22 @@ export function ModernRegisterForm() {
       >
         <Card className="glass shadow-2xl border-border/20 card-hover-lift animate-fade-in-up">
           <CardHeader className="text-center space-y-6 px-6 md:px-8 pt-8 pb-6 animate-delay-100">
-            <CardTitle className="text-3xl font-semibold tracking-tight">
+            {/* Logo */}
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/logo.png" 
+                alt="MedCortex Logo" 
+                className="h-24 w-24 object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+            </div>
+            
+            {/* Title */}
+            <CardTitle className="!text-3xl !font-semibold !tracking-tight !text-emerald-400 !text-center !flex !justify-center !items-center !transition-none !group-hover:!text-emerald-400 !leading-tight">
               Join MedCortex
             </CardTitle>
-            <CardDescription className="text-lg max-w-md mx-auto">
+            
+            {/* Description */}
+            <CardDescription className="text-lg max-w-md mx-auto text-muted-foreground">
               Start your medical education journey today
             </CardDescription>
           </CardHeader>

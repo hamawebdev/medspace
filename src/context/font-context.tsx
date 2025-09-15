@@ -15,10 +15,10 @@ const FontContext = createContext<FontContextType | undefined>(undefined)
 export const FontProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const font: Font = 'sans' // Always use Inter font
+  const font: Font = 'sans' // Always use Outfit font
 
   useEffect(() => {
-    // Ensure Inter font is applied to the document
+    // Ensure Outfit font is applied to the document
     const root = document.documentElement
     root.classList.forEach((cls) => {
       if (cls.startsWith('font-')) root.classList.remove(cls)
@@ -27,8 +27,8 @@ export const FontProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [])
 
   const setFont = (font: Font) => {
-    // No-op since we only use Inter font
-    console.log('Font switching disabled - using Inter font only')
+    // No-op since we only use Outfit font
+    console.log('Font switching disabled - using Outfit font only')
   }
 
   return <FontContext value={{ font, setFont }}>{children}</FontContext>

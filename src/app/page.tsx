@@ -43,6 +43,32 @@ export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
   const [pricingMode, setPricingMode] = useState<PricingMode>('YEAR');
 
+  // Force light mode for homepage
+  useEffect(() => {
+    // Force light mode by setting data-theme and class
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+    
+    // Also set the theme in localStorage to override next-themes
+    localStorage.setItem('theme', 'light');
+    
+    return () => {
+      // Cleanup: restore system theme preference when leaving homepage
+      localStorage.removeItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+    };
+  }, []);
+
   // Fetch study packs from API
   const { studyPacks, loading: studyPacksLoading, error: studyPacksError, refresh } = useHomepageStudyPacks();
 
@@ -197,12 +223,13 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden force-light-mode">
       <Header />
-      <Hero />
+      <div>
+        <Hero />
 
       {/* Caractéristiques Section - Replicating the provided design */}
-      <section className="container px-4 py-20 mx-auto bg-background">
+      <section id="caracteristiques" className="container px-4 py-20 mx-auto bg-background">
         <div className="max-w-6xl mx-auto">
           {/* Section Header */}
           <div className="text-center space-y-4 mb-16">
@@ -242,7 +269,7 @@ export default function Home() {
       </section>
 
       {/* Fonctionnalités Section - Two-column alternating layout */}
-      <section className="container px-4 py-20 mx-auto bg-muted/30 relative overflow-hidden">
+      <section id="fonctionnalites" className="container px-4 py-20 mx-auto relative overflow-hidden bg-background">
         {/* Background decoration */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none"></div>
 
@@ -261,14 +288,14 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
               {/* Image Container */}
               <div className="relative group">
-                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-white border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-card border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
                   {/* Filter Interface Mockup */}
-                  <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-white p-6">
+                  <div className="aspect-[4/3] bg-gradient-to-br from-muted/50 to-card p-6">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
-                      <h4 className="text-lg font-semibold text-gray-800">Créer une session</h4>
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <h4 className="text-lg font-semibold text-foreground">Créer une session</h4>
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </div>
@@ -277,37 +304,37 @@ export default function Home() {
                     {/* Modules Section */}
                     <div className="space-y-4">
                       <div>
-                        <h5 className="text-sm font-medium text-gray-700 mb-2">Modules</h5>
+                        <h5 className="text-sm font-medium text-foreground mb-2">Modules</h5>
                         <div className="space-y-2">
-                          <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
+                          <div className="flex items-center space-x-2 p-2 bg-muted rounded-lg">
                             <div className="w-3 h-3 bg-primary rounded-full"></div>
-                            <span className="text-sm text-gray-700">Cardiologie</span>
+                            <span className="text-sm text-foreground">Cardiologie</span>
                           </div>
-                          <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
-                            <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                            <span className="text-sm text-gray-700">Pneumologie</span>
+                          <div className="flex items-center space-x-2 p-2 bg-muted rounded-lg">
+                            <div className="w-3 h-3 bg-muted-foreground/30 rounded-full"></div>
+                            <span className="text-sm text-foreground">Pneumologie</span>
                           </div>
-                          <div className="flex items-center space-x-2 p-2 bg-gray-100 rounded-lg">
-                            <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                            <span className="text-sm text-gray-700">Neurologie</span>
+                          <div className="flex items-center space-x-2 p-2 bg-muted rounded-lg">
+                            <div className="w-3 h-3 bg-muted-foreground/30 rounded-full"></div>
+                            <span className="text-sm text-foreground">Neurologie</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Cours Section */}
                       <div>
-                        <h5 className="text-sm font-medium text-gray-700 mb-2">Cours</h5>
+                        <h5 className="text-sm font-medium text-foreground mb-2">Cours</h5>
                         <div className="space-y-1">
                           <div className="flex items-center justify-between p-2 bg-primary/10 rounded-lg border border-primary/20">
-                            <span className="text-sm text-gray-700">Insuffisance cardiaque</span>
+                            <span className="text-sm text-foreground">Insuffisance cardiaque</span>
                             <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                              <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 8 8">
+                              <svg className="w-2 h-2 text-primary-foreground" fill="currentColor" viewBox="0 0 8 8">
                                 <path d="M6.564.75l-3.59 3.612-1.538-1.55L0 4.26l2.974 2.99L8 2.193z"/>
                               </svg>
                             </div>
                           </div>
-                          <div className="text-xs text-gray-500 pl-2">Physiopathologie de l'insuffisance cardiaque</div>
-                          <div className="text-xs text-gray-500 pl-2">Traitement de l'insuffisance cardiaque</div>
+                          <div className="text-xs text-muted-foreground pl-2">Physiopathologie de l'insuffisance cardiaque</div>
+                          <div className="text-xs text-muted-foreground pl-2">Traitement de l'insuffisance cardiaque</div>
                         </div>
                       </div>
                     </div>
@@ -348,12 +375,12 @@ export default function Home() {
 
               {/* Image Container */}
               <div className="relative group lg:order-2">
-                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-white border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-card border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
                   {/* Flexibility Interface Mockup */}
-                  <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-white p-6">
+                  <div className="aspect-[4/3] bg-gradient-to-br from-muted/50 to-card p-6">
                     {/* Dashboard Header */}
                     <div className="flex items-center justify-between mb-6">
-                      <h4 className="text-lg font-semibold text-gray-800">Tableau de bord</h4>
+                      <h4 className="text-lg font-semibold text-foreground">Tableau de bord</h4>
                       <div className="flex items-center space-x-2">
                         <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                           <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,44 +400,44 @@ export default function Home() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                               </svg>
                             </div>
-                            <span className="text-sm font-medium text-gray-700">Étude libre</span>
+                            <span className="text-sm font-medium text-foreground">Étude libre</span>
                           </div>
-                          <p className="text-xs text-gray-600">Choisissez vos modules</p>
+                          <p className="text-xs text-muted-foreground">Choisissez vos modules</p>
                         </div>
 
-                        <div className="p-3 bg-gray-100 rounded-xl">
+                        <div className="p-3 bg-muted rounded-xl">
                           <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-6 h-6 bg-gray-400 rounded-lg flex items-center justify-center">
-                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-6 h-6 bg-muted-foreground/30 rounded-lg flex items-center justify-center">
+                              <svg className="w-3 h-3 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </div>
-                            <span className="text-sm font-medium text-gray-700">Examen</span>
+                            <span className="text-sm font-medium text-foreground">Examen</span>
                           </div>
-                          <p className="text-xs text-gray-600">Mode chronométré</p>
+                          <p className="text-xs text-muted-foreground">Mode chronométré</p>
                         </div>
                       </div>
 
                       {/* Progress Section */}
                       <div className="mt-6">
-                        <h5 className="text-sm font-medium text-gray-700 mb-3">Progression récente</h5>
+                        <h5 className="text-sm font-medium text-foreground mb-3">Progression récente</h5>
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-700">Cardiologie</span>
+                          <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                            <span className="text-sm text-foreground">Cardiologie</span>
                             <div className="flex items-center space-x-2">
-                              <div className="w-16 h-2 bg-gray-200 rounded-full">
+                              <div className="w-16 h-2 bg-muted rounded-full">
                                 <div className="w-12 h-2 bg-primary rounded-full"></div>
                               </div>
-                              <span className="text-xs text-gray-500">75%</span>
+                              <span className="text-xs text-muted-foreground">75%</span>
                             </div>
                           </div>
-                          <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-700">Pneumologie</span>
+                          <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                            <span className="text-sm text-foreground">Pneumologie</span>
                             <div className="flex items-center space-x-2">
-                              <div className="w-16 h-2 bg-gray-200 rounded-full">
+                              <div className="w-16 h-2 bg-muted rounded-full">
                                 <div className="w-8 h-2 bg-primary rounded-full"></div>
                               </div>
-                              <span className="text-xs text-gray-500">50%</span>
+                              <span className="text-xs text-muted-foreground">50%</span>
                             </div>
                           </div>
                         </div>
@@ -425,7 +452,7 @@ export default function Home() {
       </section>
 
       {/* Enhanced Pricing Section */}
-      <section id="pricing" className="container px-4 py-32 mx-auto bg-muted/30">
+      <section id="pricing" className="container px-4 py-32 mx-auto bg-background">
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-6 mb-16">
             <h2 className="text-4xl sm:text-5xl font-bold text-foreground">
@@ -476,7 +503,7 @@ export default function Home() {
                 return (
                   <div
                     key={plan.id}
-                    className="bg-white dark:bg-card rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-border/50"
+                    className="bg-card rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-border/50"
                   >
                     {/* Colored Header Strip with Study Pack Name */}
                     <div className="bg-primary text-primary-foreground text-center py-4 px-6">
@@ -518,7 +545,7 @@ export default function Home() {
       </section>
 
       {/* Modern FAQ Section */}
-      <section className="container px-4 py-32 mx-auto bg-muted/30">
+      <section id="faq" className="container px-4 py-32 mx-auto bg-background">
         <div className="max-w-5xl mx-auto">
           <div className="text-center space-y-6 mb-20">
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground">
@@ -578,13 +605,11 @@ export default function Home() {
                     Our support team is here to help you 24/7. Get personalized assistance from medical education experts.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                      <Clock className="w-4 h-4 mr-2" />
-                      Contact Support
-                    </Button>
-                    <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Browse Help Center
+                    <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Link href="mailto:medcortexdz@gmail.com">
+                        <Clock className="w-4 h-4 mr-2" />
+                        Contact Support
+                      </Link>
                     </Button>
                   </div>
                 </div>
@@ -594,6 +619,7 @@ export default function Home() {
         </div>
       </section>
       <Footer />
+      </div>
     </div>
   );
 }
