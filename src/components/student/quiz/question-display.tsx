@@ -195,9 +195,9 @@ export function QuestionDisplay() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Question Content - No scrolling, fit to viewport */}
-      <div className={`flex-1 ${(isAnswerRevealed || showExplanation) ? 'overflow-y-auto scroll-smooth' : 'overflow-hidden'}`}>
-        <div className={`${(isAnswerRevealed || showExplanation) ? 'min-h-full' : 'h-full'} flex flex-col p-0.5 sm:p-1 lg:p-1.5 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto quiz-question-container`}>
+      {/* Question Content - Enable scrolling before selection */}
+      <div className="flex-1 overflow-y-auto scroll-smooth">
+        <div className="min-h-full flex flex-col p-0.5 sm:p-1 lg:p-1.5 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto quiz-question-container">
 
           {/* Status Badge in review - Ultra Compact */}
           {autoReveal && (

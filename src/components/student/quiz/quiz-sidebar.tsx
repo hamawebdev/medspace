@@ -78,9 +78,24 @@ export function QuizSidebar() {
       selectedAnswerIds = [String(userAnswer.selectedAnswerId).trim()];
     }
 
-    // For text answers, without an explicit isCorrect, treat as answered-neutral
+    // Handle text answers (QROC questions) - check correctness if possible
     if ((typeof userAnswer.textAnswer === 'string' && userAnswer.textAnswer.trim().length > 0) && selectedAnswerIds.length === 0) {
-      return 'answered';
+      const correctAnswers = question.correctAnswers || [];
+      if (correctAnswers.length === 0) {
+        // No reference data available, treat as answered-neutral
+        return 'answered';
+      }
+
+      // Simple keyword matching for text answers (same logic as unified-question.tsx)
+      const userText = userAnswer.textAnswer.toLowerCase().trim();
+      const isCorrect = correctAnswers.some(correctAnswer => {
+        const keywords = correctAnswer.toLowerCase().split(/[\s,;]+/);
+        const matchedKeywords = keywords.filter(keyword =>
+          keyword.length > 2 && userText.includes(keyword)
+        );
+        return matchedKeywords.length >= Math.ceil(keywords.length * 0.6);
+      });
+      return isCorrect ? 'correct' : 'incorrect';
     }
 
     // Build the array of answer options from the question, preferring documented fields
@@ -327,9 +342,10 @@ export function QuizSidebar() {
                   "w-full justify-start p-2 sm:p-3 lg:p-3 xl:p-4 h-auto text-left btn-modern focus-ring transition-all duration-300",
                   "min-h-[48px] sm:min-h-[52px] lg:min-h-[56px] xl:min-h-[60px]",
                   isActive && "ring-2 ring-primary/30 shadow-md bg-primary/5",
-                  !isActive && status === 'correct' && "hover:bg-green-50 bg-green-50/50 border-green-200/50",
-                  !isActive && status === 'incorrect' && "hover:bg-red-50 bg-red-50/50 border-red-200/50",
-                  !isActive && (status === 'answered' || status === 'unanswered') && "hover:bg-accent/50 hover:shadow-sm"
+                  !isActive && status === 'correct' && "hover:bg-green-50 bg-green-50/50 border-green-200/50 text-green-800",
+                  !isActive && status === 'incorrect' && "hover:bg-red-50 bg-red-50/50 border-red-200/50 text-red-800",
+                  !isActive && status === 'answered' && "hover:bg-blue-50 bg-blue-50/30 border-blue-200/30 text-blue-800",
+                  !isActive && status === 'unanswered' && "hover:bg-accent/50 hover:shadow-sm text-muted-foreground"
                 )}
                 onClick={() => goToQuestion(originalIndex)}
               >
@@ -344,13 +360,13 @@ export function QuizSidebar() {
                         {originalIndex + 1}
                       </span>
                       {status === 'correct' ? (
-                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-green-600" />
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-green-600 fill-green-100" />
                       ) : status === 'incorrect' ? (
                         <XIcon className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-red-600" />
                       ) : status === 'answered' ? (
-                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-chart-1" />
+                        <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-blue-600 fill-blue-100" />
                       ) : (
-                        <Circle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-muted-foreground" />
+                        <Circle className="h-3 w-3 sm:h-4 sm:w-4 lg:h-4 lg:w-4 text-gray-400" />
                       )}
                     </div>
                     <span className="text-xs sm:text-sm lg:text-sm">{getQuestionTypeIcon(question.type || 'QCM')}</span>

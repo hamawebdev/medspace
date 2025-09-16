@@ -53,6 +53,9 @@ interface ClinicalCase extends QuizQuestion {
 export function UnifiedQuestion({ question, type }: Props) {
   const { state, submitAnswer, updateAnswer, revealAnswer, clearAnswer } = useQuiz();
   const { session, isAnswerRevealed } = state;
+  
+  // Calculate question number (1-based index)
+  const questionNumber = (session.currentQuestionIndex ?? 0) + 1;
 
   // Auto-detect type from question if not provided
   const questionType = type || question.type || 'QCS';
@@ -272,14 +275,46 @@ export function UnifiedQuestion({ question, type }: Props) {
   const getOptionStyles = useCallback((status: string) => {
     switch (status) {
       case 'correct-selected':
-        return 'border-green-500 bg-green-50';
+        return 'border-green-500 bg-green-500';
       case 'correct-unselected':
-        return 'border-green-300 bg-green-25';
+        return 'border-chart-1/50 bg-chart-1/5';
       case 'incorrect-selected':
-        return 'border-red-500 bg-red-50';
+        return 'border-[#ff0000] bg-[#ff0000]';
       default:
         return 'border-border bg-card';
     }
+  }, []);
+
+  const getOptionTextColors = useCallback((status: string, isSelected: boolean, isAnswerRevealed: boolean) => {
+    // When answer is revealed, use white text for solid backgrounds
+    if (isAnswerRevealed) {
+      switch (status) {
+        case 'correct-selected':
+        case 'incorrect-selected':
+          return 'text-white';
+        default:
+          return 'text-foreground';
+      }
+    }
+
+    // When not revealed, use existing logic
+    return isSelected ? "text-primary-foreground" : "text-foreground group-hover:text-foreground";
+  }, []);
+
+  const getOptionPrefixColors = useCallback((status: string, isSelected: boolean, isAnswerRevealed: boolean) => {
+    // When answer is revealed, use white text for solid backgrounds
+    if (isAnswerRevealed) {
+      switch (status) {
+        case 'correct-selected':
+        case 'incorrect-selected':
+          return 'border-white text-white';
+        default:
+          return 'border-muted-foreground text-muted-foreground group-hover:border-foreground group-hover:text-foreground';
+      }
+    }
+
+    // When not revealed, use existing logic
+    return isSelected ? "border-primary-foreground text-primary-foreground" : "border-muted-foreground text-muted-foreground group-hover:border-foreground group-hover:text-foreground";
   }, []);
 
   const correctCount = question.options?.filter(opt => opt.isCorrect).length || 0;
@@ -415,7 +450,7 @@ export function UnifiedQuestion({ question, type }: Props) {
           )}>
             <div className="flex items-center gap-0.5 mb-0">
               <div className="w-0.5 h-0.5 rounded-full bg-primary"></div>
-              <h3 className="text-xs font-medium text-primary uppercase tracking-wide">Question</h3>
+              <h3 className="text-sm font-semibold text-question-gradient uppercase tracking-wide">Question {questionNumber}</h3>
               {questionType === 'QCS' && <div className="ml-auto"><QuestionActions /></div>}
             </div>
 
@@ -538,7 +573,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                               : isCompactMode
                                 ? "w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-xs sm:text-sm"
                                 : "w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sm sm:text-base lg:text-lg",
-                            isSelected && !isAnswerRevealed ? "border-primary-foreground text-primary-foreground" : "border-muted-foreground text-muted-foreground group-hover:border-foreground group-hover:text-foreground"
+                            getOptionPrefixColors(status, isSelected, isAnswerRevealed)
                           )}>
                             {alphabetPrefix}
                           </div>
@@ -553,7 +588,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                               : isCompactMode
                                 ? "text-sm sm:text-base lg:text-lg leading-snug"
                                 : "text-base sm:text-lg lg:text-xl leading-relaxed",
-                            isSelected && !isAnswerRevealed ? "text-primary-foreground" : "text-foreground group-hover:text-foreground"
+                            getOptionTextColors(status, isSelected, isAnswerRevealed)
                           )}>
                             {option.text}
                           </p>
@@ -614,7 +649,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                                 : isCompactMode
                                   ? "w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-xs sm:text-sm"
                                   : "w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sm sm:text-base lg:text-lg",
-                              isSelected && !isAnswerRevealed ? "border-primary-foreground text-primary-foreground" : "border-muted-foreground text-muted-foreground group-hover:border-foreground group-hover:text-foreground"
+                              getOptionPrefixColors(status, isSelected, isAnswerRevealed)
                             )}>
                               {alphabetPrefix}
                             </div>
@@ -629,7 +664,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                                 : isCompactMode
                                   ? "text-sm sm:text-base lg:text-lg leading-snug"
                                   : "text-base sm:text-lg lg:text-xl leading-relaxed",
-                              isSelected && !isAnswerRevealed ? "text-primary-foreground" : "text-foreground group-hover:text-foreground"
+                              getOptionTextColors(status, isSelected, isAnswerRevealed)
                             )}>
                               {option.text}
                             </p>

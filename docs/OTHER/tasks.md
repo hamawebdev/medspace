@@ -1,5 +1,6 @@
     
 ### Frontend (UI/UX)
+case 5 answers session ( enable scrooling)
 show dropdown hide dropdown of rotations based on filters
 questions sidebar status
 * [ ] Show **session number** in session card (practice/exam)

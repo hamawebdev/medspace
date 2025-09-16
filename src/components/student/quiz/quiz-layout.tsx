@@ -648,28 +648,50 @@ export function QuizLayout() {
                 // Determine if the answer is correct (only if user has interacted)
                 let isCorrect = null;
                 if (hasUserInteraction && userAnswer) {
-                  // Get selected answer IDs from different possible formats
-                  let selectedAnswerIds: string[] = [];
+                  // If we have the isCorrect field directly (set at submission time), use it
+                  if (typeof userAnswer.isCorrect === 'boolean') {
+                    isCorrect = userAnswer.isCorrect;
+                  } else {
+                    // Handle text questions (QROC)
+                    if (userAnswer.textAnswer && !userAnswer.selectedOptions && !userAnswer.selectedAnswerIds && !userAnswer.selectedAnswerId) {
+                      const correctAnswers = question.correctAnswers || [];
+                      if (correctAnswers.length > 0) {
+                        // Simple keyword matching for text answers
+                        const userText = userAnswer.textAnswer.toLowerCase().trim();
+                        isCorrect = correctAnswers.some(correctAnswer => {
+                          const keywords = correctAnswer.toLowerCase().split(/[\s,;]+/);
+                          const matchedKeywords = keywords.filter(keyword =>
+                            keyword.length > 2 && userText.includes(keyword)
+                          );
+                          return matchedKeywords.length >= Math.ceil(keywords.length * 0.6);
+                        });
+                      }
+                    } else {
+                      // Handle multiple choice questions
+                      // Get selected answer IDs from different possible formats
+                      let selectedAnswerIds: string[] = [];
 
-                  if (userAnswer.selectedOptions?.length > 0) {
-                    selectedAnswerIds = userAnswer.selectedOptions.map(String);
-                  } else if (userAnswer.selectedAnswerIds?.length > 0) {
-                    selectedAnswerIds = userAnswer.selectedAnswerIds.map(String);
-                  } else if (userAnswer.selectedAnswerId) {
-                    selectedAnswerIds = [String(userAnswer.selectedAnswerId)];
-                  }
+                      if (userAnswer.selectedOptions?.length > 0) {
+                        selectedAnswerIds = userAnswer.selectedOptions.map(String);
+                      } else if (userAnswer.selectedAnswerIds?.length > 0) {
+                        selectedAnswerIds = userAnswer.selectedAnswerIds.map(String);
+                      } else if (userAnswer.selectedAnswerId) {
+                        selectedAnswerIds = [String(userAnswer.selectedAnswerId)];
+                      }
 
-                  // Get correct answer IDs
-                  const correctOptions = (question.options || question.answers || [])
-                    .filter((opt: any) => opt.isCorrect)
-                    .map((opt: any) => String(opt.id));
+                      // Get correct answer IDs
+                      const correctOptions = (question.options || question.answers || [])
+                        .filter((opt: any) => opt.isCorrect)
+                        .map((opt: any) => String(opt.id));
 
-                  if (correctOptions.length > 0 && selectedAnswerIds.length > 0) {
-                    // For multiple choice: all selected must be correct and all correct must be selected
-                    const selectedSet = new Set(selectedAnswerIds);
-                    const correctSet = new Set(correctOptions);
-                    isCorrect = selectedSet.size === correctSet.size &&
-                               [...selectedSet].every(id => correctSet.has(id));
+                      if (correctOptions.length > 0 && selectedAnswerIds.length > 0) {
+                        // For multiple choice: all selected must be correct and all correct must be selected
+                        const selectedSet = new Set(selectedAnswerIds);
+                        const correctSet = new Set(correctOptions);
+                        isCorrect = selectedSet.size === correctSet.size &&
+                                   [...selectedSet].every(id => correctSet.has(id));
+                      }
+                    }
                   }
                 }
 
@@ -688,19 +710,23 @@ export function QuizLayout() {
                       isCurrentQuestion
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : hasUserInteraction
-                          ? isCorrect
+                          ? isCorrect === true
                             ? "bg-green-50 text-green-700 hover:bg-green-100"
-                            : "bg-red-50 text-red-700 hover:bg-red-100"
+                            : isCorrect === false
+                              ? "bg-red-50 text-red-700 hover:bg-red-100"
+                              : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                   >
                     <span>Question {index + 1}</span>
-                    {hasUserInteraction && !isCurrentQuestion && isCorrect !== null && (
+                    {hasUserInteraction && !isCurrentQuestion && (
                       <div className="flex items-center ml-2">
-                        {isCorrect ? (
+                        {isCorrect === true ? (
                           <Check className="h-4 w-4 text-green-600" />
-                        ) : (
+                        ) : isCorrect === false ? (
                           <XIcon className="h-4 w-4 text-red-600" />
+                        ) : (
+                          <Check className="h-4 w-4 text-blue-600" />
                         )}
                       </div>
                     )}
@@ -721,10 +747,10 @@ export function QuizLayout() {
           />
         )}
 
-        {/* Question Area - No scrolling, fit to viewport */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-background via-background to-muted/10 min-w-0 quiz-no-scroll">
-          {/* Question Content - Fills available space */}
-          <div className="flex-1 overflow-hidden quiz-no-scroll">
+        {/* Question Area - Enable scrolling */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-background via-background to-muted/10 min-w-0">
+          {/* Question Content - Allow scrolling */}
+          <div className="flex-1 overflow-hidden">
             <QuestionDisplay />
           </div>
 

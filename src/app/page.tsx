@@ -120,33 +120,33 @@ export default function Home() {
   const characteristics = [
     {
       icon: HelpCircle,
-      title: 'Questions',
-      description: 'Questions diverses conformes au programme de la Faculté de Médecine d\'Alger.',
+      title: 'Banque de Questions Premium',
+      description: '100 000+ questions médicales alignées sur le programme officiel de la Faculté de Médecine de Sétif.',
     },
     {
       icon: Layers,
-      title: 'Structure',
-      description: 'Questions organisées par module, par cours, par année, et par périodes d\'examens.',
+      title: 'Organisation Intelligente',
+      description: 'Contenu structuré par modules, cours et années d\'études pour un apprentissage ciblé.',
     },
     {
       icon: CheckCircle,
-      title: 'Fiabilité',
-      description: 'Questions dûment corrigées et vérifiées selon les dernières recommandations.',
+      title: 'Contenu Certifié',
+      description: 'Questions validées par des experts médicaux selon les standards internationaux.',
     },
     {
       icon: RefreshCw,
-      title: 'Mise à jour',
-      description: 'Plateforme interactive et régulièrement mise à jour.',
+      title: 'Évolution Continue',
+      description: 'Plateforme dynamique constamment enrichie pour rester à la pointe de l\'innovation.',
     },
     {
       icon: Rocket,
-      title: 'Explications',
-      description: 'Réponses commentées et illustrées par des schémas, images radiologiques, tableaux récapitulatifs, mindmaps.',
+      title: 'Explications Détaillées',
+      description: 'Corrections enrichies de schémas anatomiques et imagerie médicale.',
     },
     {
       icon: BarChart,
-      title: 'Analyse de l\'apprentissage',
-      description: 'QUIZY offre une visualisation de toutes les données liées à ton apprentissage pour te permettre d\'optimiser tes révisions.',
+      title: 'Intelligence d\'Apprentissage',
+      description: 'Analytics avancés pour transformer vos données en insights actionnables.',
     },
   ];
 

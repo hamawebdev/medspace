@@ -52,7 +52,7 @@ export default function ExamsPage() {
                   <div className="w-3 h-3 rounded-full bg-primary animate-pulse-soft"></div>
                   <div className="absolute inset-0 w-3 h-3 rounded-full bg-primary/30 animate-ping"></div>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold practice-history-gradient-text">
                   Exam History
                 </h1>
               </div>

@@ -115,6 +115,11 @@
   --hero-gradient-text: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
 }
 
+/* Quiz session specific badge styling */
+.quiz-session-badge {
+  --primary: var(--gradient-left) !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -703,6 +708,17 @@ html body .modern-sidebar-nav::-webkit-scrollbar {
   padding-bottom: 0.25rem !important;
 }
 
+/* Override Card default padding for quiz question cards to near zero */
+.quiz-space-optimized [data-slot="card"] {
+  padding: 0.125rem !important;
+}
+
+@media (min-width: 640px) {
+  .quiz-space-optimized [data-slot="card"] {
+    padding: 0.125rem !important;
+  }
+}
+
 .quiz-compact-mode .quiz-question-container {
   padding-top: 0.125rem !important;
   padding-bottom: 0.125rem !important;
@@ -889,6 +905,24 @@ html {
   color: transparent;
 }
 
+/* Practice History gradient text */
+.practice-history-gradient-text {
+  background: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Question label gradient text */
+.text-question-gradient {
+  background: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
 /* Enhanced sidebar logo styling */
 .sidebar-logo-container {
   position: relative;
@@ -918,4 +952,81 @@ html {
 [data-state="collapsed"] .sidebar-logo-container:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 767px) {
+  /* Improve touch targets on mobile */
+  .touch-target {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  /* Better text readability on mobile */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  /* Improve card spacing on mobile */
+  .mobile-card-spacing {
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+  
+  /* Better button spacing on mobile */
+  .mobile-button-group {
+    gap: 0.5rem !important;
+  }
+  
+  /* Improve form input sizing on mobile */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+  
+  /* Better scroll behavior on mobile */
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Improve text truncation on mobile */
+  .mobile-text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  
+  /* Better spacing for mobile cards */
+  .mobile-card-content {
+    padding: 1rem !important;
+  }
+  
+  /* Improve mobile grid layouts */
+  .mobile-responsive-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* Tablet-specific improvements */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Better tablet spacing */
+  .tablet-card-spacing {
+    padding: 1.5rem !important;
+    gap: 1.5rem !important;
+  }
+  
+  /* Improve tablet grid layouts */
+  .tablet-responsive-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+  
+  /* Better tablet typography */
+  .tablet-text-sizing {
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+  }
 }

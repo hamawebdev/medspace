@@ -366,21 +366,21 @@ export function SessionList({
   return (
     <div className={cn("space-y-6", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {onBack && (
-              <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 p-2">
+              <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 p-2 touch-target">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-lg sm:text-xl font-semibold">
               {variant === 'practice' ? 'Practice' : 'Exam'} Sessions
             </h2>
-            <Badge variant="secondary">{sessions.length}</Badge>
+            <Badge variant="secondary" className="text-xs">{sessions.length}</Badge>
           </div>
           {selectedItemName && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Showing sessions for {selectedItemName}
             </p>
           )}
@@ -395,60 +395,63 @@ export function SessionList({
             className="cursor-pointer hover:shadow-md transition-all duration-200"
             onClick={() => handleSessionClick(session)}
           >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 flex-1">
+            <CardContent className="p-4 sm:p-6">
+              {/* Mobile-first responsive layout */}
+              <div className="space-y-4">
+                {/* Header section with icon and title */}
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className={cn(
-                    "p-3 rounded-lg",
+                    "p-2 sm:p-3 rounded-lg flex-shrink-0",
                     variant === 'practice' ? "bg-primary/10" : "bg-chart-2/10"
                   )}>
                     {variant === 'practice' ? (
                       <Play className={cn(
-                        "h-5 w-5",
+                        "h-4 w-4 sm:h-5 sm:w-5",
                         variant === 'practice' ? "text-primary" : "text-chart-2"
                       )} />
                     ) : (
                       <FileText className={cn(
-                        "h-5 w-5",
+                        "h-4 w-4 sm:h-5 sm:w-5",
                         variant === 'practice' ? "text-primary" : "text-chart-2"
                       )} />
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-lg text-foreground truncate">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-base sm:text-lg text-foreground leading-tight">
                         {session.title}
                       </h3>
-                      <Badge className={cn("text-xs", getStatusColor(session.status))}>
+                      <Badge className={cn("text-xs w-fit", getStatusColor(session.status))}>
                         {getStatusIcon(session.status)}
                         <span className="ml-1">{session.status.replace('_', ' ')}</span>
                       </Badge>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    {/* Session details - responsive grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>{formatDate(session.createdAt)}</span>
+                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">{formatDate(session.createdAt)}</span>
                       </div>
                       
                       {session.totalQuestions && (
                         <div className="flex items-center gap-1">
-                          <BarChart3 className="h-4 w-4" />
+                          <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                           <span>{session.totalQuestions} questions</span>
                         </div>
                       )}
                       
                       {session.score !== undefined && (
                         <div className="flex items-center gap-1">
-                          <CheckCircle className="h-4 w-4" />
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                           <span>{session.score}%</span>
                         </div>
                       )}
                       
                       {session.timeSpent && (
                         <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                           <span>{formatTimeSpent(session.timeSpent)}</span>
                         </div>
                       )}
@@ -456,12 +459,14 @@ export function SessionList({
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2">
+                {/* Action buttons - responsive layout */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 border-t border-border/50">
+                  <div className="flex flex-wrap gap-2 flex-1">
                     {session.status === 'NOT_STARTED' && (
                       <Button
                         size="sm"
                         variant="default"
+                        className="flex-1 sm:flex-none touch-target"
                         onClick={async (e) => {
                           e.stopPropagation();
                           try {
@@ -479,6 +484,7 @@ export function SessionList({
                       <Button
                         size="sm"
                         variant="default"
+                        className="flex-1 sm:flex-none touch-target"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/session/${session.id}`);
@@ -493,6 +499,7 @@ export function SessionList({
                         <Button
                           size="sm"
                           variant="default"
+                          className="flex-1 sm:flex-none touch-target"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/session/${session.id}/results`);
@@ -502,7 +509,8 @@ export function SessionList({
                         </Button>
                         <Button
                           size="sm"
-                          variant="secondary"
+                          variant="default"
+                          className="flex-1 sm:flex-none touch-target"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenRetake(session);
@@ -517,7 +525,7 @@ export function SessionList({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
                     onClick={async (e) => {
                       e.stopPropagation();
                       await handleDeleteSession(session.id);
@@ -534,32 +542,34 @@ export function SessionList({
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between pt-6 border-t border-border">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 sm:pt-6 border-t border-border">
+          <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
             Page {pagination.page} of {pagination.totalPages}
             {pagination.total && (
-              <span className="ml-2">({pagination.total} total sessions)</span>
+              <span className="ml-1 sm:ml-2">({pagination.total} total sessions)</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
               disabled={!pagination.hasPrev && pagination.page <= 1}
               onClick={() => onPageChange?.(Math.max(1, pagination.page - 1))}
-              className="gap-1"
+              className="gap-1 touch-target"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               disabled={!pagination.hasNext && pagination.page >= pagination.totalPages}
               onClick={() => onPageChange?.(pagination.page + 1)}
-              className="gap-1"
+              className="gap-1 touch-target"
             >
-              Next
+              <span className="hidden sm:inline">Next</span>
+              <span className="sm:hidden">Next</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

@@ -30,7 +30,7 @@ export function Logo({
   if (!mounted) {
     return (
       <img
-        src="/logoLightMode.png"
+        src="/logo.png"
         alt={alt}
         className={className}
         width={width}
@@ -39,8 +39,8 @@ export function Logo({
     )
   }
 
-  // Use different logos based on theme
-  const logoSrc = resolvedTheme === 'dark' ? '/logo.png' : '/logoLightMode.png'
+  // Use logo.png for both light and dark modes
+  const logoSrc = '/logo.png'
 
   return (
     <img

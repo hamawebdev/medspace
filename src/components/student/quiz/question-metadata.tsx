@@ -76,7 +76,7 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
       <div className="flex flex-wrap items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-2.5 leading-none min-h-[24px] w-full">
         {/* Question Type - Primary badge */}
         {questionTypeDisplay && (
-          <Badge variant="secondary" className="h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
+          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
             <FileText className="h-3 w-3 mr-1 sm:mr-1.5" />
             {questionTypeDisplay}
           </Badge>
@@ -84,7 +84,7 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
 
         {/* Exam Year */}
         {question.examYear && (
-          <Badge variant="outline" className="h-6 px-2 sm:px-2.5 text-xs font-medium whitespace-nowrap border-border/60 text-foreground/80 hover:bg-muted/50">
+          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
             <Calendar className="h-3 w-3 mr-1 sm:mr-1.5" />
             {question.examYear}
           </Badge>
@@ -93,8 +93,8 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
         {/* Course Name */}
         {question.course?.name && (
           <Badge
-            variant="outline"
-            className="h-6 px-2 sm:px-2.5 text-xs font-medium border-border/60 text-foreground/80 hover:bg-muted/50"
+            variant="secondary"
+            className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold border-0 bg-primary/10 text-primary hover:bg-primary/15"
           >
             <BookOpen className="h-3 w-3 mr-1 sm:mr-1.5 flex-shrink-0" />
             <span className="whitespace-nowrap">{question.course.name}</span>
@@ -104,8 +104,8 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
         {/* University */}
         {question.university?.name && (
           <Badge
-            variant="outline"
-            className="h-6 px-2 sm:px-2.5 text-xs font-medium border-border/60 text-foreground/80 hover:bg-muted/50"
+            variant="secondary"
+            className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold border-0 bg-primary/10 text-primary hover:bg-primary/15"
           >
             <Building2 className="h-3 w-3 mr-1 sm:mr-1.5 flex-shrink-0" />
             <span className="whitespace-nowrap">{question.university.name}</span>
@@ -115,8 +115,8 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
         {/* Source */}
         {sourceName && (
           <Badge
-            variant="outline"
-            className="h-6 px-2 sm:px-2.5 text-xs font-medium border-border/60 text-foreground/80 hover:bg-muted/50"
+            variant="secondary"
+            className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold border-0 bg-primary/10 text-primary hover:bg-primary/15"
           >
             <GraduationCap className="h-3 w-3 mr-1 sm:mr-1.5 flex-shrink-0" />
             <span className="whitespace-nowrap">{sourceName}</span>
@@ -125,14 +125,14 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
 
         {/* Year Level */}
         {question.yearLevel && (
-          <Badge variant="outline" className="h-6 px-2 sm:px-2.5 text-xs font-medium whitespace-nowrap border-border/60 text-foreground/80 hover:bg-muted/50">
+          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
             <span>Year {question.yearLevel}</span>
           </Badge>
         )}
 
         {/* Metadata details */}
         {parsedMetadata?.difficulty && (
-          <Badge variant="outline" className="h-6 px-2 sm:px-2.5 text-xs font-medium whitespace-nowrap border-border/60 text-foreground/80 hover:bg-muted/50">
+          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
             <Info className="h-3 w-3 mr-1 sm:mr-1.5" />
             {parsedMetadata.difficulty}
           </Badge>
@@ -140,8 +140,8 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
 
         {parsedMetadata?.topic && (
           <Badge
-            variant="outline"
-            className="h-6 px-2 sm:px-2.5 text-xs font-medium border-border/60 text-foreground/80 hover:bg-muted/50"
+            variant="secondary"
+            className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold border-0 bg-primary/10 text-primary hover:bg-primary/15"
           >
             <span className="whitespace-nowrap">{parsedMetadata.topic}</span>
           </Badge>
@@ -149,15 +149,15 @@ export function QuestionMetadata({ question, className = '' }: QuestionMetadataP
 
         {parsedMetadata?.category && (
           <Badge
-            variant="outline"
-            className="h-6 px-2 sm:px-2.5 text-xs font-medium border-border/60 text-foreground/80 hover:bg-muted/50"
+            variant="secondary"
+            className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold border-0 bg-primary/10 text-primary hover:bg-primary/15"
           >
             <span className="whitespace-nowrap">{parsedMetadata.category}</span>
           </Badge>
         )}
 
         {parsedMetadata?.estimatedTime && (
-          <Badge variant="outline" className="h-6 px-2 sm:px-2.5 text-xs font-medium whitespace-nowrap border-border/60 text-foreground/80 hover:bg-muted/50">
+          <Badge variant="secondary" className="quiz-session-badge h-6 px-2 sm:px-2.5 text-xs font-semibold whitespace-nowrap border-0 bg-primary/10 text-primary hover:bg-primary/15">
             <span>{parsedMetadata.estimatedTime}s</span>
           </Badge>
         )}

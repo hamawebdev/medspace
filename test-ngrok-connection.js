@@ -1,6 +1,6 @@
 // Test script to verify ngrok connection
 import axios from 'axios'
-const API_BASE_URL = 'https://b3a21a5cd073.ngrok-free.app/api/v1';
+const API_BASE_URL = 'https://27a1505cc068.ngrok-free.app/api/v1';
 
 async function testNgrokConnection() {
   console.log('🔍 Testing ngrok connection...');

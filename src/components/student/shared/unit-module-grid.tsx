@@ -112,16 +112,16 @@ export function UnitModuleGrid({
       {/* Study Units Section */}
       {unitItems.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Building2 className={cn(
-              "h-5 w-5",
+              "h-5 w-5 flex-shrink-0",
               variant === 'practice' ? "text-primary" : "text-chart-2"
             )} />
-            <h3 className="text-lg font-semibold text-foreground">Study Units</h3>
-            <Badge variant="secondary">{unitItems.length}</Badge>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">Study Units</h3>
+            <Badge variant="secondary" className="text-xs">{unitItems.length}</Badge>
           </div>
           
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
             {unitItems.map((item) => (
               <UnitModuleCard
                 key={`unit-${item.id}`}
@@ -139,16 +139,16 @@ export function UnitModuleGrid({
       {/* Independent Modules Section */}
       {independentModuleItems.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <BookOpen className={cn(
-              "h-5 w-5",
+              "h-5 w-5 flex-shrink-0",
               variant === 'practice' ? "text-chart-1" : "text-chart-3"
             )} />
-            <h3 className="text-lg font-semibold text-foreground">Independent Modules</h3>
-            <Badge variant="secondary">{independentModuleItems.length}</Badge>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">Independent Modules</h3>
+            <Badge variant="secondary" className="text-xs">{independentModuleItems.length}</Badge>
           </div>
           
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
             {independentModuleItems.map((item) => (
               <UnitModuleCard
                 key={`module-${item.id}`}

@@ -342,15 +342,15 @@ export function useQuizCreation(
       toast.success('Quiz created successfully!');
 
       // Handle new response structure: session data is directly in result.data
-      const sessionData = result.data;
+      const responseSessionData = result.data;
 
       console.log('Quiz creation successful:', {
         fullResponse: result,
-        sessionData: sessionData,
-        sessionId: sessionData.sessionId || sessionData.id
+        sessionData: responseSessionData,
+        sessionId: responseSessionData.sessionId || responseSessionData.id
       });
 
-      return sessionData;
+      return responseSessionData;
     } catch (error) {
       console.error('💥 [QuizCreation] Exception during session creation:', error);
 

@@ -96,75 +96,56 @@ export function UnitModuleCard({
   return (
     <Card
       className={cn(
-        "cursor-pointer hover:shadow-md transition-all duration-200 border-l-[4px]",
+        "cursor-pointer hover:shadow-md transition-all duration-200 border-l-[4px] h-full",
         styles.borderColor,
         isSelected && "border-primary bg-primary/5 shadow-md",
         className
       )}
       onClick={handleClick}
     >
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-1">
+      <CardContent className="p-4 sm:p-6 h-full flex flex-col">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 flex-1">
+          <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
             <LogoDisplay
               logoUrl={item.logoUrl}
               fallbackIcon={IconComponent}
               alt={`${item.name} logo`}
               size="lg"
               variant="rounded"
-              className={cn("p-3", styles.bgColor)}
+              className={cn("p-2 sm:p-3 flex-shrink-0 mt-1", styles.bgColor)}
               iconClassName={styles.iconColor}
             />
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-lg text-foreground truncate">
-                  {item.name}
-                </h3>
-                <Badge 
-                  variant="outline" 
-                  className={cn(
-                    "text-xs",
-                    isUnit && "border-primary/30 text-primary",
-                    isIndependentModule && "border-chart-1/30 text-chart-1",
-                    !isUnit && !isIndependentModule && "border-primary-foreground/30 text-primary-foreground"
-                  )}
-                >
-                  {isUnit ? 'Unit' : isIndependentModule ? 'Independent Module' : 'Module'}
-                </Badge>
-              </div>
-              
-              {item.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                  {item.description}
-                </p>
-              )}
-              
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                {isUnit && item.moduleCount !== undefined && (
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="h-4 w-4" />
-                    <span>{item.moduleCount} modules</span>
-                  </div>
-                )}
-                
-                {showSessionCount && item.sessionCount !== undefined && (
-                  <div className="flex items-center gap-1">
-                    {variant === 'practice' ? (
-                      <Play className="h-4 w-4" />
-                    ) : (
-                      <FileText className="h-4 w-4" />
+
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="space-y-1">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                  <h3 className="font-semibold text-base sm:text-lg text-foreground leading-tight break-words">
+                    {item.name}
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-xs w-fit flex-shrink-0",
+                      isUnit && "border-primary/30 text-primary",
+                      isIndependentModule && "border-chart-1/30 text-chart-1",
+                      !isUnit && !isIndependentModule && "border-primary-foreground/30 text-primary-foreground"
                     )}
-                    <span>
-                      {item.sessionCount} {variant === 'practice' ? 'practice' : 'exam'} session{item.sessionCount !== 1 ? 's' : ''}
-                    </span>
-                  </div>
+                  >
+                    {isUnit ? 'Unit' : isIndependentModule ? 'Independent Module' : 'Module'}
+                  </Badge>
+                </div>
+
+                {item.description && (
+                  <p className="text-sm text-muted-foreground leading-relaxed break-words">
+                    {item.description}
+                  </p>
                 )}
               </div>
+
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center justify-end sm:justify-center gap-2">
             <Button
               variant="ghost"
               size="sm"
