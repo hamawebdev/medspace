@@ -223,15 +223,15 @@ export function RecentActivityFeed({ activities }: RecentActivityFeedProps) {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge variant="secondary" className="text-xs font-medium">
+                  <Badge variant="outline" className="text-xs font-medium bg-chart-3/10 text-chart-3 border-chart-3/20">
                     {mostRecentActivity.type}
                   </Badge>
                   <Badge
                     variant="outline"
                     className={cn(
                       "text-sm font-semibold",
-                      mostRecentActivity.score >= 90 && "text-chart-2 border-chart-2/20 bg-chart-2/10",
-                      mostRecentActivity.score >= 70 && mostRecentActivity.score < 90 && "text-chart-1 border-chart-1/20 bg-chart-1/10",
+                      mostRecentActivity.score >= 90 && "text-chart-1 border-chart-1/20 bg-chart-1/10",
+                      mostRecentActivity.score >= 70 && mostRecentActivity.score < 90 && "text-chart-2 border-chart-2/20 bg-chart-2/10",
                       mostRecentActivity.score >= 50 && mostRecentActivity.score < 70 && "text-chart-4 border-chart-4/20 bg-chart-4/10",
                       mostRecentActivity.score < 50 && "text-destructive border-destructive/20 bg-destructive/10"
                     )}

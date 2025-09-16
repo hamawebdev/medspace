@@ -47,44 +47,46 @@ export function WelcomeHeader({ user }: WelcomeHeaderProps) {
   }
 
   return (
-    <Card className="relative overflow-hidden bg-gradient-to-r from-background via-accent/5 to-background border-0 shadow-lg">
+    <Card className="relative overflow-hidden bg-primary dark:bg-[hsl(178.8000_58.1395%_83.1373%)] border-0 shadow-lg">
       {/* Enhanced background decoration for better visual hierarchy */}
-      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-chart-1/10 to-chart-2/15 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-chart-3/8 to-chart-4/10 rounded-full blur-2xl"></div>
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-accent/3 to-muted/5 rounded-full blur-3xl"></div>
+      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-primary/20 to-primary/25 dark:from-[hsl(178.8000_58.1395%_83.1373%)]/20 dark:to-[hsl(178.8000_58.1395%_83.1373%)]/25 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-primary/18 to-primary/22 dark:from-[hsl(178.8000_58.1395%_83.1373%)]/18 dark:to-[hsl(178.8000_58.1395%_83.1373%)]/22 rounded-full blur-2xl"></div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-primary/12 to-primary/16 dark:from-[hsl(178.8000_58.1395%_83.1373%)]/12 dark:to-[hsl(178.8000_58.1395%_83.1373%)]/16 rounded-full blur-3xl"></div>
 
-      <CardContent className="relative p-[calc(var(--spacing)*6)] sm:p-[calc(var(--spacing)*8)] backdrop-blur-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[calc(var(--spacing)*4)]">
+      <CardContent className="relative p-[calc(var(--spacing)*6)] sm:p-[calc(var(--spacing)*8)] md:p-[calc(var(--spacing)*10)] backdrop-blur-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-[calc(var(--spacing)*4)]">
           {/* User Info Section */}
-          <div className="flex items-center gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)]">
-            <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex items-center gap-[calc(var(--spacing)*3)] lg:gap-[calc(var(--spacing)*4)]">
+            <Avatar className="h-10 w-10 lg:h-12 lg:w-12 border-2 border-gray-200 dark:border-gray-700 flex-shrink-0">
               <AvatarImage src={avatar || undefined} alt={name} />
-              <AvatarFallback className="bg-gradient-to-br from-chart-1 to-chart-2 text-white font-semibold">
+              <AvatarFallback 
+                className="text-white font-semibold"
+                style={{
+                  background: `linear-gradient(to right, var(--gradient-left), var(--gradient-center), var(--gradient-right))`
+                }}
+              >
                 {fallback}
               </AvatarFallback>
             </Avatar>
 
             <div className="space-y-[calc(var(--spacing)*1)] min-w-0 flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-[calc(var(--spacing)*1)] sm:gap-[calc(var(--spacing)*2)]">
-                <h2 className="text-foreground tracking-tight text-lg sm:text-xl truncate">
+                <h2 className="text-foreground dark:text-[hsl(0_0%_9.0196%)] tracking-tight text-lg sm:text-xl md:text-2xl font-bold">
                   {getGreeting()}, {name}!
                 </h2>
-                <Badge variant="outline" className="bg-card/50 backdrop-blur-sm text-xs font-medium self-start sm:self-auto">
-                  Student
-                </Badge>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-[calc(var(--spacing)*2)] sm:gap-[calc(var(--spacing)*4)] text-sm text-muted-foreground leading-relaxed">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-[calc(var(--spacing)*2)] sm:gap-[calc(var(--spacing)*4)] md:gap-[calc(var(--spacing)*5)] text-sm md:text-base text-muted-foreground dark:text-[hsl(0_0%_12.5490%)] leading-relaxed">
                 {university && (
                   <div className="flex items-center gap-[calc(var(--spacing)*1)]">
-                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <MapPin className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
                     <span className="font-medium truncate">{university}</span>
                   </div>
                 )}
 
                 {year && (
                   <div className="flex items-center gap-[calc(var(--spacing)*1)]">
-                    <GraduationCap className="h-3 w-3 flex-shrink-0" />
+                    <GraduationCap className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
                     <span className="font-medium">{getYearDisplay(year)}</span>
                   </div>
                 )}
@@ -93,10 +95,10 @@ export function WelcomeHeader({ user }: WelcomeHeaderProps) {
           </div>
 
           {/* Date and Quick Action */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)] w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-[calc(var(--spacing)*3)] sm:gap-[calc(var(--spacing)*4)] md:gap-[calc(var(--spacing)*5)] w-full sm:w-auto">
             <div className="text-left sm:text-right order-2 sm:order-1">
-              <div className="flex items-center gap-[calc(var(--spacing)*2)] text-sm font-medium text-muted-foreground mb-[calc(var(--spacing)*1)] leading-relaxed">
-                <Calendar className="h-4 w-4 flex-shrink-0" />
+              <div className="flex items-center gap-[calc(var(--spacing)*2)] text-sm md:text-base font-medium text-muted-foreground dark:text-[hsl(0_0%_12.5490%)] mb-[calc(var(--spacing)*1)] leading-relaxed">
+                <Calendar className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
                 <span className="hidden sm:inline">{new Date().toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
@@ -107,12 +109,12 @@ export function WelcomeHeader({ user }: WelcomeHeaderProps) {
                   day: 'numeric'
                 })}</span>
               </div>
-              <div className="text-xs text-muted-foreground leading-relaxed hidden sm:block">
+              <div className="text-xs md:text-sm text-muted-foreground dark:text-[hsl(0_0%_12.5490%)] leading-relaxed hidden sm:block">
                 Your trusted medical education companion
               </div>
             </div>
 
-            <Button onClick={() => router.push('/student/practice')} className="gap-[calc(var(--spacing)*2)] bg-gradient-to-r from-chart-1 to-chart-2 hover:opacity-90 text-white shadow-lg font-semibold tracking-tight order-1 sm:order-2 w-full sm:w-auto">
+            <Button onClick={() => router.push('/student/practice')} className="gap-[calc(var(--spacing)*2)] hover:opacity-90 text-white shadow-lg font-semibold tracking-tight order-1 sm:order-2 w-full sm:w-auto" style={{ background: 'linear-gradient(to right, var(--gradient-left), var(--gradient-center), var(--gradient-right))' }}>
               <TrendingUp className="h-4 w-4" />
               <span className="sm:hidden">Continue</span>
               <span className="hidden sm:inline">Continue Learning</span>

@@ -66,7 +66,7 @@
   --card-foreground: hsl(214.2857 31.8182% 91.3725%);
   --popover: hsl(0 0% 14.1176%);
   --popover-foreground: hsl(0 0% 66.2745%);
-  --primary: hsl(154.8980 100.0000% 19.2157%);
+  --primary: var(--gradient-left);
   --primary-foreground: hsl(152.7273 19.2982% 88.8235%);
   --secondary: hsl(0 0% 14.1176%);
   --secondary-foreground: hsl(0 0% 98.0392%);
@@ -109,6 +109,10 @@
   --gradient-left: #18686E;
   --gradient-center: #1A6E72;
   --gradient-right: #094455;
+  --primary-gradient: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
+  
+  /* Hero gradient text utilities */
+  --hero-gradient-text: linear-gradient(135deg, var(--gradient-left), var(--gradient-center), var(--gradient-right));
 }
 
 @theme inline {
@@ -866,4 +870,52 @@ html {
   --sidebar-accent-foreground: hsl(0 0% 12.5490%) !important;
   --sidebar-border: hsl(0 0% 87.4510%) !important;
   --sidebar-ring: hsl(151.3274 66.8639% 66.8627%) !important;
+}
+
+/* Hero gradient text utilities */
+.text-hero-gradient {
+  background: var(--hero-gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-hero-gradient-dark {
+  background: var(--hero-gradient-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Enhanced sidebar logo styling */
+.sidebar-logo-container {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-logo-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-logo-container:hover::before {
+  opacity: 1;
+}
+
+/* Collapsed sidebar logo enhancements */
+[data-state="collapsed"] .sidebar-logo-container {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-state="collapsed"] .sidebar-logo-container:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }

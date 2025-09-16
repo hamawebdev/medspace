@@ -3,6 +3,7 @@ import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import {
   Collapsible,
   CollapsibleContent,
@@ -34,8 +35,8 @@ export function NavGroup({ title, items }: NavGroup) {
   const { state } = useSidebar()
   const href = usePathname()
   return (
-    <SidebarGroup className='mb-6'>
-      <SidebarGroupLabel className='text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mb-3 px-2'>
+    <SidebarGroup className='mb-4'>
+      <SidebarGroupLabel className='text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider mb-2 px-2'>
         {title}
       </SidebarGroupLabel>
       <SidebarMenu className='space-y-1'>
@@ -75,25 +76,33 @@ const SidebarMenuLink = ({ item, href }: { item: NavLink & { disabled?: boolean 
         isActive={isActive}
         tooltip={item.title}
         disabled={disabled}
-        className={`
-          relative h-10 rounded-lg transition-all duration-200 group
-          ${isActive
+        className={cn(
+          "relative h-10 rounded-lg transition-all duration-200 group px-3",
+          "flex items-center justify-start gap-3 w-full",
+          isActive
             ? '!bg-primary !text-primary-foreground shadow-md border border-primary/20 font-medium'
-            : 'hover:bg-muted/50 hover:text-foreground'
-          }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+            : 'hover:bg-muted/50 hover:text-foreground',
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
       >
         {disabled ? (
-          <div className="flex w-full items-center gap-3 px-3">
-            {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
-            <span className="font-medium">{item.title}</span>
+          <div className="flex w-full items-center justify-start gap-3">
+            {item.icon && (
+              <div className="flex items-center justify-center w-5 h-5 flex-shrink-0">
+                <item.icon className="h-4 w-4" />
+              </div>
+            )}
+            <span className="font-medium text-sm truncate">{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
           </div>
         ) : (
-          <Link href={item.url} onClick={() => setOpenMobile(false)} className="flex w-full items-center gap-3 px-3">
-            {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
-            <span className="font-medium">{item.title}</span>
+          <Link href={item.url} onClick={() => setOpenMobile(false)} className="flex w-full items-center justify-start gap-3">
+            {item.icon && (
+              <div className="flex items-center justify-center w-5 h-5 flex-shrink-0">
+                <item.icon className="h-4 w-4" />
+              </div>
+            )}
+            <span className="font-medium text-sm truncate">{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
           </Link>
         )}
@@ -118,11 +127,18 @@ const SidebarMenuCollapsible = ({
     >
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={item.title}>
-            {item.icon && <item.icon />}
-            <span>{item.title}</span>
+          <SidebarMenuButton
+            tooltip={item.title}
+            className="h-10 rounded-lg px-3 flex items-center justify-start gap-3 w-full"
+          >
+            {item.icon && (
+              <div className="flex items-center justify-center w-5 h-5 flex-shrink-0">
+                <item.icon className="h-4 w-4" />
+              </div>
+            )}
+            <span className="font-medium text-sm truncate">{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
+            <ChevronRight className='ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent className='CollapsibleContent'>
@@ -162,11 +178,14 @@ const SidebarMenuCollapsedDropdown = ({
           <SidebarMenuButton
             tooltip={item.title}
             isActive={checkIsActive(href, item)}
+            className="h-10 rounded-lg px-3 flex items-center justify-center w-full"
           >
-            {item.icon && <item.icon />}
-            <span>{item.title}</span>
-            {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
+            {item.icon && (
+              <div className="flex items-center justify-center w-5 h-5">
+                <item.icon className="h-4 w-4" />
+              </div>
+            )}
+            <span className="sr-only">{item.title}</span>
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent side='right' align='start' sideOffset={4}>

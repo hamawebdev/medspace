@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -25,6 +25,123 @@ import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { AuthAPI } from "@/lib/auth-api";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+
+// Shared form fields component to avoid duplication
+function LoginFormFields({
+  register,
+  errors,
+  showPassword,
+  setShowPassword,
+  isSubmitting,
+  isLoading,
+  className = "",
+  formId = ""
+}: {
+  register: any;
+  errors: any;
+  showPassword: boolean;
+  setShowPassword: (show: boolean) => void;
+  isSubmitting: boolean;
+  isLoading: boolean;
+  className?: string;
+  formId?: string;
+}) {
+  // Handle password visibility toggle without affecting form state
+  const handlePasswordToggle = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🔍 Password visibility toggle clicked, current state:', showPassword);
+    setShowPassword(!showPassword);
+  }, [showPassword, setShowPassword]);
+
+  // Unique IDs to avoid conflicts between desktop and mobile forms
+  const emailId = `email-${formId}`;
+  const passwordId = `password-${formId}`;
+
+  // Debug registration
+  const emailRegistration = register("email");
+  const passwordRegistration = register("password");
+
+  console.log('🔍 Email registration:', emailRegistration);
+  console.log('🔍 Password registration:', passwordRegistration);
+
+  return (
+    <div className={`space-y-6 ${className}`}>
+      <div className="space-y-3">
+        <Label htmlFor={emailId} className="text-sm font-semibold">Email</Label>
+        <Input
+          id={emailId}
+          type="email"
+          placeholder="m@example.com"
+          className="h-12"
+          {...emailRegistration}
+          disabled={isSubmitting || isLoading}
+          autoComplete="email"
+        />
+        {errors.email && (
+          <p className="text-destructive text-sm animate-slide-up">
+            {errors.email.message}
+          </p>
+        )}
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center">
+          <Label htmlFor={passwordId} className="text-sm font-semibold">Password</Label>
+          <Link
+            href="/forgot-password"
+            className="ml-auto text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md px-2 py-1 underline-offset-4"
+          >
+            Forgot your password?
+          </Link>
+        </div>
+        <div className="relative group">
+          <Input
+            id={passwordId}
+            type={showPassword ? "text" : "password"}
+            placeholder="Enter your password"
+            className="pr-12 h-12"
+            {...passwordRegistration}
+            disabled={isSubmitting || isLoading}
+            autoComplete="current-password"
+          />
+          <button
+            type="button"
+            onClick={handlePasswordToggle}
+            disabled={isSubmitting || isLoading}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md p-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+        {errors.password && (
+          <p className="text-destructive text-sm animate-slide-up">
+            {errors.password.message}
+          </p>
+        )}
+      </div>
+
+      {/* Submit Button */}
+      <Button
+        type="submit"
+        disabled={isSubmitting || isLoading}
+        className="w-full h-12 font-semibold group"
+      >
+        {isSubmitting || isLoading ? (
+          <div className="flex items-center justify-center">
+            <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
+            Signing in...
+          </div>
+        ) : (
+          <div className="flex items-center justify-center">
+            Login
+            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1" />
+          </div>
+        )}
+      </Button>
+    </div>
+  );
+}
 
 export function ModernLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -52,16 +169,42 @@ export function ModernLoginForm() {
     }
   }, [searchParams]);
 
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onSubmit',
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+    reset,
+    getValues,
+    watch,
+  } = form;
+
+  // Watch form values for debugging
+  const formValues = watch();
+
+  // Debug form state changes
+  React.useEffect(() => {
+    console.log('🔍 Form values changed:', formValues);
+    console.log('🔍 Form errors:', errors);
+    console.log('🔍 Is submitting:', isSubmitting);
+  }, [formValues, errors, isSubmitting]);
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log('🚀 LoginForm: Starting login submission...', { email: data.email });
+    console.log('🚀 LoginForm: Starting login submission...', {
+      email: data.email,
+      hasPassword: !!data.password,
+      formValues: getValues()
+    });
+
+    // Prevent form clearing during submission
     setIsLoading(true);
     setError(null);
     setSuccessMessage(null);
@@ -75,6 +218,9 @@ export function ModernLoginForm() {
         console.log('🚀 LoginForm: Login successful, showing toast...');
         toast.success('Login successful!');
 
+        // Clear form only on successful login
+        reset();
+
         // Redirect based on user role
         const redirectPath = AuthAPI.getRedirectPath(response.user.role);
         console.log('🚀 LoginForm: Redirecting to:', redirectPath);
@@ -87,8 +233,6 @@ export function ModernLoginForm() {
       }
     } catch (error: any) {
       console.error('🚀 LoginForm: Login error caught', error);
-
-
 
       // Handle API server connection errors
       if (error.message.includes('Cannot connect to API server')) {
@@ -112,19 +256,14 @@ export function ModernLoginForm() {
 
   return (
     <div className="min-h-screen force-light-mode">
-      {/* Desktop Two-Column Layout */}
-      <div className="hidden lg:flex min-h-screen">
-        {/* Left Column - Login Form */}
-        <div
-          className="flex-1 flex items-center justify-center p-8 lg:p-12"
-          style={{ backgroundColor: '#3A6E7C' }}
-        >
+      {/* Single Form - Responsive Design */}
+      <div className="min-h-screen flex">
+        {/* Left Column - Login Form (always visible) */}
+        <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-[#3A6E7C] via-[#3A6E7C] to-[#2A5A68] lg:bg-[#3A6E7C]">
           <div className="w-full max-w-md">
-            <Card
-              className="border-white/20 card-hover-lift animate-fade-in-up shadow-xl bg-transparent"
-            >
+            <Card className="border-white/20 lg:border-white/20 card-hover-lift animate-fade-in-up shadow-xl bg-transparent lg:bg-transparent glass lg:glass-none">
               <CardHeader className="text-center space-y-4">
-                <CardTitle className="text-3xl font-semibold tracking-tight text-white flex items-center justify-center !group-hover:text-white">
+                <CardTitle className="text-3xl font-semibold tracking-tight text-white lg:text-white flex items-center justify-center">
                   Welcome back
                 </CardTitle>
               </CardHeader>
@@ -146,77 +285,16 @@ export function ModernLoginForm() {
                     )}
 
                     {/* Email and Password Fields */}
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="email" className="text-sm font-semibold text-white">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="m@example.com"
-                          className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-white/40 focus:ring-white/20 focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent hover:border-white/30"
-                          {...register("email")}
-                          required
-                        />
-                        {errors.email && (
-                          <p className="text-red-200 text-sm animate-slide-up">
-                            {errors.email.message}
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center">
-                          <Label htmlFor="password" className="text-sm font-semibold text-white">Password</Label>
-                          <Link
-                            href="/forgot-password"
-                            className="ml-auto text-sm text-white/80 hover:text-white hover:underline focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-transparent rounded-md px-2 py-1 underline-offset-4"
-                          >
-                            Forgot your password?
-                          </Link>
-                        </div>
-                        <div className="relative group">
-                          <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter your password"
-                            className="pr-12 h-12 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-white/40 focus:ring-white/20 focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent hover:border-white/30"
-                            {...register("password")}
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-transparent rounded-md p-1"
-                            style={{ color: 'hsl(195 33.7% 39%)' }}
-                          >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                          </button>
-                        </div>
-                        {errors.password && (
-                          <p className="text-red-200 text-sm animate-slide-up">
-                            {errors.password.message}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Submit Button */}
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting || isLoading}
-                        className="w-full h-12 bg-white text-gray-900 hover:bg-white/90 font-semibold group shadow-lg"
-                      >
-                          {isSubmitting || isLoading ? (
-                            <div className="flex items-center justify-center">
-                              <div className="w-5 h-5 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin mr-2" />
-                              Signing in...
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center">
-                              Login
-                              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1" />
-                            </div>
-                          )}
-                      </Button>
-                    </div>
+                    <LoginFormFields
+                      register={register}
+                      errors={errors}
+                      showPassword={showPassword}
+                      setShowPassword={setShowPassword}
+                      isSubmitting={isSubmitting}
+                      isLoading={isLoading}
+                      formId="main"
+                      className="[&_label]:text-white [&_input]:bg-white/10 [&_input]:border-white/20 [&_input]:text-white [&_input]:placeholder:text-white/60 [&_input]:focus:border-white/40 [&_input]:focus:ring-white/20 [&_input]:hover:border-white/30 [&_a]:text-white/80 [&_a]:hover:text-white [&_a]:focus:ring-white/20 [&_button[type=button]]:text-[hsl(195_33.7%_39%)] [&_p]:text-red-200 [&_button[type=submit]]:bg-white [&_button[type=submit]]:text-gray-900 [&_button[type=submit]]:hover:bg-white/90 [&_button[type=submit]]:shadow-lg"
+                    />
 
                     {/* Sign Up Link */}
                     <div className="text-center text-sm">
@@ -247,8 +325,8 @@ export function ModernLoginForm() {
           </div>
         </div>
 
-        {/* Right Column - Auth Image */}
-        <div className="flex-1 relative overflow-hidden">
+        {/* Right Column - Auth Image (desktop only) */}
+        <div className="hidden lg:flex flex-1 relative overflow-hidden">
           <img
             src="/auth-image.jpg"
             alt="Medical Education Platform"
@@ -256,142 +334,6 @@ export function ModernLoginForm() {
           />
           {/* Optional overlay for better contrast */}
           <div className="absolute inset-0 bg-black/10" />
-        </div>
-      </div>
-
-      {/* Mobile Layout - Keep Current Design */}
-      <div className="lg:hidden min-h-screen flex items-center justify-center p-6 relative">
-        {/* Design system background - using hero gradient */}
-        <div className="absolute inset-0 section-bg bg-grid-pattern">
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(to right, var(--gradient-left), var(--gradient-center), var(--gradient-right))`
-            }}
-          />
-        </div>
-
-        <div className="w-full max-w-md relative z-10">
-          <div className="flex flex-col space-y-6">
-            <Card className="glass border-border/20 card-hover-lift animate-fade-in-up">
-              <CardHeader className="text-center space-y-4">
-                <CardTitle className="text-3xl font-semibold tracking-tight flex items-center justify-center !group-hover:text-foreground">Welcome back</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <form onSubmit={handleSubmit(onSubmit)}>
-                  <div className="space-y-6">
-                    {/* Success Message */}
-                    {successMessage && (
-                      <div className="p-4 bg-chart-2/10 border border-chart-2/20 rounded-xl animate-slide-up">
-                        <p className="text-chart-2 text-sm font-medium">{successMessage}</p>
-                      </div>
-                    )}
-
-                    {/* Error Message */}
-                    {error && (
-                      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl animate-slide-up">
-                        <p className="text-destructive text-sm font-medium">{error}</p>
-                      </div>
-                    )}
-                    {/* Email and Password Fields */}
-                    <div className="space-y-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="email" className="text-sm font-semibold text-foreground">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="m@example.com"
-                          className="h-12 bg-background border-border focus:border-primary focus:ring-primary focus:ring-2 focus:ring-offset-2 hover:border-primary/50"
-                          {...register("email")}
-                          required
-                        />
-                        {errors.email && (
-                          <p className="text-destructive text-sm animate-slide-up">
-                            {errors.email.message}
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center">
-                          <Label htmlFor="password" className="text-sm font-semibold text-foreground">Password</Label>
-                          <Link
-                            href="/forgot-password"
-                            className="ml-auto text-sm text-primary hover:text-primary/80 hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md px-2 py-1 underline-offset-4"
-                          >
-                            Forgot your password?
-                          </Link>
-                        </div>
-                        <div className="relative group">
-                          <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter your password"
-                            className="pr-12 h-12 bg-background border-border focus:border-primary focus:ring-primary focus:ring-2 focus:ring-offset-2 hover:border-primary/50"
-                            {...register("password")}
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-primary hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md p-1"
-                          >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                          </button>
-                        </div>
-                        {errors.password && (
-                          <p className="text-destructive text-sm animate-slide-up">
-                            {errors.password.message}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Submit Button */}
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting || isLoading}
-                        className="w-full h-12 btn-modern btn-interactive font-semibold group"
-                      >
-                          {isSubmitting || isLoading ? (
-                            <div className="flex items-center justify-center">
-                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                              Signing in...
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center">
-                              Login
-                              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1" />
-                            </div>
-                          )}
-                      </Button>
-                    </div>
-
-                    {/* Sign Up Link */}
-                    <div className="text-center text-sm">
-                      Don&apos;t have an account?{" "}
-                      <Link
-                        href="/register"
-                        className="text-primary hover:text-primary/80 font-semibold hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-md px-2 py-1 underline underline-offset-4"
-                      >
-                        Sign up
-                      </Link>
-                    </div>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Terms and Privacy */}
-            <div className="text-muted-foreground text-center text-xs text-balance">
-              By clicking continue, you agree to our{" "}
-              <Link href="#" className="underline underline-offset-4 hover:text-primary">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="#" className="underline underline-offset-4 hover:text-primary">
-                Privacy Policy
-              </Link>.
-            </div>
-          </div>
         </div>
       </div>
     </div>

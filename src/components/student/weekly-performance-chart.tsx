@@ -345,42 +345,45 @@ export function WeeklyPerformanceChart({ weeklyPerformance, loading }: Props) {
 
         {/* Performance Summary */}
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4'>
-          <div className='rounded-lg p-3 text-center border-border' style={{ backgroundColor: '#00B05020', border: '1px solid #00B05040' }}>
+          <div className='rounded-lg p-3 text-center border bg-primary border-primary dark:bg-primary/10 dark:border-primary/20'>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full' style={{ backgroundColor: '#00B05020' }}>
-                <Target className='h-3 w-3' style={{ color: '#00B050' }} />
+              <div className='p-1 rounded-full bg-primary-foreground dark:bg-primary/20'>
+                <Target className='h-3 w-3 text-primary-foreground dark:text-primary' />
               </div>
             </div>
-            <div className='text-lg font-bold' style={{ color: '#00B050' }}>{overallAccuracy}%</div>
-            <div className='text-xs font-medium' style={{ color: '#00B050' }}>Overall Accuracy</div>
+            <div className='text-lg font-bold text-hero-gradient'>{overallAccuracy}%</div>
+            <div className='text-xs font-medium text-hero-gradient'>Overall Accuracy</div>
           </div>
 
-          <div className='rounded-lg p-3 text-center border-border' style={{ backgroundColor: '#BFBFBF20', border: '1px solid #BFBFBF40' }}>
+          <div className='rounded-lg p-3 text-center border bg-muted/50 border-muted'>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full' style={{ backgroundColor: '#BFBFBF20' }}>
-                <BarChart3 className='h-3 w-3' style={{ color: '#BFBFBF' }} />
+              <div className='p-1 rounded-full bg-muted'>
+                <BarChart3 className='h-3 w-3 text-muted-foreground' />
               </div>
             </div>
-            <div className='text-lg font-bold' style={{ color: '#BFBFBF' }}>{totalQuestions}</div>
-            <div className='text-xs font-medium' style={{ color: '#BFBFBF' }}>Total Questions</div>
+            <div className='text-lg font-bold text-hero-gradient'>{totalQuestions}</div>
+            <div className='text-xs font-medium text-hero-gradient'>Total Questions</div>
           </div>
 
-          <div className='rounded-lg p-3 text-center border-border' style={{ backgroundColor: '#00B05020', border: '1px solid #00B05040' }}>
+          <div className='rounded-lg p-3 text-center border bg-primary border-primary dark:bg-primary/10 dark:border-primary/20'>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full' style={{ backgroundColor: '#00B05020' }}>
+              <div className='p-1 rounded-full bg-primary-foreground dark:bg-primary/20'>
                 {accuracyTrend > 0 ? (
-                  <TrendingUp className='h-3 w-3' style={{ color: '#00B050' }} />
+                  <TrendingUp className='h-3 w-3 text-primary-foreground dark:text-primary' />
                 ) : accuracyTrend < 0 ? (
-                  <TrendingDown className='h-3 w-3' style={{ color: '#FF0000' }} />
+                  <TrendingDown className='h-3 w-3 text-destructive' />
                 ) : (
-                  <Award className='h-3 w-3' style={{ color: '#00B050' }} />
+                  <Award className='h-3 w-3 text-primary-foreground dark:text-primary' />
                 )}
               </div>
             </div>
-            <div className='text-lg font-bold' style={{ color: accuracyTrend > 0 ? '#00B050' : accuracyTrend < 0 ? '#FF0000' : '#00B050' }}>
+            <div className={cn(
+              'text-lg font-bold',
+              accuracyTrend < 0 ? 'text-destructive' : 'text-hero-gradient'
+            )}>
               {Math.abs(accuracyTrend)}%
             </div>
-            <div className='text-xs font-medium' style={{ color: '#00B050' }}>Weekly Trend</div>
+            <div className='text-xs font-medium text-hero-gradient'>Weekly Trend</div>
           </div>
         </div>
       </CardHeader>

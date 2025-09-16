@@ -18,22 +18,34 @@ function AppSidebarHeader() {
   const { state } = useSidebar()
 
   return (
-    <div className='flex h-full items-center gap-3 px-1'>
-      {/* Logo Icon - Always visible, adapts size based on sidebar state */}
+    <div className={cn(
+      'flex h-full items-center transition-all duration-200',
+      state === 'expanded' ? 'justify-start gap-3 px-3 py-3' : 'justify-center px-2 py-4'
+    )}>
+      {/* Logo Icon - Always visible, enhanced size and centering */}
       <Logo
         className={cn(
-          "object-contain transition-all duration-200 hover:scale-105",
-          state === 'expanded' ? "h-14 w-14" : "h-8 w-8"
+          "object-contain transition-all duration-200 hover:scale-110 drop-shadow-sm",
+          state === 'expanded' ? "h-10 w-10" : "h-9 w-9"
         )}
       />
 
-      {/* Logo Text - Only visible when expanded */}
+      {/* Logo Text - Only visible when expanded, better typography */}
       {state === 'expanded' && (
-        <div className='flex flex-col'>
-          <span className='whitespace-nowrap text-lg font-bold text-primary'>
+        <div className='flex flex-col justify-center min-w-0 flex-1'>
+          <span
+            className='whitespace-nowrap text-lg font-bold leading-tight drop-shadow-sm'
+            style={{
+              background: 'linear-gradient(to right, var(--gradient-left), var(--gradient-center), var(--gradient-right))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              color: 'transparent'
+            }}
+          >
             MedCortex
           </span>
-          <span className='text-xs text-muted-foreground font-medium'>
+          <span className='text-xs text-white/80 dark:text-muted-foreground font-medium leading-tight'>
             For Better Study
           </span>
         </div>
@@ -97,17 +109,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   })();
 
   return (
-    <Sidebar collapsible='icon' variant='floating' {...props}>
-      <SidebarHeader className='h-auto p-4 border-b border-sidebar-border/50'>
+    <Sidebar
+      collapsible='icon'
+      variant='floating'
+      className="group-data-[collapsible=icon]:w-16"
+      {...props}
+    >
+      <SidebarHeader
+        className={cn(
+          'h-auto border-b border-sidebar-border/50 bg-gradient-to-r from-[var(--gradient-left)] via-[var(--gradient-center)] to-[var(--gradient-right)]',
+          'dark:!bg-sidebar dark:!from-transparent dark:!via-transparent dark:!to-transparent',
+          'group-data-[collapsible=icon]:min-h-[5rem] group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center',
+          'min-h-[4.5rem] p-0 relative overflow-hidden'
+        )}
+      >
         <AppSidebarHeader />
       </SidebarHeader>
-      <SidebarContent className='px-2 py-4'>
+      <SidebarContent className='px-3 py-4 space-y-2 group-data-[collapsible=icon]:px-2'>
         {computedNavGroups.map((props) => (
           <NavGroup key={props.title} {...props} />
         ))}
       </SidebarContent>
-      <SidebarFooter className='p-4'>
-        {/* Removed system online status */}
+      <SidebarFooter className='p-3 border-t border-sidebar-border/30 group-data-[collapsible=icon]:p-2'>
+        {/* Footer content can be added here */}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
