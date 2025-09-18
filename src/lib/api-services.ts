@@ -2525,6 +2525,116 @@ export class AdminService {
     });
   }
 
+  /**
+   * Update question images using new endpoint
+   */
+  static async updateQuestionImages(questionId: number, images: File[]): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    data: {
+      questionId: number;
+      images: Array<{
+        id: number;
+        questionId: number;
+        imagePath: string;
+        altText: string;
+        createdAt: string;
+      }>;
+      uploadedFiles: Array<{
+        filename: string;
+        originalname: string;
+        url: string;
+        size: number;
+      }>;
+    };
+  }>> {
+    const formData = new FormData();
+
+    images.forEach(image => {
+      formData.append('questionImages', image);
+    });
+
+    return apiClient.put<{
+      success: boolean;
+      message: string;
+      data: {
+        questionId: number;
+        images: Array<{
+          id: number;
+          questionId: number;
+          imagePath: string;
+          altText: string;
+          createdAt: string;
+        }>;
+        uploadedFiles: Array<{
+          filename: string;
+          originalname: string;
+          url: string;
+          size: number;
+        }>;
+      };
+    }>(`/admin/image/${questionId}/question-images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+
+  /**
+   * Update question explanation images using new endpoint
+   */
+  static async updateQuestionExplanationImages(questionId: number, images: File[]): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    data: {
+      questionId: number;
+      images: Array<{
+        id: number;
+        questionId: number;
+        imagePath: string;
+        altText: string;
+        createdAt: string;
+      }>;
+      uploadedFiles: Array<{
+        filename: string;
+        originalname: string;
+        url: string;
+        size: number;
+      }>;
+    };
+  }>> {
+    const formData = new FormData();
+
+    images.forEach(image => {
+      formData.append('explanationImages', image);
+    });
+
+    return apiClient.put<{
+      success: boolean;
+      message: string;
+      data: {
+        questionId: number;
+        images: Array<{
+          id: number;
+          questionId: number;
+          imagePath: string;
+          altText: string;
+          createdAt: string;
+        }>;
+        uploadedFiles: Array<{
+          filename: string;
+          originalname: string;
+          url: string;
+          size: number;
+        }>;
+      };
+    }>(`/admin/image/${questionId}/explanation-images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+
   // ==================== QUESTION REPORTS MANAGEMENT ====================
 
   /**
@@ -2541,8 +2651,8 @@ export class AdminService {
     if (params.userId) queryParams.append('userId', params.userId.toString());
     if (params.search) queryParams.append('search', params.search);
 
-    // Docs: GET /admin/question-reports
-    const url = queryParams.toString() ? `/admin/question-reports?${queryParams.toString()}` : '/admin/question-reports';
+    // Updated to match new API documentation: GET /admin/questions/reports
+    const url = queryParams.toString() ? `/admin/questions/reports?${queryParams.toString()}` : '/admin/questions/reports';
     return apiClient.get<PaginatedResponse<AdminQuestionReport>>(url);
   }
 
@@ -2550,16 +2660,18 @@ export class AdminService {
    * Review question report
    */
   static async reviewQuestionReport(reportId: number, reviewData: ReviewQuestionReportRequest): Promise<ApiResponse<AdminQuestionReport>> {
-    // Docs: PUT /admin/question-reports/{reportId}/review
-    return apiClient.put<AdminQuestionReport>(`/admin/question-reports/${reportId}/review`, reviewData);
+    // Updated to match new API documentation: PUT /admin/questions/reports/{id}
+    return apiClient.put<AdminQuestionReport>(`/admin/questions/reports/${reportId}`, reviewData);
   }
 
   // ==================== FILE UPLOAD MANAGEMENT ====================
 
   /**
    * Upload images
+   * @deprecated Use updateQuestionImages or updateQuestionExplanationImages instead
    */
   static async uploadImages(images: File[]): Promise<ApiResponse<ImageUploadResponse>> {
+    console.warn('uploadImages is deprecated. Use updateQuestionImages or updateQuestionExplanationImages instead.');
     const formData = new FormData();
     images.forEach(image => {
       formData.append('images', image);
@@ -2609,8 +2721,10 @@ export class AdminService {
 
   /**
    * Upload explanation images
+   * @deprecated Use updateQuestionExplanationImages instead
    */
   static async uploadExplanations(explanations: File[]): Promise<ApiResponse<ExplanationUploadResponse>> {
+    console.warn('uploadExplanations is deprecated. Use updateQuestionExplanationImages instead.');
     const formData = new FormData();
     explanations.forEach(explanation => {
       formData.append('explanations', explanation);
@@ -2642,84 +2756,132 @@ export class AdminService {
   // ==================== QUESTION MANAGEMENT ====================
 
   /**
-   * Get question filters for hierarchy selection
+   * Get question filters for hierarchy selection (LEGACY - only for exam years and question types)
    */
   static async getQuestionFilters(): Promise<ApiResponse<{
     filters: {
-      courses: Array<{
-        id: number;
-        moduleId: number;
-        name: string;
-        description: string;
-        createdAt: string;
-        updatedAt: string;
-        module: {
-          id: number;
-          uniteId: number;
-          name: string;
-          description: string;
-          createdAt: string;
-          updatedAt: string;
-          unite: {
-            id: number;
-            studyPackId: number;
-            name: string;
-            description: string;
-            logoUrl?: string;
-            createdAt: string;
-            updatedAt: string;
-          };
-        };
-      }>;
-      universities: Array<{
-        id: number;
-        name: string;
-        country: string;
-        createdAt: string;
-        updatedAt: string;
-      }>;
       examYears: number[];
       questionTypes: string[];
     };
   }>> {
     return apiClient.get<{
       filters: {
-        courses: Array<{
-          id: number;
-          moduleId: number;
-          name: string;
-          description: string;
-          createdAt: string;
-          updatedAt: string;
-          module: {
-            id: number;
-            uniteId: number;
-            name: string;
-            description: string;
-            createdAt: string;
-            updatedAt: string;
-            unite: {
-              id: number;
-              studyPackId: number;
-              name: string;
-              description: string;
-              logoUrl?: string;
-              createdAt: string;
-              updatedAt: string;
-            };
-          };
-        }>;
-        universities: Array<{
-          id: number;
-          name: string;
-          country: string;
-          createdAt: string;
-          updatedAt: string;
-        }>;
         examYears: number[];
         questionTypes: string[];
       };
     }>('/admin/questions/filters');
+  }
+
+  /**
+   * Get universities for question creation
+   * GET /Universities (non-paginated endpoint)
+   */
+  static async getUniversitiesForQuestions(): Promise<ApiResponse<{
+    universities: Array<{
+      id: number;
+      name: string;
+      country: string;
+    }>;
+  }>> {
+    try {
+      // Use the non-paginated universities endpoint
+      const response = await AuthService.getUniversities();
+      if (response.success && response.data?.universities) {
+        return {
+          success: true,
+          data: {
+            universities: response.data.universities
+          }
+        };
+      }
+      return response as any;
+    } catch (error) {
+      console.error('Failed to fetch universities for questions:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch universities'
+      };
+    }
+  }
+
+  /**
+   * Get study packs for extracting available years
+   * GET /study-packs
+   */
+  static async getStudyPacksForQuestions(): Promise<ApiResponse<{
+    studyPacks: Array<{
+      id: number;
+      name: string;
+      yearNumber: string;
+      type: 'YEAR' | 'RESIDENCY';
+    }>;
+  }>> {
+    try {
+      const response = await apiClient.get<any>('/study-packs');
+      const data = response.data?.data?.data || response.data?.data || response.data || [];
+      const studyPacks = Array.isArray(data) ? data : [];
+
+      return {
+        success: true,
+        data: {
+          studyPacks: studyPacks.map((pack: any) => ({
+            id: pack.id,
+            name: pack.name,
+            yearNumber: pack.yearNumber,
+            type: pack.type
+          }))
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching study packs for questions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get hierarchical content filters for question creation
+   * GET /api/v1/admin/content/filters
+   */
+  static async getQuestionContentFilters(params?: {
+    isResidency?: boolean;
+    yearLevel?: string;
+  }): Promise<ApiResponse<{
+    unites: Array<{
+      id: number;
+      name: string;
+      studyPack: {
+        id: number;
+        name: string;
+        yearNumber: string;
+        type: string;
+      };
+      modules: Array<{
+        id: number;
+        name: string;
+        courses: Array<{
+          id: number;
+          name: string;
+          description: string;
+        }>;
+      }>;
+    }>;
+    independentModules: Array<{
+      id: number;
+      name: string;
+      studyPack: {
+        id: number;
+        name: string;
+        yearNumber: string;
+        type: string;
+      };
+      courses: Array<{
+        id: number;
+        name: string;
+        description: string;
+      }>;
+    }>;
+  }>> {
+    return AdminCourseResourcesService.getAdminContentFilters(params);
   }
 
   // ==================== ACTIVATION CODES MANAGEMENT ====================
@@ -3184,8 +3346,431 @@ export class AdminContentService {
       message: string;
     }>(`/admin/content/course-resources/${resourceId}`);
   }
+}
 
-  // ==================== UNIVERSITY MANAGEMENT ====================
+// Admin Course Resources Services (New API)
+export class AdminCourseResourcesService {
+  /**
+   * Get available study packs for year selection
+   * GET /api/v1/admin/study-packs
+   */
+  static async getStudyPacks(): Promise<ApiResponse<{
+    studyPacks: Array<{
+      id: number;
+      name: string;
+      description: string;
+      type: 'YEAR' | 'RESIDENCY';
+      yearNumber: string | null;
+      price: number;
+      isActive: boolean;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  }>> {
+    return apiClient.get<{
+      studyPacks: Array<{
+        id: number;
+        name: string;
+        description: string;
+        type: 'YEAR' | 'RESIDENCY';
+        yearNumber: string | null;
+        price: number;
+        isActive: boolean;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>('/admin/study-packs');
+  }
+
+  /**
+   * Get admin content filters with full access to all content
+   * GET /api/v1/admin/content/filters
+   */
+  static async getAdminContentFilters(params?: {
+    isResidency?: boolean;
+    yearLevel?: string;
+  }): Promise<ApiResponse<{
+    unites: Array<{
+      id: number;
+      name: string;
+      studyPack: {
+        id: number;
+        name: string;
+        yearNumber: string;
+        type: string;
+      };
+      modules: Array<{
+        id: number;
+        name: string;
+        courses: Array<{
+          id: number;
+          name: string;
+          description: string;
+        }>;
+      }>;
+    }>;
+    independentModules: Array<{
+      id: number;
+      name: string;
+      studyPack: {
+        id: number;
+        name: string;
+        yearNumber: string;
+        type: string;
+      };
+      courses: Array<{
+        id: number;
+        name: string;
+        description: string;
+      }>;
+    }>;
+  }>> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.isResidency !== undefined) {
+        queryParams.append('isResidency', params.isResidency.toString());
+      }
+      if (params?.yearLevel) {
+        queryParams.append('yearLevel', params.yearLevel);
+      }
+
+      const url = queryParams.toString()
+        ? `/admin/content/filters?${queryParams.toString()}`
+        : '/admin/content/filters';
+
+      console.log('🌐 [AdminCourseResourcesService] Making request to:', url);
+
+      const response = await apiClient.get<any>(url);
+
+      console.log('📡 [AdminCourseResourcesService] Raw response:', {
+        success: response.success,
+        hasData: !!response.data,
+        dataStructure: typeof response.data,
+        nestedData: !!response.data?.data,
+        deepNestedData: !!response.data?.data?.data
+      });
+
+      // Handle nested response structure: { success, data: { success, data: { unites, independentModules } } }
+      const actualData = response.data?.data?.data || response.data?.data || response.data;
+
+      console.log('🔍 [AdminCourseResourcesService] Extracted data:', {
+        unitesCount: actualData?.unites?.length || 0,
+        independentModulesCount: actualData?.independentModules?.length || 0,
+        actualDataKeys: actualData ? Object.keys(actualData) : []
+      });
+
+      return {
+        success: true,
+        data: {
+          unites: actualData.unites || [],
+          independentModules: actualData.independentModules || []
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching admin content filters:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create new course resource with optional file upload
+   * POST /api/admin/content/resources
+   */
+  static async createCourseResource(
+    resourceData: {
+      courseId: number;
+      type: 'SLIDE' | 'VIDEO' | 'BOOK' | 'SUMMARY' | 'OTHER';
+      title: string;
+      description?: string;
+      filePath?: string;
+      externalUrl?: string;
+      youtubeVideoId?: string;
+      isPaid?: boolean;
+      price?: number;
+    },
+    file?: File,
+    onProgress?: (progress: number) => void
+  ): Promise<ApiResponse<{
+    message: string;
+    resource: {
+      id: number;
+      courseId: number;
+      type: 'SLIDE' | 'VIDEO' | 'BOOK' | 'SUMMARY' | 'OTHER';
+      title: string;
+      description: string | null;
+      filePath: string | null;
+      externalUrl: string | null;
+      youtubeVideoId: string | null;
+      isPaid: boolean;
+      price: number | null;
+      createdAt: string;
+      updatedAt: string;
+      course: { name: string };
+    };
+  }>> {
+    // Always set isPaid to false and price to 0 as per requirements
+    const cleanData = {
+      ...resourceData,
+      isPaid: false,
+      price: 0
+    };
+
+    console.log('🔍 [API] Creating resource with data:', cleanData);
+    console.log('🔍 [API] Has file:', !!file, file?.name);
+
+    if (file) {
+      // Use FormData for file uploads
+      console.log('📤 [API] Using FormData for file upload');
+
+      const formData = new FormData();
+
+      // Add the file
+      formData.append('file', file);
+
+      // Add all the resource data fields
+      formData.append('courseId', cleanData.courseId.toString());
+      formData.append('type', cleanData.type);
+      formData.append('title', cleanData.title);
+      formData.append('isPaid', cleanData.isPaid.toString());
+      formData.append('price', cleanData.price.toString());
+
+      // Add optional fields only if they have values
+      if (cleanData.description) {
+        formData.append('description', cleanData.description);
+      }
+      if (cleanData.externalUrl) {
+        formData.append('externalUrl', cleanData.externalUrl);
+      }
+      if (cleanData.youtubeVideoId) {
+        formData.append('youtubeVideoId', cleanData.youtubeVideoId);
+      }
+
+      // Use XMLHttpRequest for progress tracking with correct API base URL
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://med-cortex.com/api/v1';
+
+      return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+
+        // Track upload progress
+        if (onProgress) {
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const progress = Math.round((event.loaded / event.total) * 100);
+              onProgress(progress);
+            }
+          });
+        }
+
+        xhr.addEventListener('load', () => {
+          try {
+            const result = JSON.parse(xhr.responseText);
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve({
+                success: true,
+                data: result,
+                error: null
+              });
+            } else {
+              resolve({
+                success: false,
+                error: result.message || result.error || 'Failed to create resource',
+                data: null
+              });
+            }
+          } catch (error) {
+            resolve({
+              success: false,
+              error: 'Invalid response from server',
+              data: null
+            });
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          resolve({
+            success: false,
+            error: 'Network error occurred',
+            data: null
+          });
+        });
+
+        // Construct the correct URL: base URL + endpoint path
+        const fullUrl = `${API_BASE_URL}/admin/content/resources`;
+        console.log('📤 [API] FormData upload URL:', fullUrl);
+
+        xhr.open('POST', fullUrl);
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        // Don't set Content-Type header - let browser set it with boundary for FormData
+        xhr.send(formData);
+      });
+    } else {
+      // Use JSON for requests without files
+      console.log('📤 [API] Using JSON request (no file)');
+
+      return apiClient.post<{
+        message: string;
+        resource: {
+          id: number;
+          courseId: number;
+          type: 'SLIDE' | 'VIDEO' | 'BOOK' | 'SUMMARY' | 'OTHER';
+          title: string;
+          description: string | null;
+          filePath: string | null;
+          externalUrl: string | null;
+          youtubeVideoId: string | null;
+          isPaid: boolean;
+          price: number | null;
+          createdAt: string;
+          updatedAt: string;
+          course: { name: string };
+        };
+      }>('/admin/content/resources', cleanData);
+    }
+  }
+
+  /**
+   * Update course resource
+   * PUT /api/admin/content/resources/:id
+   */
+  static async updateCourseResource(resourceId: number, resourceData: Partial<{
+    title: string;
+    description: string;
+    isPaid: boolean;
+    price: number;
+  }>): Promise<ApiResponse<{
+    message: string;
+    resource: {
+      id: number;
+      courseId: number;
+      type: 'DOCUMENT' | 'VIDEO' | 'LINK' | 'AUDIO' | 'IMAGE';
+      title: string;
+      description: string | null;
+      filePath: string | null;
+      externalUrl: string | null;
+      youtubeVideoId: string | null;
+      isPaid: boolean;
+      price: number | null;
+      createdAt: string;
+      updatedAt: string;
+      course: { name: string };
+    };
+  }>> {
+    return apiClient.put<{
+      message: string;
+      resource: {
+        id: number;
+        courseId: number;
+        type: 'DOCUMENT' | 'VIDEO' | 'LINK' | 'AUDIO' | 'IMAGE';
+        title: string;
+        description: string | null;
+        filePath: string | null;
+        externalUrl: string | null;
+        youtubeVideoId: string | null;
+        isPaid: boolean;
+        price: number | null;
+        createdAt: string;
+        updatedAt: string;
+        course: { name: string };
+      };
+    }>(`/admin/content/resources/${resourceId}`, resourceData);
+  }
+
+  /**
+   * Delete course resource
+   * DELETE /api/admin/content/resources/:id
+   */
+  static async deleteCourseResource(resourceId: number): Promise<ApiResponse<{
+    message: string;
+  }>> {
+    return apiClient.delete<{
+      message: string;
+    }>(`/admin/content/resources/${resourceId}`);
+  }
+
+  /**
+   * Get course resources for admin
+   * GET /courses/:id/resources
+   */
+  static async getCourseResources(courseId: number, params: {
+    page?: number;
+    limit?: number;
+    type?: string;
+  } = {}): Promise<ApiResponse<Array<{
+    id: number;
+    type: 'SLIDE' | 'VIDEO' | 'DOCUMENT' | 'LINK' | 'AUDIO' | 'IMAGE';
+    title: string;
+    description: string | null;
+    filePath: string | null;
+    externalUrl: string | null;
+    youtubeVideoId: string | null;
+    isPaid: boolean;
+    price: number | null;
+    courseId: number;
+    courseName: string;
+    createdAt: string;
+    updatedAt: string;
+  }>>> {
+    const queryParams = new URLSearchParams();
+
+    queryParams.append('page', (params.page || 1).toString());
+    queryParams.append('limit', (params.limit || 50).toString());
+
+    if (params.type) queryParams.append('type', params.type);
+
+    try {
+      console.log('🔍 [AdminCourseResourcesService] Fetching course resources for courseId:', courseId);
+
+      const response = await apiClient.get<{
+        success: boolean;
+        data: Array<{
+          id: number;
+          type: 'SLIDE' | 'VIDEO' | 'DOCUMENT' | 'LINK' | 'AUDIO' | 'IMAGE';
+          title: string;
+          description: string | null;
+          filePath: string | null;
+          externalUrl: string | null;
+          youtubeVideoId: string | null;
+          isPaid: boolean;
+          price: number | null;
+          courseId: number;
+          courseName: string;
+          createdAt: string;
+          updatedAt: string;
+        }>;
+      }>(`/courses/${courseId}/resources?${queryParams.toString()}`);
+
+      console.log('📊 [AdminCourseResourcesService] Raw API Response:', {
+        success: response.success,
+        dataExists: !!response.data,
+        dataType: typeof response.data,
+        dataKeys: response.data ? Object.keys(response.data) : []
+      });
+
+      // Handle nested response structure: { success, data: { success, data: [...] } }
+      const actualData = response.data?.data || response.data;
+
+      console.log('🔍 [AdminCourseResourcesService] Extracted data:', {
+        actualDataType: typeof actualData,
+        isArray: Array.isArray(actualData),
+        resourcesCount: Array.isArray(actualData) ? actualData.length : 0
+      });
+
+      return {
+        success: true,
+        data: Array.isArray(actualData) ? actualData : []
+      };
+    } catch (error) {
+      console.error('Error fetching course resources:', error);
+      throw error;
+    }
+  }
+}
+
+// ==================== UNIVERSITY MANAGEMENT ====================
+
+export class UniversityService {
 
   /**
    * Create new university
@@ -3305,80 +3890,16 @@ export class AdminContentService {
   // ==================== QUESTION MANAGEMENT ====================
 
   /**
-   * Get question filters for hierarchy selection
+   * Get question filters for hierarchy selection (LEGACY - only for exam years and question types)
    */
   static async getQuestionFilters(): Promise<ApiResponse<{
     filters: {
-      courses: Array<{
-        id: number;
-        moduleId: number;
-        name: string;
-        description: string;
-        createdAt: string;
-        updatedAt: string;
-        module: {
-          id: number;
-          uniteId: number;
-          name: string;
-          description: string;
-          createdAt: string;
-          updatedAt: string;
-          unite: {
-            id: number;
-            studyPackId: number;
-            name: string;
-            description: string;
-            logoUrl?: string;
-            createdAt: string;
-            updatedAt: string;
-          };
-        };
-      }>;
-      universities: Array<{
-        id: number;
-        name: string;
-        country: string;
-        createdAt: string;
-        updatedAt: string;
-      }>;
       examYears: number[];
       questionTypes: string[];
     };
   }>> {
     return apiClient.get<{
       filters: {
-        courses: Array<{
-          id: number;
-          moduleId: number;
-          name: string;
-          description: string;
-          createdAt: string;
-          updatedAt: string;
-          module: {
-            id: number;
-            uniteId: number;
-            name: string;
-            description: string;
-            createdAt: string;
-            updatedAt: string;
-            unite: {
-              id: number;
-              studyPackId: number;
-              name: string;
-              description: string;
-              logoUrl?: string;
-              createdAt: string;
-              updatedAt: string;
-            };
-          };
-        }>;
-        universities: Array<{
-          id: number;
-          name: string;
-          country: string;
-          createdAt: string;
-          updatedAt: string;
-        }>;
         examYears: number[];
         questionTypes: string[];
       };

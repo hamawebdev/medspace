@@ -5,11 +5,11 @@
  * 
  * This script:
  * 1. Reads login endpoint details from the Postman collection
- * 2. Uses ngrok URL from .env.local
+ * 2. Uses production API URL from .env.local
  * 3. Sends login request with proper credentials
  * 4. Extracts and stores JWT token
  * 5. Handles errors gracefully
- * 6. Manages CORS and ngrok-specific headers
+ * 6. Manages production API headers
  */
 
 import fs from 'fs/promises';
@@ -126,15 +126,15 @@ async function readPostmanCollection() {
 }
 
 /**
- * Read ngrok URL from .env.local file
+ * Read API base URL from .env.local file
  */
-async function readNgrokUrl() {
+async function readApiBaseUrl() {
   try {
-    log('🔗 Reading ngrok URL from .env.local...', colors.blue);
-    
+    log('🔗 Reading API base URL from .env.local...', colors.blue);
+
     const envData = await fs.readFile(CONFIG.envLocalPath, 'utf8');
     const lines = envData.split('\n');
-    
+
     for (const line of lines) {
       if (line.startsWith('NEXT_PUBLIC_API_BASE_URL=')) {
         const baseUrl = line.split('=')[1].trim();
@@ -142,9 +142,9 @@ async function readNgrokUrl() {
         return baseUrl;
       }
     }
-    
+
     throw new Error('NEXT_PUBLIC_API_BASE_URL not found in .env.local');
-    
+
   } catch (error) {
     log(`❌ Error reading .env.local: ${error.message}`, colors.red);
     throw error;
@@ -152,7 +152,7 @@ async function readNgrokUrl() {
 }
 
 /**
- * Create axios instance with proper headers for ngrok
+ * Create axios instance with proper headers for production API
  */
 function createAxiosInstance(baseUrl) {
   const instance = axios.create({
@@ -161,9 +161,7 @@ function createAxiosInstance(baseUrl) {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      // ngrok-specific headers to bypass browser warning
-      'ngrok-skip-browser-warning': 'true',
-      'User-Agent': 'Medcin-Auth-Script/1.0'
+      'User-Agent': 'MedSpace-Auth-Script/1.0'
     }
   });
   
@@ -291,8 +289,8 @@ async function authenticate() {
     // Step 1: Read Postman collection
     const loginConfig = await readPostmanCollection();
     
-    // Step 2: Read ngrok URL
-    const baseUrl = await readNgrokUrl();
+    // Step 2: Read API base URL
+    const baseUrl = await readApiBaseUrl();
     
     // Step 3: Create axios instance
     const axiosInstance = createAxiosInstance(baseUrl);
@@ -324,7 +322,7 @@ async function authenticate() {
     
     // Provide troubleshooting tips
     log('\n🔧 Troubleshooting tips:', colors.yellow);
-    log('1. Check if ngrok tunnel is active and accessible', colors.yellow);
+    log('1. Check if production API is accessible', colors.yellow);
     log('2. Verify API server is running on the backend', colors.yellow);
     log('3. Ensure credentials in Postman collection are correct', colors.yellow);
     log('4. Check network connectivity and firewall settings', colors.yellow);
@@ -334,7 +332,7 @@ async function authenticate() {
 }
 
 // Export for use as module
-export { authenticate, readPostmanCollection, readNgrokUrl };
+export { authenticate, readPostmanCollection, readApiBaseUrl };
 
 // Run if called directly
 const isMainModule = process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]));

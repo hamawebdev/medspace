@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { AdminContentService } from '@/lib/api-services';
+import { AdminContentService, UniversityService } from '@/lib/api-services';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -159,7 +159,7 @@ export function AddEntityDialog({
 
       switch (entityType) {
         case 'university':
-          result = await AdminContentService.createUniversity({
+          result = await UniversityService.createUniversity({
             name: data.name,
             country: data.country,
             city: data.city,

@@ -9,20 +9,20 @@ import {
   RefreshCw,
   AlertCircle,
   FileQuestion,
-  Search,
   Filter,
-  MessageSquare,
   Clock,
   CheckCircle,
-  XCircle,
-  Eye,
-  TrendingUp
+  XCircle
 } from 'lucide-react';
 import { useQuestionReportsManagement } from '@/hooks/admin/use-question-reports-management';
+import { AdminService } from '@/lib/api-services';
+import { AdminQuestion, AdminQuestionReport, UpdateQuestionRequest } from '@/types/api';
+import { toast } from 'sonner';
 import { QuestionReportsTable } from '@/components/admin/question-reports/question-reports-table';
 import { QuestionReportsFilters } from '@/components/admin/question-reports/question-reports-filters';
 import { QuestionReportsStats } from '@/components/admin/question-reports/question-reports-stats';
 import { ReviewReportDialog } from '@/components/admin/question-reports/review-report-dialog';
+import { EditQuestionDialog } from '@/components/admin/questions/edit-question-dialog';
 
 /**
  * Admin Question Reports Management Page
@@ -33,6 +33,8 @@ import { ReviewReportDialog } from '@/components/admin/question-reports/review-r
 export default function AdminQuestionReportsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [reviewingReport, setReviewingReport] = useState(null);
+  const [updatingQuestion, setUpdatingQuestion] = useState<AdminQuestion | null>(null);
+  const [loadingQuestion, setLoadingQuestion] = useState(false);
 
   const {
     reports,
@@ -52,6 +54,64 @@ export default function AdminQuestionReportsPage() {
     refresh,
     stats
   } = useQuestionReportsManagement();
+
+  // Handle update question action
+  const handleUpdateQuestion = async (report: AdminQuestionReport) => {
+    if (!report.questionId) {
+      toast.error('No question ID found for this report');
+      return;
+    }
+
+    setLoadingQuestion(true);
+    try {
+      // Fetch the full question data
+      const response = await AdminService.getQuestion(report.questionId);
+      if (response.success && response.data) {
+        // Normalize the question data structure to ensure answers field exists
+        const questionData = response.data as any;
+        const normalizedQuestion: AdminQuestion = {
+          ...response.data,
+          // Ensure answers field exists (API might return questionAnswers)
+          answers: questionData.questionAnswers || response.data.answers || [],
+        };
+
+        // Validate that we have the required data
+        if (!normalizedQuestion.answers || normalizedQuestion.answers.length === 0) {
+          throw new Error('Question data is incomplete - no answers found');
+        }
+
+        setUpdatingQuestion(normalizedQuestion);
+      } else {
+        throw new Error(response.error || 'Failed to fetch question data');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch question data';
+      toast.error(errorMessage);
+    } finally {
+      setLoadingQuestion(false);
+    }
+  };
+
+  // Handle question update submission
+  const handleQuestionUpdate = async (questionData: UpdateQuestionRequest) => {
+    if (!updatingQuestion) return;
+
+    try {
+      const response = await AdminService.updateQuestion(updatingQuestion.id, questionData);
+      if (response.success) {
+        toast.success('Question updated successfully');
+        setUpdatingQuestion(null);
+        // Refresh the reports list to show updated question data
+        refresh();
+      } else {
+        throw new Error(response.error || 'Failed to update question');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update question';
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -126,68 +186,6 @@ export default function AdminQuestionReportsPage() {
         </Card>
       )}
 
-      {/* Quick Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Reports</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {stats?.pending || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Awaiting review
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats?.resolved || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Successfully resolved
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Dismissed</CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {stats?.dismissed || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Dismissed reports
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
-            <FileQuestion className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.total || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All time reports
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Question Reports Table */}
       <Card>
@@ -219,6 +217,7 @@ export default function AdminQuestionReportsPage() {
             totalPages={totalPages}
             onPageChange={goToPage}
             onReviewReport={(report) => setReviewingReport(report)}
+            onUpdateQuestion={handleUpdateQuestion}
           />
         </CardContent>
       </Card>
@@ -230,6 +229,17 @@ export default function AdminQuestionReportsPage() {
           open={!!reviewingReport}
           onOpenChange={(open) => !open && setReviewingReport(null)}
           onReviewReport={reviewReport}
+        />
+      )}
+
+      {/* Update Question Dialog */}
+      {updatingQuestion && (
+        <EditQuestionDialog
+          question={updatingQuestion}
+          open={!!updatingQuestion}
+          onOpenChange={(open) => !open && setUpdatingQuestion(null)}
+          onUpdateQuestion={handleQuestionUpdate}
+          loading={loadingQuestion}
         />
       )}
     </div>

@@ -23,7 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { AdminContentService } from '@/lib/api-services';
+import { AdminContentService, UniversityService } from '@/lib/api-services';
 
 // Schemas for different entity types
 const universitySchema = z.object({
@@ -214,7 +214,7 @@ export function EditEntityDialog({
       
       switch (entityType) {
         case 'university':
-          result = await AdminContentService.updateUniversity(entity.id, {
+          result = await UniversityService.updateUniversity(entity.id, {
             name: data.name,
             country: data.country,
             city: data.city,

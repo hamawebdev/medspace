@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,10 +28,12 @@ export function JsonQuestionInput({
   onChange,
   validation,
   onValidate,
+  onValidationResult,
   disabled = false
 }: JsonQuestionInputProps) {
   const [activeTab, setActiveTab] = useState<'input' | 'preview'>('input');
   const [isValidating, setIsValidating] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Validate JSON and questions format
   const validateQuestions = useCallback((jsonString: string): ValidationResult => {
@@ -167,27 +169,62 @@ export function JsonQuestionInput({
   const handleInputChange = useCallback((newValue: string) => {
     onChange(newValue);
 
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     if (newValue.trim()) {
       setIsValidating(true);
       // Debounce validation
-      const timeoutId = setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         try {
           const validationResult = validateQuestions(newValue);
+          // Pass validation result to parent
+          if (onValidationResult) {
+            onValidationResult(validationResult);
+          }
+          // Pass parsed questions to parent
           onValidate(validationResult.isValid ? JSON.parse(newValue) : []);
         } catch (error) {
           console.error('Validation error:', error);
           onValidate([]);
+          // Pass error validation result to parent
+          if (onValidationResult) {
+            onValidationResult({
+              isValid: false,
+              errors: [{ field: 'json', message: 'Invalid JSON format' }],
+              warnings: [],
+              questionCount: 0
+            });
+          }
         } finally {
           setIsValidating(false);
         }
       }, 500);
-
-      return () => clearTimeout(timeoutId);
     } else {
       onValidate([]);
       setIsValidating(false);
+      // Pass empty validation result to parent
+      if (onValidationResult) {
+        onValidationResult({
+          isValid: false,
+          errors: [],
+          warnings: [],
+          questionCount: 0
+        });
+      }
     }
-  }, [onChange, onValidate, validateQuestions]);
+  }, [onChange, onValidate, onValidationResult, validateQuestions]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Parse questions for preview
   const previewQuestions = useMemo(() => {

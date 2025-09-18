@@ -51,6 +51,7 @@ interface QuestionReportsTableProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   onReviewReport: (report: AdminQuestionReport) => void;
+  onUpdateQuestion?: (report: AdminQuestionReport) => void;
 }
 
 function QuestionReportsTableSkeleton() {
@@ -77,7 +78,8 @@ export function QuestionReportsTable({
   currentPage,
   totalPages,
   onPageChange,
-  onReviewReport
+  onReviewReport,
+  onUpdateQuestion
 }: QuestionReportsTableProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -93,6 +95,8 @@ export function QuestionReportsTable({
     switch (status) {
       case 'PENDING':
         return <Badge variant="outline" className="text-orange-600 border-orange-600">Pending</Badge>;
+      case 'REVIEWED':
+        return <Badge variant="outline" className="text-blue-600 border-blue-600">Reviewed</Badge>;
       case 'RESOLVED':
         return <Badge variant="outline" className="text-green-600 border-green-600">Resolved</Badge>;
       case 'DISMISSED':
@@ -212,12 +216,12 @@ export function QuestionReportsTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  {report.reviewedAt ? (
+                  {report.status !== 'PENDING' ? (
                     <div>
-                      <div className="text-sm">{formatDate(report.reviewedAt)}</div>
-                      {report.reviewer && (
+                      <div className="text-sm">{formatDate(report.updatedAt)}</div>
+                      {report.reviewedBy && (
                         <div className="text-xs text-muted-foreground">
-                          by {report.reviewer.fullName}
+                          by {report.reviewedBy.fullName}
                         </div>
                       )}
                     </div>
@@ -242,6 +246,12 @@ export function QuestionReportsTable({
                         <MessageSquare className="mr-2 h-4 w-4" />
                         {report.status === 'PENDING' ? 'Review Report' : 'View Details'}
                       </DropdownMenuItem>
+                      {report.questionId && onUpdateQuestion && (
+                        <DropdownMenuItem onClick={() => onUpdateQuestion(report)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Update Question
+                        </DropdownMenuItem>
+                      )}
                       {report.status === 'PENDING' && (
                         <>
                           <DropdownMenuSeparator />

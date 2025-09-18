@@ -50,6 +50,28 @@ export interface Course {
   module: Module;
 }
 
+export interface IndependentModule {
+  id: number;
+  uniteId: null;
+  studyPackId: number;
+  name: string;
+  description: string;
+  logoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  studyPack: {
+    id: number;
+    name: string;
+    yearNumber: string;
+    type: string;
+  };
+  courses: Array<{
+    id: number;
+    name: string;
+    description: string;
+  }>;
+}
+
 export interface QuestionFiltersResponse {
   success: true;
   data: {
@@ -59,6 +81,26 @@ export interface QuestionFiltersResponse {
       examYears: number[];
       questionTypes: string[];
     };
+    unites: Array<{
+      id: number;
+      name: string;
+      studyPack: {
+        id: number;
+        name: string;
+        yearNumber: string;
+        type: string;
+      };
+      modules: Array<{
+        id: number;
+        name: string;
+        courses: Array<{
+          id: number;
+          name: string;
+          description: string;
+        }>;
+      }>;
+    }>;
+    independentModules: IndependentModule[];
   };
   meta: {
     timestamp: string;
@@ -110,6 +152,7 @@ export interface SelectionState {
   studyPack?: StudyPack;
   unit?: Unit;
   module?: Module;
+  independentModule?: IndependentModule;
   course?: Course;
 }
 
@@ -119,6 +162,7 @@ export interface HierarchyData {
   examYears: number[];
   units: Unit[];
   modules: Module[];
+  independentModules: IndependentModule[];
   courses: Course[];
 }
 
@@ -163,6 +207,7 @@ export interface JsonQuestionInputProps {
   onChange: (value: string) => void;
   validation: ValidationResult;
   onValidate: (questions: ImportQuestion[]) => void;
+  onValidationResult?: (validation: ValidationResult) => void;
   disabled?: boolean;
 }
 

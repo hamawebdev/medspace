@@ -111,7 +111,7 @@ function LoginFormFields({
             className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md p-1 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            {showPassword ? <EyeOff className="w-5 h-5 text-white" /> : <Eye className="w-5 h-5 text-white" />}
           </button>
         </div>
         {errors.password && (

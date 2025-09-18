@@ -7,7 +7,6 @@ questions sidebar status
 * [ ] Filter **todos by creation date** by default
 * [ ] Display **images in questions and explanations**
 * [ ] Display **images of units and modules**
-* [ ] Ensure **dashboard/stats values consistency**
 * [ ] Add **sound support**
 * [ ] Enable **delete answer option**
 

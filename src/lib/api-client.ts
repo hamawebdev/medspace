@@ -9,13 +9,10 @@ const API_CONFIG = {
   timeout: 30000, // 30 seconds
 };
 
-// Determine credential usage based on environment (student + admin logic)
-const isNgrokUrl = API_CONFIG.baseURL.includes('ngrok');
-const isHostedBackend = API_CONFIG.baseURL.includes('hstgr.cloud') ||
-                       API_CONFIG.baseURL.includes('ngrok-free.app') ||
-                       API_CONFIG.baseURL.includes('ngrok.app') ||
-                       API_CONFIG.baseURL.includes('ngrok.io');
-const needsCredentials = !(isHostedBackend || isNgrokUrl) && !process.env.NEXT_PUBLIC_DISABLE_CREDENTIALS;
+// Determine credential usage based on environment
+const isProductionApi = API_CONFIG.baseURL.includes('med-cortex.com');
+const isLocalDevelopment = API_CONFIG.baseURL.includes('localhost') || API_CONFIG.baseURL.includes('127.0.0.1');
+const needsCredentials = isLocalDevelopment && !process.env.NEXT_PUBLIC_DISABLE_CREDENTIALS;
 
 // API configuration is set up silently
 
@@ -47,17 +44,21 @@ class ApiClient {
     // Prepare headers for the axios instance
     const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     };
 
-    // Add ngrok-specific headers if using ngrok
-    if (API_CONFIG.baseURL.includes('ngrok')) {
-      defaultHeaders['ngrok-skip-browser-warning'] = 'true';
+    // Add production-specific headers
+    if (isProductionApi) {
+      defaultHeaders['User-Agent'] = 'MedSpace-Web-Client/1.0';
+      defaultHeaders['X-Client-Version'] = '1.0.0';
+      defaultHeaders['X-Requested-With'] = 'XMLHttpRequest';
+      // Add any other production-specific headers here
     }
 
     this.client = axios.create({
       baseURL: API_CONFIG.baseURL,
       timeout: API_CONFIG.timeout,
-      withCredentials: needsCredentials, // Disabled for hosted backend to avoid CORS issues
+      withCredentials: needsCredentials, // Only enabled for local development
       headers: defaultHeaders,
     });
 
@@ -91,9 +92,18 @@ class ApiClient {
         if (!config.headers['Accept']) {
           config.headers['Accept'] = 'application/json';
         }
-        // Add ngrok browser warning skip header if using ngrok
-        if (API_CONFIG.baseURL.includes('ngrok')) {
-          config.headers['ngrok-skip-browser-warning'] = 'true';
+
+        // Add production-specific headers if needed
+        if (isProductionApi) {
+          if (!config.headers['User-Agent']) {
+            config.headers['User-Agent'] = 'MedSpace-Web-Client/1.0';
+          }
+          if (!config.headers['X-Client-Version']) {
+            config.headers['X-Client-Version'] = '1.0.0';
+          }
+          if (!config.headers['X-Requested-With']) {
+            config.headers['X-Requested-With'] = 'XMLHttpRequest';
+          }
         }
 
         // Debug logging for content filters endpoint
@@ -404,14 +414,14 @@ class ApiClient {
       });
 
       if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
-        if (isNgrokUrl) {
-          errorMessage = `Cannot connect to ngrok tunnel at ${API_CONFIG.baseURL}. Please check if ngrok is running and the tunnel is active.`;
+        if (isProductionApi) {
+          errorMessage = `Cannot connect to production API at ${API_CONFIG.baseURL}. Please check your internet connection and try again.`;
         } else {
           errorMessage = `Cannot connect to API server at ${API_CONFIG.baseURL}. Please check if the backend server is running.`;
         }
       } else if (error.code === 'ENOTFOUND') {
-        if (isNgrokUrl) {
-          errorMessage = `Ngrok tunnel not found at ${API_CONFIG.baseURL}. Please check if the ngrok URL is correct and active.`;
+        if (isProductionApi) {
+          errorMessage = `Production API not found at ${API_CONFIG.baseURL}. Please check your internet connection.`;
         } else {
           errorMessage = `API server not found at ${API_CONFIG.baseURL}. Please check the API URL configuration.`;
         }

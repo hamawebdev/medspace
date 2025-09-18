@@ -69,8 +69,8 @@ export function ReviewReportDialog({ report, open, onOpenChange, onReviewReport 
   // Reset form when report changes
   useEffect(() => {
     form.reset({
-      response: report.response || '',
-      action: report.action || 'RESOLVED',
+      response: report.adminResponse || '',
+      action: report.status === 'DISMISSED' ? 'DISMISSED' : 'RESOLVED',
     });
   }, [report, form]);
 
@@ -127,6 +127,8 @@ export function ReviewReportDialog({ report, open, onOpenChange, onReviewReport 
     switch (status) {
       case 'PENDING':
         return <Badge variant="outline" className="text-orange-600 border-orange-600">Pending</Badge>;
+      case 'REVIEWED':
+        return <Badge variant="outline" className="text-blue-600 border-blue-600">Reviewed</Badge>;
       case 'RESOLVED':
         return <Badge variant="outline" className="text-green-600 border-green-600">Resolved</Badge>;
       case 'DISMISSED':
@@ -248,8 +250,8 @@ export function ReviewReportDialog({ report, open, onOpenChange, onReviewReport 
               <CardHeader>
                 <CardTitle className="text-base">Admin Response</CardTitle>
                 <CardDescription>
-                  {report.reviewedAt && `Reviewed on ${formatDate(report.reviewedAt)}`}
-                  {report.reviewer && ` by ${report.reviewer.fullName}`}
+                  {report.status !== 'PENDING' && `Reviewed on ${formatDate(report.updatedAt)}`}
+                  {report.reviewedBy && ` by ${report.reviewedBy.fullName}`}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -257,19 +259,19 @@ export function ReviewReportDialog({ report, open, onOpenChange, onReviewReport 
                   <div>
                     <div className="text-sm font-medium text-muted-foreground mb-1">Action Taken</div>
                     <div className="flex items-center gap-2">
-                      {report.action === 'RESOLVED' ? (
+                      {report.status === 'RESOLVED' ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-red-600" />
                       )}
-                      <span className="capitalize">{report.action?.toLowerCase()}</span>
+                      <span className="capitalize">{report.status?.toLowerCase()}</span>
                     </div>
                   </div>
-                  {report.response && (
+                  {report.adminResponse && (
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-1">Response</div>
                       <div className="p-3 bg-muted rounded-lg">
-                        <p className="text-sm">{report.response}</p>
+                        <p className="text-sm">{report.adminResponse}</p>
                       </div>
                     </div>
                   )}

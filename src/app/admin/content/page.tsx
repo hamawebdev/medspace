@@ -28,6 +28,7 @@ import { AddEntityDialog } from '@/components/admin/content/add-entity-dialog';
 import { EntityCard } from '@/components/admin/content/entity-card';
 import { EditEntityDialog } from '@/components/admin/content/edit-entity-dialog';
 import { BulkQuestionImportResponse, SelectionState, ImportQuestion, ValidationResult } from '@/types/question-import';
+import { AdminService } from '@/lib/api-services';
 import { toast } from 'sonner';
 
 type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'import';
@@ -88,6 +89,9 @@ export default function AdminContentPage() {
       case 'module':
         setCurrentStep('course');
         break;
+      case 'independentModule':
+        setCurrentStep('course');
+        break;
       case 'course':
         setCurrentStep('import');
         break;
@@ -110,8 +114,12 @@ export default function AdminContentPage() {
         setCurrentStep('unit');
         break;
       case 'course':
-        updateSelection('module', undefined);
-        setCurrentStep('module');
+        if (selection.independentModule) {
+          updateSelection('independentModule', undefined);
+        } else {
+          updateSelection('module', undefined);
+        }
+        setCurrentStep(selection.unit ? 'module' : 'unit');
         break;
       case 'import':
         updateSelection('course', undefined);
@@ -137,68 +145,17 @@ export default function AdminContentPage() {
     });
   };
 
-  // Validate JSON and questions format
-  const validateQuestions = (jsonString: string) => {
-    const errors = [];
-    const warnings = [];
-    let questions = [];
-    let questionCount = 0;
-
-    try {
-      // Parse JSON
-      const parsed = JSON.parse(jsonString);
-
-      // Check if it's an array
-      if (!Array.isArray(parsed)) {
-        errors.push({
-          field: 'root',
-          message: 'JSON must be an array of questions'
-        });
-      } else {
-        questions = parsed;
-        questionCount = parsed.length;
-
-        if (questionCount === 0) {
-          errors.push({
-            field: 'root',
-            message: 'Array cannot be empty'
-          });
-        }
-      }
-    } catch (error) {
-      errors.push({
-        field: 'root',
-        message: 'Invalid JSON format'
-      });
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      questionCount
-    };
+  // Handle validation results from JsonQuestionInput component
+  const handleValidationResult = (validationResult: ValidationResult) => {
+    setValidation(validationResult);
   };
 
-  // Handle input change with validation
+  // Handle input change
   const handleInputChange = (newValue: string) => {
     setJsonInput(newValue);
 
-    if (newValue.trim()) {
-      const validationResult = validateQuestions(newValue);
-      setValidation(validationResult);
-
-      if (validationResult.isValid) {
-        try {
-          const questions = JSON.parse(newValue);
-          setParsedQuestions(questions);
-        } catch {
-          setParsedQuestions([]);
-        }
-      } else {
-        setParsedQuestions([]);
-      }
-    } else {
+    // Reset validation and questions if input is empty
+    if (!newValue.trim()) {
       setValidation({
         isValid: false,
         errors: [],
@@ -275,19 +232,37 @@ export default function AdminContentPage() {
       return;
     }
 
+    if (!selection.course) {
+      toast.error('Please complete the hierarchy selection first');
+      return;
+    }
+
     setImporting(true);
     try {
-      // Add exam year to the import payload
-      const questionsWithYear = parsedQuestions.map(q => ({
-        ...q,
-        examYear: selectedExamYear
-      }));
+      // Create the import payload directly
+      const payload = {
+        metadata: {
+          courseId: selection.course.id,
+          universityId: selection.university?.id,
+          examYear: selectedExamYear
+        },
+        questions: parsedQuestions
+      };
 
-      const result = await importQuestions(questionsWithYear);
-      if (result) {
+      // Use the API service directly
+      const response = await AdminService.bulkImportQuestions(payload);
+
+      if (response.success) {
+        const result: BulkQuestionImportResponse = {
+          success: true,
+          data: response.data
+        };
         handleImportComplete(result);
+      } else {
+        throw new Error(response.error || 'Failed to import questions');
       }
     } catch (error) {
+      console.error('Import error:', error);
       toast.error('Failed to import questions');
     } finally {
       setImporting(false);
@@ -311,8 +286,8 @@ export default function AdminContentPage() {
         };
       case 'unit':
         return {
-          title: 'Select Unit',
-          description: `Choose the unit from ${selection.studyPack?.name}`,
+          title: 'Select Unit or Independent Module',
+          description: `Choose a unit or independent module from ${selection.studyPack?.name}`,
           icon: Layers
         };
       case 'module':
@@ -324,7 +299,7 @@ export default function AdminContentPage() {
       case 'course':
         return {
           title: 'Select Course',
-          description: `Choose the course from ${selection.module?.name}`,
+          description: `Choose the course from ${selection.module?.name || selection.independentModule?.name}`,
           icon: Database
         };
       case 'import':
@@ -386,7 +361,7 @@ export default function AdminContentPage() {
                 onClick={() => setCurrentStep('unit')}
                 className={`hover:text-foreground transition-colors ${currentStep === 'unit' ? 'text-foreground font-medium' : ''}`}
               >
-                Unit
+                {selection.independentModule ? 'Independent Module' : 'Unit'}
               </button>
             </>
           )}
@@ -401,7 +376,7 @@ export default function AdminContentPage() {
               </button>
             </>
           )}
-          {selection.module && (
+          {(selection.module || selection.independentModule) && (
             <>
               <ChevronRight className="h-4 w-4" />
               <button
@@ -528,17 +503,68 @@ export default function AdminContentPage() {
 
 
             {currentStep === 'unit' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableOptions.units.map((unit) => (
-                  <EntityCard
-                    key={unit.id}
-                    entity={unit}
-                    entityType="unit"
-                    onSelect={() => handleCardSelection('unit', unit)}
-                    onEdit={(entity) => handleEditEntity(entity, 'unit')}
-                    onDelete={handleDeleteEntity}
-                  />
-                ))}
+              <div className="space-y-6">
+                {/* Units Section */}
+                {availableOptions.units.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Layers className="h-5 w-5" />
+                      <h3 className="text-lg font-semibold">Units</h3>
+                      <Badge variant="outline">{availableOptions.units.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableOptions.units.map((unit) => (
+                        <EntityCard
+                          key={unit.id}
+                          entity={unit}
+                          entityType="unit"
+                          onSelect={() => handleCardSelection('unit', unit)}
+                          onEdit={(entity) => handleEditEntity(entity, 'unit')}
+                          onDelete={handleDeleteEntity}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Independent Modules Section */}
+                {availableOptions.independentModules && availableOptions.independentModules.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5" />
+                      <h3 className="text-lg font-semibold">Independent Modules</h3>
+                      <Badge variant="outline">{availableOptions.independentModules.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableOptions.independentModules.map((module) => (
+                        <EntityCard
+                          key={`independent-${module.id}`}
+                          entity={module}
+                          entityType="module"
+                          onSelect={() => handleCardSelection('independentModule', module)}
+                          onEdit={(entity) => handleEditEntity(entity, 'module')}
+                          onDelete={handleDeleteEntity}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {availableOptions.units.length === 0 && (!availableOptions.independentModules || availableOptions.independentModules.length === 0) && (
+                  <div className="text-center py-12">
+                    <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Content Available</h3>
+                    <p className="text-muted-foreground mb-4">
+                      No units or independent modules are available for the selected study pack.
+                    </p>
+                    <Alert>
+                      <AlertDescription>
+                        If you expected to see content here, please check if the API endpoint is returning the correct data structure or contact support.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
               </div>
             )}
 
@@ -697,6 +723,7 @@ export default function AdminContentPage() {
                       onChange={handleInputChange}
                       validation={validation}
                       onValidate={handleJsonValidation}
+                      onValidationResult={handleValidationResult}
                     />
 
                     {validation.isValid && (

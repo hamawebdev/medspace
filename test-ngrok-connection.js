@@ -1,27 +1,29 @@
-// Test script to verify ngrok connection
+// Test script to verify production API connection
 import axios from 'axios'
-const API_BASE_URL = 'https://1641d0cbc5df.ngrok-free.app/api/v1';
+const API_BASE_URL = 'https://med-cortex.com/api/v1';
 
-async function testNgrokConnection() {
-  console.log('🔍 Testing ngrok connection...');
+async function testProductionConnection() {
+  console.log('🔍 Testing production API connection...');
 
   try {
     const response = await axios.get(`${API_BASE_URL}/universities`, {
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'MedSpace-Web-Client/1.0'
       },
       timeout: 10000,
     });
 
     if (response.status >= 200 && response.status < 300) {
-      console.log('✅ API is working');
+      console.log('✅ Production API is working');
     } else {
-      console.log('❌ API is not working');
+      console.log('❌ Production API is not working');
     }
 
   } catch (error) {
-    console.log('❌ API is not working');
+    console.log('❌ Production API is not working');
   }
 }
 
-testNgrokConnection();
+testProductionConnection();

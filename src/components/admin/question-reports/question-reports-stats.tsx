@@ -101,7 +101,7 @@ export function QuestionReportsStats({ stats, loading }: QuestionReportsStatsPro
   return (
     <div className="space-y-4">
       {/* Main Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {/* Total Reports */}
         <StatCard
           title="Total Reports"
@@ -118,6 +118,16 @@ export function QuestionReportsStats({ stats, loading }: QuestionReportsStatsPro
           description="Awaiting review"
           icon={Clock}
           valueColor="text-orange-600"
+          loading={loading}
+        />
+
+        {/* Reviewed Reports */}
+        <StatCard
+          title="Reviewed Reports"
+          value={formatNumber(stats?.reviewed || 0)}
+          description="Under review"
+          icon={MessageSquare}
+          valueColor="text-blue-600"
           loading={loading}
         />
 
@@ -142,62 +152,6 @@ export function QuestionReportsStats({ stats, loading }: QuestionReportsStatsPro
         />
       </div>
 
-      {/* Secondary Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Recent Activity */}
-        <StatCard
-          title="Recent Activity"
-          value={formatNumber(stats?.recentActivity || 0)}
-          description="Reports in last 7 days"
-          icon={TrendingUp}
-          loading={loading}
-        />
-
-        {/* Average Response Time */}
-        <StatCard
-          title="Avg Response Time"
-          value={stats?.averageResponseTime ? formatHours(stats.averageResponseTime) : '0h'}
-          description="Time to review"
-          icon={Timer}
-          loading={loading}
-        />
-
-        {/* Most Common Type */}
-        <StatCard
-          title="Top Report Type"
-          value={(() => {
-            if (!stats?.byType) return 'N/A';
-            const types = stats.byType;
-            const maxType = Object.entries(types).reduce((a, b) => 
-              types[a[0] as keyof typeof types] > types[b[0] as keyof typeof types] ? a : b
-            );
-            const typeLabels = {
-              incorrectAnswer: 'Incorrect Answer',
-              unclearQuestion: 'Unclear Question',
-              typo: 'Typo',
-              other: 'Other'
-            };
-            return typeLabels[maxType[0] as keyof typeof typeLabels] || 'N/A';
-          })()}
-          description="Most reported issue"
-          icon={AlertTriangle}
-          loading={loading}
-        />
-
-        {/* Resolution Rate */}
-        <StatCard
-          title="Resolution Rate"
-          value={(() => {
-            if (!stats || stats.total === 0) return '0%';
-            const resolved = stats.resolved + stats.dismissed;
-            const rate = (resolved / stats.total) * 100;
-            return `${Math.round(rate)}%`;
-          })()}
-          description="Reports addressed"
-          icon={CheckCircle}
-          loading={loading}
-        />
-      </div>
 
       {/* Report Types Breakdown */}
       {stats?.byType && (

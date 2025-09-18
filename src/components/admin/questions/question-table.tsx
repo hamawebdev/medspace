@@ -46,6 +46,7 @@ import { AdminQuestion, UpdateQuestionRequest } from '@/types/api';
 import { EditQuestionDialog } from './edit-question-dialog';
 import { ViewQuestionDialog } from './view-question-dialog';
 import { UpdateExplanationDialog } from './update-explanation-dialog';
+import { UpdateQuestionImagesDialog } from './update-question-images-dialog';
 
 interface QuestionTableProps {
   questions: AdminQuestion[];
@@ -56,6 +57,7 @@ interface QuestionTableProps {
   onUpdateQuestion: (questionId: number, questionData: UpdateQuestionRequest) => Promise<AdminQuestion>;
   onDeleteQuestion: (questionId: number) => Promise<any>;
   onUpdateExplanation: (questionId: number, explanation: string, explanationImages?: File[]) => Promise<any>;
+  onUpdateImages: (questionId: number, questionImages?: File[], explanationImages?: File[]) => Promise<any>;
 }
 
 export function QuestionTable({
@@ -67,10 +69,12 @@ export function QuestionTable({
   onUpdateQuestion,
   onDeleteQuestion,
   onUpdateExplanation,
+  onUpdateImages,
 }: QuestionTableProps) {
   const [editingQuestion, setEditingQuestion] = useState<AdminQuestion | null>(null);
   const [viewingQuestion, setViewingQuestion] = useState<AdminQuestion | null>(null);
   const [updatingExplanation, setUpdatingExplanation] = useState<AdminQuestion | null>(null);
+  const [updatingImages, setUpdatingImages] = useState<AdminQuestion | null>(null);
   const [deleteQuestion, setDeleteQuestion] = useState<AdminQuestion | null>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
@@ -131,6 +135,18 @@ export function QuestionTable({
       setUpdatingExplanation(null);
     } catch (error) {
       console.error('Failed to update explanation:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateImages = async (questionId: number, questionImages?: File[], explanationImages?: File[]) => {
+    try {
+      setActionLoading(questionId);
+      await onUpdateImages(questionId, questionImages, explanationImages);
+      setUpdatingImages(null);
+    } catch (error) {
+      console.error('Failed to update images:', error);
     } finally {
       setActionLoading(null);
     }
@@ -296,6 +312,10 @@ export function QuestionTable({
                         <FileText className="mr-2 h-4 w-4" />
                         Update Explanation
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setUpdatingImages(question)}>
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        Update Images
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => setDeleteQuestion(question)}
@@ -370,6 +390,17 @@ export function QuestionTable({
           onOpenChange={(open) => !open && setUpdatingExplanation(null)}
           onUpdateExplanation={handleUpdateExplanation}
           loading={actionLoading === updatingExplanation.id}
+        />
+      )}
+
+      {/* Update Images Dialog */}
+      {updatingImages && (
+        <UpdateQuestionImagesDialog
+          question={updatingImages}
+          open={!!updatingImages}
+          onOpenChange={(open) => !open && setUpdatingImages(null)}
+          onUpdateImages={handleUpdateImages}
+          loading={actionLoading === updatingImages.id}
         />
       )}
 

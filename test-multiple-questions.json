@@ -1,0 +1,78 @@
+[
+  {
+    "questionText": "What is the primary function of the heart?",
+    "explanation": "The heart pumps blood throughout the body",
+    "questionType": "SINGLE_CHOICE",
+    "answers": [
+      {
+        "answerText": "Pumping blood",
+        "isCorrect": true,
+        "explanation": "Correct - the heart's main function is circulation"
+      },
+      {
+        "answerText": "Filtering toxins",
+        "isCorrect": false,
+        "explanation": "This is the function of kidneys"
+      },
+      {
+        "answerText": "Producing hormones",
+        "isCorrect": false,
+        "explanation": "This is the function of endocrine glands"
+      }
+    ]
+  },
+  {
+    "questionText": "Which of the following are components of blood?",
+    "explanation": "Blood consists of plasma, red blood cells, white blood cells, and platelets",
+    "questionType": "MULTIPLE_CHOICE",
+    "answers": [
+      {
+        "answerText": "Red blood cells",
+        "isCorrect": true,
+        "explanation": "Red blood cells carry oxygen"
+      },
+      {
+        "answerText": "White blood cells",
+        "isCorrect": true,
+        "explanation": "White blood cells fight infections"
+      },
+      {
+        "answerText": "Platelets",
+        "isCorrect": true,
+        "explanation": "Platelets help with blood clotting"
+      },
+      {
+        "answerText": "Bone marrow",
+        "isCorrect": false,
+        "explanation": "Bone marrow produces blood cells but is not a component of blood itself"
+      }
+    ]
+  },
+  {
+    "questionText": "What is the normal resting heart rate for adults?",
+    "explanation": "The normal resting heart rate for adults is typically between 60-100 beats per minute",
+    "questionType": "SINGLE_CHOICE",
+    "answers": [
+      {
+        "answerText": "40-60 bpm",
+        "isCorrect": false,
+        "explanation": "This is below normal range"
+      },
+      {
+        "answerText": "60-100 bpm",
+        "isCorrect": true,
+        "explanation": "This is the normal range for adults"
+      },
+      {
+        "answerText": "100-140 bpm",
+        "isCorrect": false,
+        "explanation": "This is above normal range"
+      },
+      {
+        "answerText": "140-180 bpm",
+        "isCorrect": false,
+        "explanation": "This is significantly above normal range"
+      }
+    ]
+  }
+]

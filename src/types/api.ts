@@ -1707,48 +1707,67 @@ export interface UpdateExamQuestionOrderRequest {
 }
 
 
-// Admin Question Reports Management Types
+// Admin Question Reports Management Types - Updated to match new API
 export interface AdminQuestionReport {
   id: number;
-  questionId: number;
   userId: number;
-  reportType: 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'TYPO' | 'OTHER';
+  questionId: number;
+  reportType: 'TYPO' | 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'OTHER';
   description: string;
-  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
-  response?: string;
-  action?: 'RESOLVED' | 'DISMISSED';
+  status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+  reviewedById: number | null;
+  adminResponse: string | null;
   createdAt: string;
   updatedAt: string;
-  reviewedAt?: string;
-  reviewedBy?: number;
   user: {
-    id: number;
     fullName: string;
     email: string;
   };
   question: {
     id: number;
+    courseId: number;
+    examId: number;
+    sourceId: number;
     questionText: string;
-    questionType: string;
+    explanation: string;
+    questionType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'FILL_BLANK';
+    universityId: number;
+    yearLevel: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
+    examYear: number;
+    rotation: string | null;
+    metadata: string;
+    createdById: number;
+    createdAt: string;
+    updatedAt: string;
+    questionAnswers: Array<{
+      id: number;
+      questionId: number;
+      answerText: string;
+      isCorrect: boolean;
+      explanation: string;
+      createdAt: string;
+    }>;
+    course: {
+      name: string;
+    };
   };
-  reviewer?: {
-    id: number;
+  reviewedBy: {
     fullName: string;
     email: string;
-  };
+  } | null;
 }
 
 export interface AdminQuestionReportFilters {
-  status?: 'PENDING' | 'RESOLVED' | 'DISMISSED';
-  reportType?: 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'TYPO' | 'OTHER';
+  status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+  reportType?: 'TYPO' | 'INCORRECT_ANSWER' | 'UNCLEAR_QUESTION' | 'OTHER';
   questionId?: number;
   userId?: number;
   search?: string;
 }
 
 export interface ReviewQuestionReportRequest {
-  response: string;
   action: 'RESOLVED' | 'DISMISSED';
+  response: string;
 }
 
 // Admin Activation Codes Management Types
@@ -1853,6 +1872,8 @@ export interface AdminQuestionAnswer {
 
 export interface AdminQuestionFilters {
   courseId?: number;
+  moduleId?: number;
+  unitId?: number;
   universityId?: number;
   examId?: number;
   questionType?: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
@@ -1867,6 +1888,8 @@ export interface CreateQuestionRequest {
   explanation?: string;
   questionType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
   courseId: number;
+  moduleId?: number;
+  unitId?: number;
   examId?: number;
   universityId?: number;
   yearLevel?: string;
@@ -1877,6 +1900,44 @@ export interface CreateQuestionRequest {
     isCorrect: boolean;
     explanation?: string;
   }>;
+}
+
+// Hierarchical content structure for question creation
+export interface QuestionCreationUnit {
+  id: number;
+  name: string;
+  studyPack: {
+    id: number;
+    name: string;
+    yearNumber: string;
+    type: string;
+  };
+  modules: QuestionCreationModule[];
+}
+
+export interface QuestionCreationModule {
+  id: number;
+  name: string;
+  unitId?: number;
+  studyPack?: {
+    id: number;
+    name: string;
+    yearNumber: string;
+    type: string;
+  };
+  courses: QuestionCreationCourse[];
+}
+
+export interface QuestionCreationCourse {
+  id: number;
+  name: string;
+  description: string;
+  moduleId?: number;
+}
+
+export interface QuestionCreationFilters {
+  unites: QuestionCreationUnit[];
+  independentModules: QuestionCreationModule[];
 }
 
 export interface UpdateQuestionRequest {

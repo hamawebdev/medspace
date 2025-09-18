@@ -2,6 +2,9 @@
 # Quiz Session API Documentation
 
 ## Get Quiz Session
+Put image/{questionId}
+explanation images
+question images
 
 ### Endpoint
 

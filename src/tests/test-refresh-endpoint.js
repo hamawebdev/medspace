@@ -1,6 +1,6 @@
 // @ts-nocheck
 /**
- * Smoke test for /auth/refresh over ngrok to ensure no ERR_NGROK_3004
+ * Smoke test for /auth/refresh endpoint to ensure proper API connectivity
  * and that we receive a valid HTTP response structure.
  */
 
@@ -23,8 +23,7 @@ async function main() {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        'User-Agent': 'Medcin-Refresh-Smoke/1.0'
+        'User-Agent': 'MedSpace-Refresh-Test/1.0'
       }
     });
 

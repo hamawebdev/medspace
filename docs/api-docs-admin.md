@@ -232,74 +232,6 @@ Returns user growth data and distribution by role and university.
 
 ---
 
-## Quiz Management
-
-### Get All Quizzes
-**GET** `/admin/quizzes`
-
-**Query Parameters:**
-- `page` (optional): Page number
-- `limit` (optional): Items per page
-
-### Create Quiz
-**POST** `/admin/quizzes`
-
-**Request Body:**
-```json
-{
-  "title": "Cardiology Quiz",
-  "description": "Test knowledge of heart diseases",
-  "type": "QCM",
-  "courseId": 1,
-  "yearLevel": "THREE",
-  "questions": [
-    {
-      "questionText": "What is the normal heart rate?",
-      "questionType": "SINGLE_CHOICE",
-      "answers": [
-        {"answerText": "60-100 bpm", "isCorrect": true},
-        {"answerText": "40-60 bpm", "isCorrect": false}
-      ]
-    }
-  ]
-}
-```
-
-### Update Quiz
-**PUT** `/admin/quizzes/:id`
-
-### Delete Quiz
-**DELETE** `/admin/quizzes/:id`
-
----
-
-## Exam Management
-
-### Get All Exams
-**GET** `/admin/exams`
-
-**Query Parameters:**
-- `page` (optional): Page number
-- `limit` (optional): Items per page
-
-### Create Exam
-**POST** `/admin/exams`
-
-**Request Body:**
-```json
-{
-  "title": "Final Cardiology Exam",
-  "description": "Comprehensive cardiology assessment",
-  "moduleId": 1,
-  "universityId": 1,
-  "yearLevel": "FOUR",
-  "examYear": "2024",
-  "year": 2024,
-  "questions": [...]
-}
-```
-
----
 
 ## Question Management
 
@@ -309,29 +241,9 @@ Returns user growth data and distribution by role and university.
 **Query Parameters:**
 - `page` (optional): Page number
 - `limit` (optional): Items per page
+tions/reports/:id`
 
-### Get Question Reports
-**GET** `/admin/questions/reports`
 
-**Query Parameters:**
-- `page` (optional): Page number
-- `limit` (optional): Items per page
-
-### Review Question Report
-**PUT** `/admin/questions/reports/:id`
-
-**Path Parameters:**
-- `id` (required): Report ID
-
-**Request Body:**
-```json
-{
-  "status": "RESOLVED",
-  "adminNotes": "Issue has been fixed"
-}
-```
-
----
 
 ## Subscription Management
 

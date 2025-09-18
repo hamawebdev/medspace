@@ -280,6 +280,11 @@ export function useQuestionManagement() {
     }
   }, [fetchQuestions, state.currentPage]);
 
+  // Refresh questions (reload current page)
+  const refreshQuestions = useCallback(async () => {
+    await fetchQuestions(state.currentPage, 20, state.filters);
+  }, [fetchQuestions, state.currentPage, state.filters]);
+
   // Update question explanation
   const updateQuestionExplanation = useCallback(async (questionId: number, explanation: string, explanationImages?: File[]) => {
     try {
@@ -313,6 +318,59 @@ export function useQuestionManagement() {
     }
   }, []);
 
+  // Update question images using new endpoint
+  const updateQuestionImages = useCallback(async (questionId: number, questionImages?: File[], explanationImages?: File[]) => {
+    try {
+      console.log('🔄 Updating question images:', questionId);
+
+      const promises: Promise<any>[] = [];
+
+      // Update question images if provided
+      if (questionImages && questionImages.length > 0) {
+        promises.push(AdminService.updateQuestionImages(questionId, questionImages));
+      }
+
+      // Update explanation images if provided
+      if (explanationImages && explanationImages.length > 0) {
+        promises.push(AdminService.updateQuestionExplanationImages(questionId, explanationImages));
+      }
+
+      if (promises.length === 0) {
+        throw new Error('No images provided for update');
+      }
+
+      const responses = await Promise.all(promises);
+
+      // Check if all responses are successful
+      const allSuccessful = responses.every(response => response.success);
+
+      if (allSuccessful) {
+        console.log('✅ Question images updated successfully');
+
+        toast.success('Success', {
+          description: 'Question images updated successfully',
+        });
+
+        // Refresh questions to get updated data
+        await refreshQuestions();
+
+        return responses;
+      } else {
+        const failedResponses = responses.filter(response => !response.success);
+        throw new Error(failedResponses.map(r => r.error).join(', ') || 'Failed to update some images');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update question images';
+      console.error('❌ Error updating question images:', error);
+
+      toast.error('Error', {
+        description: errorMessage,
+      });
+
+      throw error;
+    }
+  }, [refreshQuestions]);
+
   // Load questions on mount
   useEffect(() => {
     fetchQuestions(1, 20, state.filters);
@@ -342,6 +400,7 @@ export function useQuestionManagement() {
 
     // Actions
     fetchQuestions,
+    refreshQuestions,
     updateFilters,
     clearFilters,
     getQuestion,
@@ -349,6 +408,7 @@ export function useQuestionManagement() {
     updateQuestion,
     deleteQuestion,
     updateQuestionExplanation,
+    updateQuestionImages,
     goToPage,
 
     // Helper flags

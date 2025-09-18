@@ -17,6 +17,7 @@ export interface QuestionReportsFilters extends AdminQuestionReportFilters {
 export interface QuestionReportsStats {
   total: number;
   pending: number;
+  reviewed: number;
   resolved: number;
   dismissed: number;
   byType: {
@@ -49,6 +50,7 @@ export function useQuestionReportsManagement() {
 
     const total = reports.length;
     const pending = reports.filter(r => r.status === 'PENDING').length;
+    const reviewed = reports.filter(r => r.status === 'REVIEWED').length;
     const resolved = reports.filter(r => r.status === 'RESOLVED').length;
     const dismissed = reports.filter(r => r.status === 'DISMISSED').length;
 
@@ -66,17 +68,18 @@ export function useQuestionReportsManagement() {
       new Date(r.createdAt) >= sevenDaysAgo
     ).length;
 
-    // Calculate average response time for resolved/dismissed reports
-    const reviewedReports = reports.filter(r => 
-      (r.status === 'RESOLVED' || r.status === 'DISMISSED') && r.reviewedAt
+    // Calculate average response time for reviewed/resolved/dismissed reports
+    const reviewedReports = reports.filter(r =>
+      (r.status === 'REVIEWED' || r.status === 'RESOLVED' || r.status === 'DISMISSED') &&
+      r.createdAt !== r.updatedAt // Only count reports that have been updated
     );
-    
+
     let averageResponseTime = 0;
     if (reviewedReports.length > 0) {
       const totalResponseTime = reviewedReports.reduce((sum, report) => {
         const created = new Date(report.createdAt);
-        const reviewed = new Date(report.reviewedAt!);
-        const diffHours = (reviewed.getTime() - created.getTime()) / (1000 * 60 * 60);
+        const updated = new Date(report.updatedAt);
+        const diffHours = (updated.getTime() - created.getTime()) / (1000 * 60 * 60);
         return sum + diffHours;
       }, 0);
       averageResponseTime = totalResponseTime / reviewedReports.length;
@@ -85,6 +88,7 @@ export function useQuestionReportsManagement() {
     return {
       total,
       pending,
+      reviewed,
       resolved,
       dismissed,
       byType,

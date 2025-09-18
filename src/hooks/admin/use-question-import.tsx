@@ -9,11 +9,13 @@ import {
   University,
   Unit,
   Module,
+  IndependentModule,
   Course,
   ImportProgress,
   ImportWizardStep
 } from '@/types/question-import';
 import { apiClient } from '@/lib/api-client';
+import { UniversityService } from '@/lib/api-services';
 
 // Extended StudyPack type with unites
 type ExtendedStudyPack = StudyPack & {
@@ -56,22 +58,96 @@ export function useQuestionImport() {
     });
 
     try {
-      // Fetch both question filters and study packs
-      const [filtersResponse, studyPacksResponse] = await Promise.all([
-        apiClient.get<QuestionFiltersResponse['data']>('/admin/questions/filters'),
-        apiClient.get<{ studyPacks: StudyPack[] }>('/admin/study-packs')
+      // Fetch content filters, study packs, and universities separately for better data freshness
+      const [filtersResponse, studyPacksResponse, universitiesResponse] = await Promise.all([
+        apiClient.get<QuestionFiltersResponse['data']>('/admin/content/filters'),
+        apiClient.get<{ studyPacks: StudyPack[] }>('/admin/study-packs'),
+        UniversityService.getUniversities()
       ]);
 
-      if (filtersResponse.success) {
+      if (filtersResponse.success && universitiesResponse.success) {
+        // Extract universities from the nested response structure
+        // API returns: { success: true, data: { universities: [...] } }
+        const universitiesData = universitiesResponse.data?.universities || [];
+
+        // Log the university data for debugging
+        console.log('🏫 [useQuestionImport] Fresh university data:', {
+          count: universitiesData.length,
+          universities: universitiesData.map(u => ({ id: u.id, name: u.name, country: u.country }))
+        });
+
+        // Merge the fresh university data with the filters data
         const filtersData: QuestionFiltersResponse = {
           success: true,
-          data: filtersResponse.data,
+          data: {
+            ...filtersResponse.data,
+            filters: {
+              ...filtersResponse.data.filters,
+              // Use fresh university data from the dedicated endpoint
+              universities: universitiesData
+            }
+          },
           meta: {
             timestamp: new Date().toISOString(),
             requestId: Math.random().toString(36).substring(7)
           }
         };
+
+        // Validate the data structure - handle both single and double-nested responses
+        const hasValidStructure = filtersData.data && (
+          filtersData.data.data || // Double-nested structure
+          filtersData.data.filters || // Single-nested with filters
+          filtersData.data.unites !== undefined || // Direct structure
+          filtersData.data.independentModules !== undefined
+        );
+
+        if (!hasValidStructure) {
+          console.error('🚨 [useQuestionImport] Invalid API response structure:', filtersData);
+          toast.error('Invalid API response structure. Please contact support.');
+          setProgress({
+            step: 'error',
+            message: 'Invalid API response structure',
+            progress: 0,
+            error: 'API returned unexpected data format'
+          });
+          return;
+        }
+
+        // Debug: Log the data structure to understand what we're getting
+        console.log('🔍 [useQuestionImport] API Response Structure:', {
+          hasData: !!filtersData.data,
+          hasNestedData: !!(filtersData.data && filtersData.data.data),
+          hasFilters: !!(filtersData.data && filtersData.data.filters),
+          hasUnites: !!(filtersData.data && filtersData.data.unites),
+          hasIndependentModules: !!(filtersData.data && filtersData.data.independentModules),
+          nestedUnites: !!(filtersData.data && filtersData.data.data && filtersData.data.data.unites),
+          nestedIndependentModules: !!(filtersData.data && filtersData.data.data && filtersData.data.data.independentModules),
+          unitesCount: filtersData.data?.unites?.length || filtersData.data?.data?.unites?.length || 0,
+          independentModulesCount: filtersData.data?.independentModules?.length || filtersData.data?.data?.independentModules?.length || 0
+        });
+
         setFiltersData(filtersData);
+      } else {
+        console.error('🚨 [useQuestionImport] Failed to fetch data:', {
+          filtersSuccess: filtersResponse.success,
+          universitiesSuccess: universitiesResponse.success,
+          filtersError: filtersResponse.error,
+          universitiesError: universitiesResponse.error
+        });
+
+        // If universities failed but filters succeeded, still set filters data with empty universities
+        if (filtersResponse.success) {
+          const filtersData: QuestionFiltersResponse = {
+            success: true,
+            data: filtersResponse.data,
+            meta: {
+              timestamp: new Date().toISOString(),
+              requestId: Math.random().toString(36).substring(7)
+            }
+          };
+          setFiltersData(filtersData);
+          toast.error('Failed to load universities. Please refresh the page.');
+        }
       }
 
       if (studyPacksResponse.success) {
@@ -114,11 +190,32 @@ export function useQuestionImport() {
         examYears: [],
         units: [],
         modules: [],
+        independentModules: [],
         courses: []
       };
     }
 
-    const { courses, universities, examYears } = filtersData.data.filters;
+    // Handle the double-nested response structure: data.data.{unites, independentModules}
+    const innerData = filtersData.data.data || filtersData.data || {};
+    const { unites = [], independentModules = [] } = innerData;
+
+    // For backward compatibility, try to get filters from various possible locations
+    const filtersData_inner = filtersData.data.filters || innerData.filters || {};
+    const { courses = [], universities = [], examYears = [] } = filtersData_inner;
+
+    // Debug: Log what data we extracted
+    console.log('🔍 [useQuestionImport] Extracted Data:', {
+      unitesCount: unites.length,
+      independentModulesCount: independentModules.length,
+      coursesCount: courses.length,
+      universitiesCount: universities.length,
+      examYearsCount: examYears.length,
+      sampleIndependentModule: independentModules[0] ? {
+        id: independentModules[0].id,
+        name: independentModules[0].name,
+        studyPackId: independentModules[0].studyPackId
+      } : null
+    });
 
     // Extract unique units from study packs (not from courses)
     const unitsMap = new Map<number, Unit>();
@@ -189,13 +286,14 @@ export function useQuestionImport() {
       examYears,
       units: Array.from(unitsMap.values()),
       modules: Array.from(modulesMap.values()),
+      independentModules,
       courses
     };
   }, [filtersData, studyPacksData]);
 
   // Get filtered options based on current selection
   const getAvailableOptions = useCallback(() => {
-    if (!filtersData) return { universities: [], studyPacks: [], examYears: [], units: [], modules: [], courses: [] };
+    if (!filtersData) return { universities: [], studyPacks: [], examYears: [], units: [], modules: [], independentModules: [], courses: [] };
 
     const { courses } = filtersData.data.filters;
 
@@ -203,6 +301,7 @@ export function useQuestionImport() {
     let filteredCourses = courses;
     let filteredStudyPacks = hierarchyData.studyPacks;
     let filteredUnits = hierarchyData.units;
+    let filteredIndependentModules = hierarchyData.independentModules;
 
     // Filter study packs by university (if there's a relationship)
     if (selection.university) {
@@ -210,10 +309,13 @@ export function useQuestionImport() {
       filteredStudyPacks = hierarchyData.studyPacks;
     }
 
-    // Filter units by study pack
+    // Filter units and independent modules by study pack
     if (selection.studyPack) {
       filteredUnits = hierarchyData.units.filter(unit =>
         unit.studyPackId === selection.studyPack!.id
+      );
+      filteredIndependentModules = hierarchyData.independentModules.filter(module =>
+        module.studyPackId === selection.studyPack!.id
       );
     }
 
@@ -229,19 +331,57 @@ export function useQuestionImport() {
       );
     }
 
+    // Handle independent module selection for courses
+    if (selection.independentModule) {
+      // For independent modules, we need to get courses directly from the module
+      // Since the courses array from filters might not include independent module courses
+      filteredCourses = selection.independentModule.courses.map(course => ({
+        ...course,
+        moduleId: selection.independentModule!.id,
+        createdAt: selection.independentModule!.createdAt,
+        updatedAt: selection.independentModule!.updatedAt,
+        module: {
+          id: selection.independentModule!.id,
+          uniteId: null, // Independent modules don't have a unit
+          name: selection.independentModule!.name,
+          description: selection.independentModule!.description,
+          createdAt: selection.independentModule!.createdAt,
+          updatedAt: selection.independentModule!.updatedAt,
+          unite: null as any // Independent modules don't have a unit
+        }
+      }));
+    }
+
     // Extract available modules from filtered courses
     const availableModules = selection.unit
       ? hierarchyData.modules.filter(module => module.unite.id === selection.unit!.id)
       : hierarchyData.modules;
 
-    return {
+    const result = {
       universities: hierarchyData.universities,
       studyPacks: filteredStudyPacks,
       examYears: hierarchyData.examYears,
       units: filteredUnits,
       modules: availableModules,
+      independentModules: filteredIndependentModules,
       courses: filteredCourses
     };
+
+    // Debug: Log available options
+    console.log('🔍 [useQuestionImport] Available Options:', {
+      currentStep: selection.studyPack ? 'after-studypack' : 'before-studypack',
+      selectedStudyPackId: selection.studyPack?.id,
+      unitesCount: result.units.length,
+      independentModulesCount: result.independentModules.length,
+      totalHierarchyIndependentModules: hierarchyData.independentModules.length,
+      sampleIndependentModule: result.independentModules[0] ? {
+        id: result.independentModules[0].id,
+        name: result.independentModules[0].name,
+        studyPackId: result.independentModules[0].studyPackId
+      } : null
+    });
+
+    return result;
   }, [filtersData, selection, hierarchyData]);
 
   // Update selection and progress
@@ -254,15 +394,23 @@ export function useQuestionImport() {
         delete newSelection.studyPack;
         delete newSelection.unit;
         delete newSelection.module;
+        delete newSelection.independentModule;
         delete newSelection.course;
       } else if (key === 'studyPack') {
         delete newSelection.unit;
         delete newSelection.module;
+        delete newSelection.independentModule;
         delete newSelection.course;
       } else if (key === 'unit') {
         delete newSelection.module;
+        delete newSelection.independentModule;
         delete newSelection.course;
       } else if (key === 'module') {
+        delete newSelection.independentModule;
+        delete newSelection.course;
+      } else if (key === 'independentModule') {
+        delete newSelection.unit;
+        delete newSelection.module;
         delete newSelection.course;
       }
       
@@ -284,8 +432,12 @@ export function useQuestionImport() {
 
     if (currentSelection.university) progress += 15;
     if (currentSelection.studyPack) progress += 15;
+
+    // Either unit+module OR independent module path
     if (currentSelection.unit) progress += 15;
     if (currentSelection.module) progress += 15;
+    if (currentSelection.independentModule) progress += 30; // Independent module replaces unit+module
+
     if (currentSelection.course) progress += 30; // Course selection is most important
 
     return progress;

@@ -6,9 +6,24 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
-  
 
-  
+  // Redirect common typos to the correct routes
+  async redirects() {
+    return [
+      // Fix typo: /admin/quetions -> /admin/questions
+      {
+        source: "/admin/quetions",
+        destination: "/admin/questions",
+        permanent: false,
+      },
+      {
+        source: "/admin/quetions/:path*",
+        destination: "/admin/questions/:path*",
+        permanent: false,
+      },
+    ];
+  },
+
   // Optional: Add security headers
   async headers() {
     return [

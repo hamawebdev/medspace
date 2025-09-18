@@ -24,6 +24,7 @@ const REPORT_TYPE_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { value: 'PENDING', label: 'Pending' },
+  { value: 'REVIEWED', label: 'Reviewed' },
   { value: 'RESOLVED', label: 'Resolved' },
   { value: 'DISMISSED', label: 'Dismissed' },
 ];

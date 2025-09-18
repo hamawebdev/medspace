@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { AdminContentService } from '@/lib/api-services';
+import { AdminContentService, UniversityService } from '@/lib/api-services';
 
 type EntityType = 'university' | 'studyPack' | 'unit' | 'module' | 'course';
 
@@ -155,7 +155,7 @@ export function EntityCard({
       
       switch (entityType) {
         case 'university':
-          result = await AdminContentService.deleteUniversity(entity.id);
+          result = await UniversityService.deleteUniversity(entity.id);
           break;
         case 'studyPack':
           result = await AdminContentService.deleteStudyPack(entity.id);

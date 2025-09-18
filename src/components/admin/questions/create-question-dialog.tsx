@@ -23,7 +23,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ImageUpload, ImageFile } from '@/components/ui/image-upload';
 import { Loader2, AlertCircle, Plus, Trash2, Check } from 'lucide-react';
-import { CreateQuestionRequest } from '@/types/api';
+import { CreateQuestionRequest, QuestionCreationUnit, QuestionCreationModule, QuestionCreationCourse } from '@/types/api';
 import { AdminService } from '@/lib/api-services';
 import { Switch } from '@/components/ui/switch';
 
@@ -39,21 +39,11 @@ interface University {
   country: string;
 }
 
-interface Course {
+interface StudyPack {
   id: number;
   name: string;
-  module: {
-    id: number;
-    name: string;
-    unite: {
-      id: number;
-      name: string;
-      studyPack: {
-        id: number;
-        name: string;
-      };
-    };
-  };
+  yearNumber: string;
+  type: 'YEAR' | 'RESIDENCY';
 }
 
 interface Answer {
@@ -70,15 +60,24 @@ export function CreateQuestionDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [universities, setUniversities] = useState<University[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [studyPacks, setStudyPacks] = useState<StudyPack[]>([]);
+  const [units, setUnits] = useState<QuestionCreationUnit[]>([]);
+  const [independentModules, setIndependentModules] = useState<QuestionCreationModule[]>([]);
+  const [availableModules, setAvailableModules] = useState<QuestionCreationModule[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<QuestionCreationCourse[]>([]);
   const [examYears, setExamYears] = useState<number[]>([]);
+  const [questionTypes, setQuestionTypes] = useState<string[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [loadingModules, setLoadingModules] = useState(false);
+  const [loadingCourses, setLoadingCourses] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
     questionText: '',
     explanation: '',
     questionType: '' as 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | '',
+    unitId: undefined as number | undefined,
+    moduleId: undefined as number | undefined,
     courseId: undefined as number | undefined,
     universityId: undefined as number | undefined,
     yearLevel: '',
@@ -99,15 +98,70 @@ export function CreateQuestionDialog({
     }
   }, [open]);
 
+  // Handle cascading updates when unit selection changes
+  useEffect(() => {
+    if (formData.unitId) {
+      const selectedUnit = units.find(u => u.id === formData.unitId);
+      setAvailableModules(selectedUnit?.modules || []);
+      setAvailableCourses([]);
+    } else {
+      setAvailableModules([]);
+      setAvailableCourses([]);
+    }
+  }, [formData.unitId, units]);
+
+  // Handle cascading updates when module selection changes
+  useEffect(() => {
+    if (formData.moduleId) {
+      let selectedModule: QuestionCreationModule | undefined;
+
+      // Find module in units or independent modules
+      for (const unit of units) {
+        const module = unit.modules.find(m => m.id === formData.moduleId);
+        if (module) {
+          selectedModule = module;
+          break;
+        }
+      }
+
+      if (!selectedModule) {
+        selectedModule = independentModules.find(m => m.id === formData.moduleId);
+      }
+
+      setAvailableCourses(selectedModule?.courses || []);
+    } else {
+      setAvailableCourses([]);
+    }
+  }, [formData.moduleId, units, independentModules]);
+
   const loadFormData = async () => {
     try {
       setLoadingData(true);
-      const response = await AdminService.getQuestionFilters();
-      
-      if (response.success && response.data?.filters) {
-        setUniversities(response.data.filters.universities || []);
-        setCourses(response.data.filters.courses || []);
-        setExamYears(response.data.filters.examYears || []);
+
+      // Load universities
+      const universitiesResponse = await AdminService.getUniversitiesForQuestions();
+      if (universitiesResponse.success && universitiesResponse.data?.universities) {
+        setUniversities(universitiesResponse.data.universities);
+      }
+
+      // Load study packs for years
+      const studyPacksResponse = await AdminService.getStudyPacksForQuestions();
+      if (studyPacksResponse.success && studyPacksResponse.data?.studyPacks) {
+        setStudyPacks(studyPacksResponse.data.studyPacks);
+      }
+
+      // Load hierarchical content filters
+      const contentResponse = await AdminService.getQuestionContentFilters();
+      if (contentResponse.success && contentResponse.data) {
+        setUnits(contentResponse.data.unites || []);
+        setIndependentModules(contentResponse.data.independentModules || []);
+      }
+
+      // Load exam years and question types
+      const filtersResponse = await AdminService.getQuestionFilters();
+      if (filtersResponse.success && filtersResponse.data?.filters) {
+        setExamYears(filtersResponse.data.filters.examYears || []);
+        setQuestionTypes(filtersResponse.data.filters.questionTypes || []);
       }
     } catch (error) {
       console.error('Failed to load form data:', error);
@@ -121,6 +175,8 @@ export function CreateQuestionDialog({
       questionText: '',
       explanation: '',
       questionType: '',
+      unitId: undefined,
+      moduleId: undefined,
       courseId: undefined,
       universityId: undefined,
       yearLevel: '',
@@ -131,6 +187,8 @@ export function CreateQuestionDialog({
       { answerText: '', isCorrect: false, explanation: '' },
     ]);
     setQuestionImages([]);
+    setAvailableModules([]);
+    setAvailableCourses([]);
     setError(null);
   };
 
@@ -158,6 +216,66 @@ export function CreateQuestionDialog({
     }
     
     setAnswers(newAnswers);
+  };
+
+  // Hierarchical selection handlers
+  const handleUnitChange = (unitId: string) => {
+    const selectedUnitId = unitId === 'all' ? undefined : parseInt(unitId);
+    const selectedUnit = units.find(u => u.id === selectedUnitId);
+
+    setFormData(prev => ({
+      ...prev,
+      unitId: selectedUnitId,
+      moduleId: undefined,
+      courseId: undefined
+    }));
+
+    setAvailableModules(selectedUnit?.modules || []);
+    setAvailableCourses([]);
+  };
+
+  const handleModuleChange = (moduleId: string) => {
+    const selectedModuleId = moduleId === 'all' ? undefined : parseInt(moduleId);
+    let selectedModule: QuestionCreationModule | undefined;
+
+    // Find module in units or independent modules
+    for (const unit of units) {
+      const module = unit.modules.find(m => m.id === selectedModuleId);
+      if (module) {
+        selectedModule = module;
+        break;
+      }
+    }
+
+    if (!selectedModule) {
+      selectedModule = independentModules.find(m => m.id === selectedModuleId);
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      moduleId: selectedModuleId,
+      courseId: undefined
+    }));
+
+    setAvailableCourses(selectedModule?.courses || []);
+  };
+
+  const handleCourseChange = (courseId: string) => {
+    const selectedCourseId = courseId ? parseInt(courseId) : undefined;
+
+    setFormData(prev => ({
+      ...prev,
+      courseId: selectedCourseId
+    }));
+  };
+
+  // Handle direct module dropdown click (show independent modules)
+  const handleModuleDropdownClick = () => {
+    if (!formData.unitId) {
+      setLoadingModules(true);
+      setAvailableModules(independentModules);
+      setLoadingModules(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,6 +313,8 @@ export function CreateQuestionDialog({
         explanation: formData.explanation || undefined,
         questionType: formData.questionType,
         courseId: formData.courseId,
+        moduleId: formData.moduleId,
+        unitId: formData.unitId,
         universityId: formData.universityId,
         yearLevel: formData.yearLevel || undefined,
         examYear: formData.examYear,
@@ -277,48 +397,107 @@ export function CreateQuestionDialog({
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Question Type *</Label>
-                  <Select
-                    value={formData.questionType}
-                    onValueChange={(value) => setFormData(prev => ({ 
-                      ...prev, 
-                      questionType: value as 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' 
-                    }))}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select question type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SINGLE_CHOICE">Single Choice</SelectItem>
-                      <SelectItem value="MULTIPLE_CHOICE">Multiple Choice</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label>Question Type *</Label>
+                <Select
+                  value={formData.questionType}
+                  onValueChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    questionType: value as 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE'
+                  }))}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select question type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SINGLE_CHOICE">Single Choice</SelectItem>
+                    <SelectItem value="MULTIPLE_CHOICE">Multiple Choice</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <Label>Course *</Label>
-                  <Select
-                    value={formData.courseId?.toString() || ''}
-                    onValueChange={(value) => setFormData(prev => ({ 
-                      ...prev, 
-                      courseId: value ? parseInt(value) : undefined 
-                    }))}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id.toString()}>
-                          {course.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Hierarchical Content Selection */}
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  {/* Unit Selection */}
+                  <div className="space-y-2">
+                    <Label>Unit</Label>
+                    <Select
+                      value={formData.unitId?.toString() || 'all'}
+                      onValueChange={handleUnitChange}
+                      disabled={loading || loadingData}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingData ? "Loading..." : "Select unit"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Units</SelectItem>
+                        {units.map((unit) => (
+                          <SelectItem key={unit.id} value={unit.id.toString()}>
+                            {unit.name} ({unit.studyPack.name})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Module Selection */}
+                  <div className="space-y-2">
+                    <Label>Module</Label>
+                    <Select
+                      value={formData.moduleId?.toString() || 'all'}
+                      onValueChange={handleModuleChange}
+                      disabled={loading || loadingData || loadingModules}
+                      onOpenChange={(open) => {
+                        if (open && !formData.unitId) {
+                          handleModuleDropdownClick();
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          loadingData || loadingModules ? "Loading..." :
+                          availableModules.length === 0 ? "No modules available" :
+                          "Select module"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Modules</SelectItem>
+                        {availableModules.map((module) => (
+                          <SelectItem key={module.id} value={module.id.toString()}>
+                            {module.name}
+                            {module.studyPack && ` (${module.studyPack.name})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Course Selection */}
+                  <div className="space-y-2">
+                    <Label>Course *</Label>
+                    <Select
+                      value={formData.courseId?.toString() || ''}
+                      onValueChange={handleCourseChange}
+                      disabled={loading || loadingData || loadingCourses || availableCourses.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          loadingData || loadingCourses ? "Loading..." :
+                          availableCourses.length === 0 ? "Select module first" :
+                          "Select course"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCourses.map((course) => (
+                          <SelectItem key={course.id} value={course.id.toString()}>
+                            {course.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
@@ -349,20 +528,20 @@ export function CreateQuestionDialog({
                 <div className="space-y-2">
                   <Label>Year Level</Label>
                   <Select
-                    value={formData.yearLevel}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, yearLevel: value }))}
-                    disabled={loading}
+                    value={formData.yearLevel || 'all'}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, yearLevel: value === 'all' ? undefined : value }))}
+                    disabled={loading || loadingData}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select year" />
+                      <SelectValue placeholder={loadingData ? "Loading..." : "Select year"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ONE">Year 1</SelectItem>
-                      <SelectItem value="TWO">Year 2</SelectItem>
-                      <SelectItem value="THREE">Year 3</SelectItem>
-                      <SelectItem value="FOUR">Year 4</SelectItem>
-                      <SelectItem value="FIVE">Year 5</SelectItem>
-                      <SelectItem value="SIX">Year 6</SelectItem>
+                      <SelectItem value="all">All Years</SelectItem>
+                      {studyPacks.map((pack) => (
+                        <SelectItem key={pack.id} value={pack.yearNumber}>
+                          {pack.name} ({pack.yearNumber})
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

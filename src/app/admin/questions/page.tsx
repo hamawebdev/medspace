@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useQuestionManagement } from '@/hooks/admin/use-question-management';
 import { QuestionTable } from '@/components/admin/questions/question-table';
-import { QuestionFilters } from '@/components/admin/questions/question-filters';
+import QuestionFilters from '@/components/admin/questions/question-filters';
 import { CreateQuestionDialog } from '@/components/admin/questions/create-question-dialog';
 import { useRouter } from 'next/navigation';
 
@@ -46,6 +46,7 @@ export default function AdminQuestionsPage() {
     updateQuestion,
     deleteQuestion,
     updateQuestionExplanation,
+    updateQuestionImages,
     goToPage,
     hasQuestions,
     hasError,
@@ -239,6 +240,7 @@ export default function AdminQuestionsPage() {
             onUpdateQuestion={updateQuestion}
             onDeleteQuestion={deleteQuestion}
             onUpdateExplanation={updateQuestionExplanation}
+            onUpdateImages={updateQuestionImages}
           />
         </CardContent>
       </Card>
