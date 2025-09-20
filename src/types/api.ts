@@ -1907,12 +1907,17 @@ export interface CreateQuestionRequest {
   explanation?: string;
   questionType: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
   courseId: number;
+  universityId?: number;
+  yearLevel?: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
+  rotation?: 'R1' | 'R2' | 'R3' | 'R4';
+  examYear?: number;
+  sourceId?: number;
+  additionalInfo?: string;
+  metadata?: string;
+  // Legacy fields for backward compatibility
   moduleId?: number;
   unitId?: number;
   examId?: number;
-  universityId?: number;
-  yearLevel?: string;
-  examYear?: number;
   questionImages?: Array<File & { altText?: string }>;
   answers: Array<{
     answerText: string;

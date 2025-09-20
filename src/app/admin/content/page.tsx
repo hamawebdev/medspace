@@ -19,12 +19,14 @@ import {
   Plus,
   CheckCircle,
   Edit,
-  Trash2
+  Trash2,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { useQuestionImport } from '@/hooks/admin/use-question-import';
 import { useQuestionManagement } from '@/hooks/admin/use-question-management';
+import { useQuestionSources } from '@/hooks/admin/use-question-sources';
 import { JsonQuestionInput } from '@/components/admin/content/json-question-input';
-import { ImportUsageGuide } from '@/components/admin/content/import-usage-guide';
 import { AddEntityDialog } from '@/components/admin/content/add-entity-dialog';
 import { EntityCard } from '@/components/admin/content/entity-card';
 import { EditEntityDialog } from '@/components/admin/content/edit-entity-dialog';
@@ -37,7 +39,6 @@ type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'courseA
 
 export default function AdminContentPage() {
   const [currentStep, setCurrentStep] = useState<Step>('university');
-  const [showUsageGuide, setShowUsageGuide] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
   const [validation, setValidation] = useState<ValidationResult>({
     isValid: false,
@@ -50,6 +51,8 @@ export default function AdminContentPage() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addEntityType, setAddEntityType] = useState<'university' | 'studyPack' | 'unit' | 'module' | 'course'>('university');
   const [selectedExamYear, setSelectedExamYear] = useState<number | undefined>(undefined);
+  const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(undefined);
+  const [selectedRotation, setSelectedRotation] = useState<string | undefined>(undefined);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editEntity, setEditEntity] = useState<any>(null);
   const [editEntityType, setEditEntityType] = useState<'university' | 'studyPack' | 'unit' | 'module' | 'course'>('university');
@@ -68,6 +71,13 @@ export default function AdminContentPage() {
 
   // Question management hook
   const { createQuestion } = useQuestionManagement();
+
+  // Use question sources hook
+  const {
+    questionSources,
+    loading: sourcesLoading,
+    error: sourcesError
+  } = useQuestionSources();
 
   // Load filters on mount
   useEffect(() => {
@@ -143,6 +153,8 @@ export default function AdminContentPage() {
     setJsonInput('');
     setParsedQuestions([]);
     setSelectedExamYear(undefined);
+    setSelectedSourceId(undefined);
+    setSelectedRotation(undefined);
     setValidation({
       isValid: false,
       errors: [],
@@ -230,9 +242,14 @@ export default function AdminContentPage() {
   // Handle custom year confirmation
   const handleCustomYearConfirm = () => {
     const year = parseInt(customYearInput);
-    if (year >= 2000 && year <= 2030) {
+    const currentYear = new Date().getFullYear();
+
+    // Validate 4-digit year between 1900 and current year
+    if (year >= 1900 && year <= currentYear && customYearInput.length === 4) {
       setSelectedExamYear(year);
       setCustomYearInput('');
+    } else {
+      toast.error(`Please enter a valid 4-digit year between 1900 and ${currentYear}`);
     }
   };
 
@@ -257,6 +274,16 @@ export default function AdminContentPage() {
       return;
     }
 
+    if (!selectedSourceId) {
+      toast.error('Please select a question source');
+      return;
+    }
+
+    if (!selectedRotation) {
+      toast.error('Please select a rotation');
+      return;
+    }
+
     if (!selection.course) {
       toast.error('Please complete the hierarchy selection first');
       return;
@@ -265,7 +292,11 @@ export default function AdminContentPage() {
     setImporting(true);
     try {
       // Import using hook API to avoid client-side class method issues
-      const result = await importQuestions(parsedQuestions);
+      const result = await importQuestions(parsedQuestions, {
+        examYear: selectedExamYear,
+        sourceId: selectedSourceId,
+        rotation: selectedRotation
+      });
       if (result) {
         handleImportComplete(result);
       } else {
@@ -734,7 +765,7 @@ export default function AdminContentPage() {
                   <CardHeader>
                     <CardTitle>Select Exam Year</CardTitle>
                     <CardDescription>
-                      Choose the exam year for your questions
+                      Choose the exam year for your questions (required: 4-digit year between 1900 and {new Date().getFullYear()})
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -773,8 +804,8 @@ export default function AdminContentPage() {
                         <div className="flex items-center space-x-2">
                           <input
                             type="number"
-                            min="2000"
-                            max="2030"
+                            min="1900"
+                            max={new Date().getFullYear()}
                             placeholder="Enter year (e.g., 2024)"
                             value={customYearInput}
                             onChange={(e) => setCustomYearInput(e.target.value)}
@@ -783,10 +814,90 @@ export default function AdminContentPage() {
                           <Button
                             size="sm"
                             onClick={handleCustomYearConfirm}
-                            disabled={!customYearInput || parseInt(customYearInput) < 2000 || parseInt(customYearInput) > 2030}
+                            disabled={!customYearInput || customYearInput.length !== 4 || parseInt(customYearInput) < 1900 || parseInt(customYearInput) > new Date().getFullYear()}
                           >
                             Confirm
                           </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Rotation Selection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select Rotation</CardTitle>
+                    <CardDescription>
+                      Choose the rotation for your questions (required: R1, R2, R3, or R4)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-4">
+                        <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                        <select
+                          value={selectedRotation || ''}
+                          onChange={(e) => setSelectedRotation(e.target.value || undefined)}
+                          className="flex h-10 w-full max-w-xs rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select rotation...</option>
+                          <option value="R1">R1</option>
+                          <option value="R2">R2</option>
+                          <option value="R3">R3</option>
+                          <option value="R4">R4</option>
+                        </select>
+                        {selectedRotation && (
+                          <Badge variant="secondary" className="text-green-600 border-green-600">
+                            {selectedRotation} selected
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Question Source Selection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select Question Source</CardTitle>
+                    <CardDescription>
+                      Choose the source of your questions (required: select from available sources)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-4">
+                        <BookOpen className="h-5 w-5 text-muted-foreground" />
+                        <select
+                          value={selectedSourceId || ''}
+                          onChange={(e) => setSelectedSourceId(e.target.value ? parseInt(e.target.value) : undefined)}
+                          disabled={sourcesLoading}
+                          className="flex h-10 w-full max-w-xs rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select question source...</option>
+                          {questionSources.map((source) => (
+                            <option key={source.id} value={source.id}>
+                              {source.name}
+                            </option>
+                          ))}
+                        </select>
+                        {selectedSourceId && (
+                          <Badge variant="secondary" className="text-green-600 border-green-600">
+                            {questionSources.find(s => s.id === selectedSourceId)?.name} selected
+                          </Badge>
+                        )}
+                      </div>
+                      {sourcesLoading && (
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span>Loading question sources...</span>
+                        </div>
+                      )}
+                      {sourcesError && (
+                        <div className="flex items-center space-x-2 text-sm text-red-600">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>Error loading sources: {sourcesError}</span>
                         </div>
                       )}
                     </div>
@@ -819,7 +930,7 @@ export default function AdminContentPage() {
                         </div>
                         <Button
                           onClick={handleImport}
-                          disabled={importing || !validation.isValid || !selectedExamYear || selectedExamYear === -1}
+                          disabled={importing || !validation.isValid || !selectedExamYear || selectedExamYear === -1 || !selectedSourceId || !selectedRotation}
                           className="min-w-[120px]"
                         >
                           {importing ? (
@@ -839,52 +950,6 @@ export default function AdminContentPage() {
                   </CardContent>
                 </Card>
 
-                {/* Usage Guide Toggle */}
-                <div className="text-center">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowUsageGuide(!showUsageGuide)}
-                  >
-                    {showUsageGuide ? 'Hide' : 'Show'} Usage Guide
-                  </Button>
-                </div>
-
-                {/* Usage Guide */}
-                {showUsageGuide && (
-                  <>
-                    {/* Import Guidelines */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Import Guidelines</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                          <ul className="text-sm text-blue-800 space-y-1">
-                            <li>• Questions must be in JSON array format</li>
-                            <li>• Each question requires: questionText, questionType, and answers</li>
-                            <li>• SINGLE_CHOICE questions need exactly one correct answer</li>
-                            <li>• MULTIPLE_CHOICE questions need at least one correct answer</li>
-                            <li>• Metadata will be automatically added based on your selections above</li>
-                          </ul>
-                        </div>
-
-                        {/* Content Management Status */}
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800">Content Management Status</span>
-                          </div>
-                          <div className="text-sm text-green-700 space-y-1">
-                            <div>✅ All content entities can be created, edited, and deleted</div>
-                            <div>✅ Full CRUD operations are now operational</div>
-                            <div>✅ Question import system is ready for use</div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <ImportUsageGuide />
-                  </>
-                )}
               </div>
             )}
           </>
@@ -916,6 +981,8 @@ export default function AdminContentPage() {
           onCreateQuestion={handleCreateQuestion}
           courseId={selection.course.id}
           courseName={selection.course.name}
+          universityId={selection.university?.id}
+          universityName={selection.university?.name}
         />
       )}
     </div>

@@ -4199,8 +4199,20 @@ export class UniversityService {
       if (questionData.yearLevel) {
         formData.append('yearLevel', questionData.yearLevel);
       }
+      if (questionData.rotation) {
+        formData.append('rotation', questionData.rotation);
+      }
       if (questionData.examYear) {
         formData.append('examYear', questionData.examYear.toString());
+      }
+      if (questionData.sourceId) {
+        formData.append('sourceId', questionData.sourceId.toString());
+      }
+      if (questionData.additionalInfo) {
+        formData.append('additionalInfo', questionData.additionalInfo);
+      }
+      if (questionData.metadata) {
+        formData.append('metadata', questionData.metadata);
       }
 
       // Add answers as JSON string

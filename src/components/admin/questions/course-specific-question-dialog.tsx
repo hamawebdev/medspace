@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, X, Upload, AlertCircle, BookOpen } from 'lucide-react';
+import { Plus, X, Upload, AlertCircle, BookOpen, Calendar, GraduationCap, RefreshCw } from 'lucide-react';
 import { CreateQuestionRequest } from '@/types/api';
+import { useQuestionSources } from '@/hooks/admin/use-question-sources';
 
 interface CourseSpecificQuestionDialogProps {
   open: boolean;
@@ -31,6 +32,8 @@ interface CourseSpecificQuestionDialogProps {
   onCreateQuestion: (questionData: CreateQuestionRequest) => Promise<void>;
   courseId: number;
   courseName: string;
+  universityId?: number;
+  universityName?: string;
 }
 
 interface Answer {
@@ -45,17 +48,30 @@ export function CourseSpecificQuestionDialog({
   onCreateQuestion,
   courseId,
   courseName,
+  universityId,
+  universityName,
 }: CourseSpecificQuestionDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Use question sources hook
+  const {
+    questionSources,
+    loading: sourcesLoading,
+    error: sourcesError
+  } = useQuestionSources();
 
   // Form state - simplified without course/module/university selectors
   const [formData, setFormData] = useState({
     questionText: '',
     explanation: '',
     questionType: '' as 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | '',
-    yearLevel: '',
+    yearLevel: '' as 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN' | '',
+    rotation: '' as 'R1' | 'R2' | 'R3' | 'R4' | '',
     examYear: undefined as number | undefined,
+    sourceId: undefined as number | undefined,
+    universityId: undefined as number | undefined,
+    additionalInfo: '',
   });
 
   const [answers, setAnswers] = useState<Answer[]>([
@@ -63,7 +79,6 @@ export function CourseSpecificQuestionDialog({
     { answerText: '', isCorrect: false, explanation: '' },
   ]);
 
-  const [questionImages, setQuestionImages] = useState<Array<File & { altText?: string }>>([]);
 
   const resetForm = () => {
     setFormData({
@@ -71,13 +86,16 @@ export function CourseSpecificQuestionDialog({
       explanation: '',
       questionType: '',
       yearLevel: '',
+      rotation: '',
       examYear: undefined,
+      sourceId: undefined,
+      universityId: undefined,
+      additionalInfo: '',
     });
     setAnswers([
       { answerText: '', isCorrect: false, explanation: '' },
       { answerText: '', isCorrect: false, explanation: '' },
     ]);
-    setQuestionImages([]);
     setError(null);
   };
 
@@ -97,15 +115,6 @@ export function CourseSpecificQuestionDialog({
     setAnswers(newAnswers);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const imageFiles = files.map(file => Object.assign(file, { altText: '' }));
-    setQuestionImages(prev => [...prev, ...imageFiles]);
-  };
-
-  const removeImage = (index: number) => {
-    setQuestionImages(prev => prev.filter((_, i) => i !== index));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +125,33 @@ export function CourseSpecificQuestionDialog({
       setError('Please fill in all required fields');
       return;
     }
+
+    // Validate required fields according to documentation
+    if (!formData.yearLevel) {
+      setError('Please select a year level');
+      return;
+    }
+
+    if (!formData.rotation) {
+      setError('Please select a rotation');
+      return;
+    }
+
+    if (!formData.examYear) {
+      setError('Please enter an exam year');
+      return;
+    }
+
+    if (formData.examYear <= 1900 || formData.examYear > new Date().getFullYear()) {
+      setError(`Exam year must be between 1900 and ${new Date().getFullYear()}`);
+      return;
+    }
+
+    if (!formData.sourceId) {
+      setError('Please select a question source');
+      return;
+    }
+
 
     const validAnswers = answers.filter(a => a.answerText.trim() !== '');
     if (validAnswers.length < 2) {
@@ -142,9 +178,12 @@ export function CourseSpecificQuestionDialog({
         explanation: formData.explanation || undefined,
         questionType: formData.questionType,
         courseId: courseId, // Auto-populated from props
-        yearLevel: formData.yearLevel || undefined,
+        universityId: universityId || formData.universityId || 1, // Use passed universityId, fallback to form or default
+        yearLevel: formData.yearLevel as 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN',
+        rotation: formData.rotation as 'R1' | 'R2' | 'R3' | 'R4',
         examYear: formData.examYear,
-        questionImages: questionImages.length > 0 ? questionImages : undefined,
+        sourceId: formData.sourceId,
+        additionalInfo: formData.additionalInfo || undefined,
         answers: validAnswers.map(answer => ({
           answerText: answer.answerText,
           isCorrect: answer.isCorrect,
@@ -188,6 +227,12 @@ export function CourseSpecificQuestionDialog({
           <BookOpen className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Course:</span>
           <Badge variant="secondary">{courseName}</Badge>
+          {universityName && (
+            <>
+              <span className="text-sm font-medium ml-4">University:</span>
+              <Badge variant="outline">{universityName}</Badge>
+            </>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -231,29 +276,101 @@ export function CourseSpecificQuestionDialog({
             </Select>
           </div>
 
-          {/* Optional Fields */}
+          {/* Required Metadata Fields */}
           <div className="grid gap-4 md:grid-cols-2">
+            {/* Year Level */}
             <div className="space-y-2">
-              <Label>Year Level</Label>
-              <Input
-                placeholder="e.g., Year 1, Year 2"
+              <Label>Year Level *</Label>
+              <Select
                 value={formData.yearLevel}
-                onChange={(e) => setFormData(prev => ({ ...prev, yearLevel: e.target.value }))}
+                onValueChange={(value: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN') =>
+                  setFormData(prev => ({ ...prev, yearLevel: value }))
+                }
                 disabled={loading}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select year level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ONE">Year ONE</SelectItem>
+                  <SelectItem value="TWO">Year TWO</SelectItem>
+                  <SelectItem value="THREE">Year THREE</SelectItem>
+                  <SelectItem value="FOUR">Year FOUR</SelectItem>
+                  <SelectItem value="FIVE">Year FIVE</SelectItem>
+                  <SelectItem value="SIX">Year SIX</SelectItem>
+                  <SelectItem value="SEVEN">Year SEVEN</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Rotation */}
             <div className="space-y-2">
-              <Label>Exam Year</Label>
+              <Label>Rotation *</Label>
+              <Select
+                value={formData.rotation}
+                onValueChange={(value: 'R1' | 'R2' | 'R3' | 'R4') =>
+                  setFormData(prev => ({ ...prev, rotation: value }))
+                }
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select rotation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="R1">R1</SelectItem>
+                  <SelectItem value="R2">R2</SelectItem>
+                  <SelectItem value="R3">R3</SelectItem>
+                  <SelectItem value="R4">R4</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Exam Year */}
+            <div className="space-y-2">
+              <Label>Exam Year *</Label>
               <Input
                 type="number"
+                min="1900"
+                max={new Date().getFullYear()}
                 placeholder="e.g., 2024"
                 value={formData.examYear || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  examYear: e.target.value ? parseInt(e.target.value) : undefined 
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  examYear: e.target.value ? parseInt(e.target.value) : undefined
                 }))}
                 disabled={loading}
               />
+            </div>
+
+            {/* Question Source */}
+            <div className="space-y-2">
+              <Label>Question Source *</Label>
+              <Select
+                value={formData.sourceId?.toString() || ''}
+                onValueChange={(value) =>
+                  setFormData(prev => ({ ...prev, sourceId: value ? parseInt(value) : undefined }))
+                }
+                disabled={loading || sourcesLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={sourcesLoading ? "Loading sources..." : "Select question source"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {questionSources.map((source) => (
+                    <SelectItem key={source.id} value={source.id.toString()}>
+                      {source.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {sourcesError && (
+                <div className="flex items-center space-x-2 text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Error loading sources: {sourcesError}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -270,41 +387,22 @@ export function CourseSpecificQuestionDialog({
             />
           </div>
 
-          {/* Question Images */}
-          <div className="space-y-2">
-            <Label>Question Images</Label>
+          {/* Optional Fields */}
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
+              <Label htmlFor="additionalInfo">Additional Information</Label>
+              <Textarea
+                id="additionalInfo"
+                placeholder="Any additional information about the question..."
+                value={formData.additionalInfo}
+                onChange={(e) => setFormData(prev => ({ ...prev, additionalInfo: e.target.value }))}
                 disabled={loading}
+                rows={2}
               />
-              {questionImages.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {questionImages.map((image, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={URL.createObjectURL(image)}
-                        alt={`Question image ${index + 1}`}
-                        className="w-full h-20 object-cover rounded border"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                        onClick={() => removeImage(index)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
+
           </div>
+
 
           {/* Answers */}
           <div className="space-y-4">

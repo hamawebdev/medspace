@@ -503,7 +503,10 @@ export function useQuestionImport() {
   }, [selection, progress.step, calculateSelectionProgress]);
 
   // Bulk import questions
-  const importQuestions = useCallback(async (questions: any[]): Promise<BulkQuestionImportResponse | null> => {
+  const importQuestions = useCallback(async (
+    questions: any[],
+    additionalMetadata?: { examYear?: number; sourceId?: number; rotation?: string }
+  ): Promise<BulkQuestionImportResponse | null> => {
     if (!selection.course) {
       toast.error('Please complete hierarchy selection first');
       return null;
@@ -525,7 +528,9 @@ export function useQuestionImport() {
         metadata: {
           courseId: selection.course.id,
           universityId: selection.university?.id,
-          examYear: selection.examYear
+          examYear: additionalMetadata?.examYear || selection.examYear,
+          sourceId: additionalMetadata?.sourceId,
+          rotation: additionalMetadata?.rotation
         },
         questions
       };

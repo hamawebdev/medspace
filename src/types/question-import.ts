@@ -126,6 +126,8 @@ export interface QuestionImportMetadata {
   courseId: number;
   universityId?: number;
   examYear?: number;
+  sourceId?: number;
+  rotation?: string;
   yearLevel?: string;
 }
 
@@ -154,6 +156,9 @@ export interface SelectionState {
   module?: Module;
   independentModule?: IndependentModule;
   course?: Course;
+  examYear?: number;
+  sourceId?: number;
+  rotation?: string;
 }
 
 export interface HierarchyData {
