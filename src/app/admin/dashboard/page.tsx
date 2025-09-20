@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAdminDashboard } from '@/hooks/use-admin-dashboard';
 import { StatsCards } from '@/components/admin/dashboard/stats-cards';
+import { SpecialtyManagement } from '@/components/admin/specialties/specialty-management';
 
 /**
  * Admin Dashboard Overview Page
@@ -75,6 +76,9 @@ export default function AdminDashboardPage() {
 
       {/* Key Metrics Only */}
       <StatsCards stats={stats} loading={loading} error={error} />
+
+      {/* Specialty Management Section */}
+      <SpecialtyManagement />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AdminService } from '@/lib/api-services';
+import { AdminService, UniversityService } from '@/lib/api-services';
 import { DashboardStats } from '@/types/api';
 import { toast } from 'sonner';
 

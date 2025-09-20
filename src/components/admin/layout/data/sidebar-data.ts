@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Database, Users, CreditCard, FileQuestion, BarChart3, Settings, HelpCircle, Key, FolderOpen, Tags } from 'lucide-react'
+import { Database, Users, FileQuestion, Settings, HelpCircle, Key, FolderOpen, Tags, Stethoscope } from 'lucide-react'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -17,27 +17,12 @@ export const sidebarData: SidebarData = {
   ],
   navGroups: [
     {
-      title: 'Dashboard',
-      items: [
-        {
-          title: 'Overview',
-          url: '/admin/dashboard',
-          icon: BarChart3,
-        },
-      ],
-    },
-    {
       title: 'User Management',
       items: [
         {
           title: 'All Users',
           url: '/admin/users',
           icon: Users,
-        },
-        {
-          title: 'Subscriptions',
-          url: '/admin/subscriptions',
-          icon: CreditCard,
         },
         {
           title: 'Activation Codes',
@@ -73,6 +58,16 @@ export const sidebarData: SidebarData = {
           title: 'Question Reports',
           url: '/admin/reports',
           icon: FileQuestion,
+        },
+      ],
+    },
+    {
+      title: 'System Management',
+      items: [
+        {
+          title: 'Specialties',
+          url: '/admin/specialties',
+          icon: Stethoscope,
         },
       ],
     },
