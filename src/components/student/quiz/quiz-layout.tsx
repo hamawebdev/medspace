@@ -340,7 +340,11 @@ export function QuizLayout() {
                 : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
               timeSpent: answer.timeSpent,
             };
-          }).filter(entry => entry.selectedAnswerId || entry.selectedAnswerIds);
+          }).filter(entry => (
+            (entry.selectedAnswerId !== undefined && entry.selectedAnswerId !== null) ||
+            (Array.isArray(entry.selectedAnswerIds) && entry.selectedAnswerIds.length > 0) ||
+            (entry.textAnswer && String(entry.textAnswer).trim().length > 0)
+          ));
 
           if (apiAnswers.length > 0) {
             const totalTimeSpent = timer.totalTime || 0;
@@ -886,7 +890,11 @@ export function QuizLayout() {
                         : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
                       timeSpent: answer.timeSpent,
                     };
-                  }).filter(entry => entry.selectedAnswerId || entry.selectedAnswerIds);
+                  }).filter(entry => (
+                    (entry.selectedAnswerId !== undefined && entry.selectedAnswerId !== null) ||
+                    (Array.isArray(entry.selectedAnswerIds) && entry.selectedAnswerIds.length > 0) ||
+                    (entry.textAnswer && String(entry.textAnswer).trim().length > 0)
+                  ));
 
                   if (apiAnswers.length === 0) {
                     console.log('No answers to submit');

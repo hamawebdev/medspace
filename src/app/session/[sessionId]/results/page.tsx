@@ -138,57 +138,61 @@ export default function QuizCompletionPage() {
 
       const answersArr = Array.isArray(sessionData.answers) ? sessionData.answers : [];
 
-      // Calculate statistics for backward compatibility if submit-answer response data is not available
+      // Derive counts from submitted answers and question definitions for accuracy
+      let answeredCount = 0;
       let correctCount = 0;
-      let answeredCount = answeredQuestions ?? 0;
 
-      // If we don't have answeredQuestions from submit-answer response, calculate it
-      if (sessionData.answeredQuestions === undefined) {
-        answeredCount = 0;
-        correctCount = 0;
+      const questionsArr = Array.isArray(sessionData.questions) ? sessionData.questions : [];
 
-        (sessionData.questions || []).forEach((question: any) => {
-          const userAnswer = answersArr.find((a: any) => String(a.questionId) === String(question.id));
-          const isAnswered = userAnswer && (userAnswer.selectedAnswerId || userAnswer.selectedAnswerIds?.length);
-          const isCorrect = userAnswer?.isCorrect || false;
+      const questionSummary = questionsArr.map((question: any, index: number) => {
+        const userAnswer = answersArr.find((a: any) => String(a.questionId) === String(question.id)) || {};
 
-          if (isAnswered) answeredCount++;
-          if (isCorrect) correctCount++;
-        });
-      } else {
-        // Calculate correct count from percentage and answered questions
-        // Handle case where no questions are answered
-        if (answeredCount > 0) {
-          correctCount = Math.round((percentageScore / 100) * answeredCount);
+        // Extract selected IDs from all known shapes
+        const selectedIdsFromArray = Array.isArray(userAnswer.selectedAnswerIds)
+          ? userAnswer.selectedAnswerIds
+          : (Array.isArray(userAnswer.userAnswerIds) ? userAnswer.userAnswerIds : []);
+        const selectedIds: string[] = selectedIdsFromArray.length > 0
+          ? selectedIdsFromArray.map((id: any) => String(id))
+          : (userAnswer.selectedAnswerId !== undefined && userAnswer.selectedAnswerId !== null
+              ? [String(userAnswer.selectedAnswerId)]
+              : []);
+
+        const hasText = typeof userAnswer.textAnswer === 'string' && userAnswer.textAnswer.trim().length > 0;
+        const isAnswered = selectedIds.length > 0 || hasText || typeof userAnswer.selectedAnswerId === 'number';
+
+        const answers = question.answers || question.options || [];
+
+        // Prefer backend correctness flag if provided
+        let isCorrect: boolean;
+        if (typeof userAnswer.isCorrect === 'boolean') {
+          isCorrect = userAnswer.isCorrect;
         } else {
-          correctCount = 0;
+          // Determine correctness for choice questions by set equality
+          const correctIds = answers.filter((a: any) => a.isCorrect).map((a: any) => String(a.id));
+          const selectedSet = new Set(selectedIds);
+          const correctSet = new Set(correctIds);
+          isCorrect = correctSet.size > 0 && selectedSet.size === correctSet.size && [...selectedSet].every(id => correctSet.has(id));
         }
-      }
 
-      const questionSummary = (sessionData.questions || []).map((question: any, index: number) => {
-        const userAnswer = answersArr.find((a: any) => String(a.questionId) === String(question.id));
-        const isAnswered = userAnswer && (userAnswer.selectedAnswerId || userAnswer.selectedAnswerIds?.length);
-        const isCorrect = userAnswer?.isCorrect || false;
+        if (isAnswered) answeredCount++;
+        if (isAnswered && isCorrect) correctCount++;
 
-        // Get answer texts
-        const selectedAnswers = question.answers?.filter((a: any) => {
-          if (userAnswer?.selectedAnswerIds?.length) {
-            return userAnswer.selectedAnswerIds.includes(a.id);
-          }
-          return userAnswer?.selectedAnswerId === a.id;
-        }) || [];
-
-        const correctAnswers = question.answers?.filter((a: any) => a.isCorrect) || [];
+        // Build summary fields
+        const selectedAnswers = answers.filter((a: any) => selectedIds.includes(String(a.id)));
+        const correctAnswers = answers.filter((a: any) => a.isCorrect);
 
         return {
           questionNumber: index + 1,
           question: question.questionText || question.text || question.content,
-          studentAnswer: selectedAnswers.map(a => a.answerText || a.text).join(', ') || 'No answer',
+          studentAnswer: selectedAnswers.map(a => a.answerText || a.text).join(', ') || (hasText ? userAnswer.textAnswer : 'No answer'),
           correctAnswer: correctAnswers.map(a => a.answerText || a.text).join(', '),
           isCorrect,
           isAnswered
         };
       });
+
+      const incorrectCount = Math.max(0, answeredCount - correctCount);
+      const unansweredCount = Math.max(0, totalQuestions - answeredCount);
 
       setCompletionData({
         sessionId: sessionData.id,
@@ -197,8 +201,8 @@ export default function QuizCompletionPage() {
         totalQuestions,
         answeredQuestions: answeredCount,
         correctCount,
-        incorrectCount: Math.max(0, answeredCount - correctCount),
-        unansweredCount: Math.max(0, totalQuestions - answeredCount),
+        incorrectCount,
+        unansweredCount,
         percentage: percentageScore,
         scoreOutOf20,
         timeSpent,

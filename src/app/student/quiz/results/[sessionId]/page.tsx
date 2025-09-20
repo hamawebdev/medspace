@@ -80,7 +80,13 @@ export default function QuizResultsPage() {
       }) || [];
 
       const correctAnswers = questionResults.filter(q => q.isCorrect).length;
-      const incorrectAnswers = totalQuestions - correctAnswers;
+      // Derive answered count from API when available, otherwise from local question selections
+      const answeredCount = typeof answeredQuestions === 'number'
+        ? answeredQuestions
+        : questionResults.filter(q => (q.selectedAnswerIds && q.selectedAnswerIds.length > 0)).length;
+      // Incorrect answers are only the answered-but-wrong ones
+      const incorrectAnswers = Math.max(0, answeredCount - correctAnswers);
+      const unansweredCount = Math.max(0, totalQuestions - answeredCount);
 
       setQuizResults({
         sessionId: sessionData.id || sessionData.sessionId,
@@ -88,7 +94,7 @@ export default function QuizResultsPage() {
         type: sessionType,
         status,
         totalQuestions,
-        answeredQuestions,
+        answeredQuestions: answeredCount,
         correctAnswers,
         incorrectAnswers,
         score: scoreOutOf20,
@@ -96,6 +102,7 @@ export default function QuizResultsPage() {
         percentage: percentageScore,
         timeSpent,
         questionResults,
+        unansweredCount,
         completedAt: sessionData.updatedAt || sessionData.completedAt || new Date().toISOString(),
       });
 
@@ -299,7 +306,7 @@ export default function QuizResultsPage() {
               </CardHeader>
 
               <CardContent className="space-y-6 relative">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="group/correct p-4 bg-gradient-to-br from-chart-2/10 to-chart-2/5 rounded-xl border border-chart-2/20 hover:border-chart-2/40 hover:shadow-lg hover:shadow-chart-2/10 transition-all duration-300">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -317,9 +324,23 @@ export default function QuizResultsPage() {
                       <div className="flex items-center">
                         <XCircle className="h-5 w-5 text-destructive mr-2 group-hover/incorrect:scale-110 transition-transform duration-300" />
                         <span className="text-sm text-destructive font-semibold">Incorrect</span>
+
+
                       </div>
                       <span className="font-black text-2xl tabular-nums text-destructive group-hover/incorrect:scale-110 transition-transform duration-300">
                         {quizResults.incorrectAnswers}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="group/unanswered p-4 bg-gradient-to-br from-chart-1/10 to-chart-1/5 rounded-xl border border-chart-1/20 hover:border-chart-1/40 hover:shadow-lg hover:shadow-chart-1/10 transition-all duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Clock className="h-5 w-5 text-chart-1 mr-2 group-hover/unanswered:scale-110 transition-transform duration-300" />
+                        <span className="text-sm text-chart-1 font-semibold">Unanswered</span>
+                      </div>
+                      <span className="font-black text-2xl tabular-nums text-chart-1 group-hover/unanswered:scale-110 transition-transform duration-300">
+                        {quizResults.unansweredCount ?? Math.max(0, quizResults.totalQuestions - quizResults.answeredQuestions)}
                       </span>
                     </div>
                   </div>
@@ -333,7 +354,8 @@ export default function QuizResultsPage() {
                   <Progress
                     value={quizResults.percentage}
                     className="h-4 progress-animated group-hover/performance:h-5 transition-all duration-300"
-                  />
+
+
                 </div>
               </CardContent>
             </Card>
