@@ -1,7 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuizSession } from '@/hooks/use-quiz-api';
 import { FullPageLoading } from '@/components/loading-states';
@@ -56,7 +58,7 @@ interface CompletionData {
   status?: string; // From submit-answer response
 }
 
-export default function QuizCompletionPage() {
+function QuizCompletionContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -514,5 +516,13 @@ export default function QuizCompletionPage() {
         defaultTitle={retakeDefaultTitle}
       />
     </ErrorBoundary>
+  );
+}
+
+export default function QuizCompletionPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <QuizCompletionContent />
+    </Suspense>
   );
 }

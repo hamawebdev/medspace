@@ -1,6 +1,8 @@
 // @ts-nocheck
 'use client'
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Student Notes Page - Unit/Module-based Navigation
  *
@@ -16,7 +18,7 @@
  * - GET /students/notes/by-module?uniteId=X - Get notes for all modules in unit
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Calendar, StickyNote, Edit2, Trash2, BookOpen } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -41,7 +43,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { UnitModuleSelector, UnitModuleSelection } from '@/components/student/shared/unit-module-selector'
 
-export default function NotesPage() {
+function NotesContent() {
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -675,4 +677,12 @@ export default function NotesPage() {
       </div>
     </div>
   )
+}
+
+export default function NotesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NotesContent />
+    </Suspense>
+  );
 }

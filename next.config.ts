@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
 
+
+
   // Redirect common typos to the correct routes
   async redirects() {
     return [

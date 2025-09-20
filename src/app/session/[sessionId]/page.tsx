@@ -1,7 +1,9 @@
 // @ts-nocheck
 'use client';
 
-import { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useEffect, useState, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { QuizLayout } from '@/components/student/quiz/quiz-layout';
 import { QuizProvider } from '@/components/student/quiz/quiz-context';
@@ -11,7 +13,7 @@ import { FullPageLoading } from '@/components/loading-states';
 import { ErrorBoundary, ApiError } from '@/components/error-boundary';
 import { Button } from '@/components/ui/button';
 
-export default function StudentSessionRunnerPage() {
+function StudentSessionRunnerContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -224,3 +226,10 @@ export default function StudentSessionRunnerPage() {
   );
 }
 
+export default function StudentSessionRunnerPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <StudentSessionRunnerContent />
+    </Suspense>
+  );
+}

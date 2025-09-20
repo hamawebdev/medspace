@@ -1,9 +1,10 @@
 // @ts-nocheck
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Providers } from "@/components/providers";
-import { FrontextInit } from "@/components/frontext-init";
 import "./globals.css";
 
 // Using Outfit font for all text
@@ -73,7 +74,6 @@ export default function RootLayout({
             disableTransitionOnChange={false}
           >
             {children}
-            <FrontextInit />
           </ThemeProvider>
         </Providers>
       </body>

@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+export const dynamic = 'force-dynamic';
+
+import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { QuizCreationWizard } from '@/components/student/quiz-creation';
 import { useAuth } from '@/hooks/use-auth';
 
-export default function CreateQuizPage() {
+function CreateQuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -55,5 +57,13 @@ export default function CreateQuizPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function CreateQuizPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateQuizContent />
+    </Suspense>
   );
 }

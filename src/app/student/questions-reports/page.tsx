@@ -1,7 +1,9 @@
 // @ts-nocheck
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+export const dynamic = 'force-dynamic';
+
+import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Search, Calendar, AlertTriangle, Eye, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,7 +17,7 @@ import { LoadingSpinner } from '@/components/loading-states'
 import { useStudentAuth } from '@/hooks/use-auth'
 import { useQuestionReports } from '@/hooks/use-question-reports'
 
-export default function QuestionReportsPage() {
+function QuestionReportsContent() {
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -355,4 +357,12 @@ export default function QuestionReportsPage() {
       </div>
     </div>
   )
+}
+
+export default function QuestionReportsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <QuestionReportsContent />
+    </Suspense>
+  );
 }
