@@ -32,6 +32,8 @@ import {
 import { StudentService } from '@/lib/api-services';
 import { NewApiService } from '@/lib/api/new-api-services';
 import type { ContentFilters } from '@/lib/api/new-api-services';
+import { UnitModuleGrid } from '@/components/student/shared/unit-module-grid';
+import { UnitModuleItem } from '@/components/student/shared/unit-module-compact-card';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -148,6 +150,23 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
       }));
     }
   }, [selectedCourses, step]);
+
+  // Handle unit/module selection using UnitModuleGrid
+  const handleUnitModuleSelection = (item: UnitModuleItem) => {
+    if (item.type === 'unite') {
+      // Find the full unit data from contentFilters
+      const unit = contentFilters?.unites?.find(u => u.id === item.id);
+      if (unit) {
+        handleUnitSelect(unit);
+      }
+    } else if (item.type === 'module' && item.isIndependent) {
+      // Find the full module data from contentFilters
+      const module = contentFilters?.independentModules?.find(m => m.id === item.id);
+      if (module) {
+        handleIndependentModuleSelect(module);
+      }
+    }
+  };
 
   const handleUnitSelect = (unit: any) => {
     setSelectedUnit(unit);
@@ -296,97 +315,19 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto">
-          <div className="space-y-4">
-            {/* Study Units */}
-            {contentFilters.unites && contentFilters.unites.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  Study Units
-                </h3>
-                <div className="grid gap-3">
-                  {contentFilters.unites.map((unite) => (
-                    <Card
-                      key={unite.id}
-                      className="cursor-pointer hover:shadow-md transition-all border-l-[4px] border-l-primary/30 hover:border-l-primary/50"
-                      onClick={() => handleUnitSelect(unite)}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-lg">
-                              <Building2 className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-lg">{unite.name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {unite.modules?.length || 0} modules available
-                              </p>
-                            </div>
-                          </div>
-                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-              ))}
-
-                </div>
-              </div>
-            )}
-
-            {/* Independent Modules */}
-            {contentFilters.independentModules && contentFilters.independentModules.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-secondary" />
-                  Independent Modules
-                </h3>
-                <div className="grid gap-3">
-                  {contentFilters.independentModules.map((module) => (
-                    <Card
-                      key={module.id}
-                      className="cursor-pointer hover:shadow-md transition-all border-l-[4px] border-l-secondary/30 hover:border-l-secondary/50"
-                      onClick={() => handleIndependentModuleSelect(module)}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="p-3 bg-secondary/10 rounded-lg">
-                              <GraduationCap className="h-6 w-6 text-secondary" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-lg">{module.name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {module.courses?.length || 0} courses available
-                              </p>
-                            </div>
-                          </div>
-                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* No content available */}
-            {(!contentFilters.unites || contentFilters.unites.length === 0) &&
-             (!contentFilters.independentModules || contentFilters.independentModules.length === 0) && (
-              <Card className="border-dashed">
-                <CardContent className="text-center py-12 space-y-4">
-                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto" />
-                  <div>
-                    <h3 className="font-medium text-lg">No Content Available</h3>
-                    <p className="text-muted-foreground mt-2">
-                      No study units or modules found in your current subscription. Please check your study pack access or contact support.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+        <div className="max-w-5xl mx-auto">
+          {/* Use UnitModuleGrid for consistent layout */}
+          <UnitModuleGrid
+            units={contentFilters.unites}
+            independentModules={contentFilters.independentModules}
+            onItemClick={handleUnitModuleSelection}
+            variant="practice"
+            layout="compact"
+            loading={false}
+            error={null}
+            showSessionCounts={false}
+            selectedItem={null}
+          />
         </div>
       </div>
     );

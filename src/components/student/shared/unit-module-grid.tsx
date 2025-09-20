@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/loading-states';
 import { EmptyState } from '@/components/ui/empty-state';
 import { UnitModuleCard, UnitModuleItem } from './unit-module-card';
+import { UnitModuleCompactCard } from './unit-module-compact-card';
 import { Building2, BookOpen, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,7 @@ interface UnitModuleGridProps {
     id: number;
     name: string;
     description?: string;
+    logoUrl?: string;
     modules?: Array<{
       id: number;
       name: string;
@@ -24,6 +26,7 @@ interface UnitModuleGridProps {
     id: number;
     name: string;
     description?: string;
+    logoUrl?: string;
   }>;
   onItemClick: (item: UnitModuleItem) => void;
   variant?: 'practice' | 'exam';
@@ -32,6 +35,7 @@ interface UnitModuleGridProps {
   className?: string;
   showSessionCounts?: boolean;
   selectedItem?: UnitModuleItem | null;
+  layout?: 'default' | 'compact'; // New prop to control card layout
 }
 
 export function UnitModuleGrid({
@@ -43,7 +47,8 @@ export function UnitModuleGrid({
   error = null,
   className,
   showSessionCounts = true,
-  selectedItem = null
+  selectedItem = null,
+  layout = 'compact' // Default to compact layout for modern design
 }: UnitModuleGridProps) {
   
   // Convert API data to UnitModuleItem format
@@ -121,17 +126,25 @@ export function UnitModuleGrid({
             <Badge variant="secondary" className="text-xs">{unitItems.length}</Badge>
           </div>
           
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
-            {unitItems.map((item) => (
-              <UnitModuleCard
-                key={`unit-${item.id}`}
-                item={item}
-                onClick={onItemClick}
-                variant={variant}
-                showSessionCount={showSessionCounts}
-                isSelected={selectedItem?.type === 'unite' && selectedItem.id === item.id}
-              />
-            ))}
+          <div className={cn(
+            "grid gap-4 auto-rows-fr",
+            layout === 'compact'
+              ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
+          )}>
+            {unitItems.map((item) => {
+              const CardComponent = layout === 'compact' ? UnitModuleCompactCard : UnitModuleCard;
+              return (
+                <CardComponent
+                  key={`unit-${item.id}`}
+                  item={item}
+                  onClick={onItemClick}
+                  variant={variant}
+                  showSessionCount={showSessionCounts}
+                  isSelected={selectedItem?.type === 'unite' && selectedItem.id === item.id}
+                />
+              );
+            })}
           </div>
         </div>
       )}
@@ -148,17 +161,25 @@ export function UnitModuleGrid({
             <Badge variant="secondary" className="text-xs">{independentModuleItems.length}</Badge>
           </div>
           
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
-            {independentModuleItems.map((item) => (
-              <UnitModuleCard
-                key={`module-${item.id}`}
-                item={item}
-                onClick={onItemClick}
-                variant={variant}
-                showSessionCount={showSessionCounts}
-                isSelected={selectedItem?.type === 'module' && selectedItem.id === item.id && item.isIndependent}
-              />
-            ))}
+          <div className={cn(
+            "grid gap-4 auto-rows-fr",
+            layout === 'compact'
+              ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
+          )}>
+            {independentModuleItems.map((item) => {
+              const CardComponent = layout === 'compact' ? UnitModuleCompactCard : UnitModuleCard;
+              return (
+                <CardComponent
+                  key={`module-${item.id}`}
+                  item={item}
+                  onClick={onItemClick}
+                  variant={variant}
+                  showSessionCount={showSessionCounts}
+                  isSelected={selectedItem?.type === 'module' && selectedItem.id === item.id && item.isIndependent}
+                />
+              );
+            })}
           </div>
         </div>
       )}

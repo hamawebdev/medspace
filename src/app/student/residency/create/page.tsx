@@ -105,7 +105,7 @@ export default function ResidencyCreatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8">

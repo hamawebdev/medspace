@@ -50,8 +50,8 @@ import { useContentFilters } from '@/hooks/use-content-filters'
 import { NewApiService } from '@/lib/api/new-api-services'
 import { ContentService } from '@/lib/api-services'
 import { CourseResource } from '@/types/api'
-import { UnitCard } from '@/components/student/course-resources/unit-card'
-import { ModuleCard } from '@/components/student/course-resources/module-card'
+import { UnitModuleGrid } from '@/components/student/shared/unit-module-grid'
+import { UnitModuleItem } from '@/components/student/shared/unit-module-compact-card'
 import { CourseCard } from '@/components/student/course-resources/course-card'
 import { ResourceCard } from '@/components/student/course-resources/resource-card'
 import { BreadcrumbNavigation } from '@/components/student/course-resources/breadcrumb-navigation'
@@ -145,6 +145,19 @@ export default function CourseResourcesPage() {
     fetchCourses(module.id, module.isIndependent)
   }
 
+  // Handle unit/module selection using UnitModuleGrid
+  const handleUnitModuleSelection = (item: UnitModuleItem) => {
+    if (item.type === 'unite') {
+      navigateToModules({ id: item.id, name: item.name })
+    } else if (item.type === 'module') {
+      navigateToCoursesFromModule({
+        id: item.id,
+        name: item.name,
+        isIndependent: item.isIndependent
+      })
+    }
+  }
+
   const navigateToResources = (course: { id: number; name: string }) => {
     setNavigation(prev => ({
       ...prev,
@@ -211,12 +224,28 @@ export default function CourseResourcesPage() {
       setLoading(true)
       setError(null)
 
-      const response = isIndependent
-        ? await NewApiService.getStudentCourses({ moduleId })
-        : await NewApiService.getStudentCourses({ moduleId })
+      // For independent modules, courses come from the content filters structure
+      if (isIndependent) {
+        // Try to read from already-fetched filters first
+        let coursesFromFilters = filters?.independentModules?.find(m => m.id === moduleId)?.courses
+
+        // If not present, refetch content filters and extract
+        if (!coursesFromFilters) {
+          const cfResp = await NewApiService.getContentFilters()
+          if (cfResp.success && cfResp.data) {
+            coursesFromFilters = cfResp.data.independentModules?.find(m => m.id === moduleId)?.courses
+          }
+        }
+
+        setCourses(Array.isArray(coursesFromFilters) ? coursesFromFilters : [])
+        return
+      }
+
+      // Default path for unit-bound modules
+      const response = await NewApiService.getStudentCourses({ moduleId })
 
       if (response.success && response.data) {
-        const coursesData = response.data.courses || response.data
+        const coursesData = (response.data as any).courses || response.data
         setCourses(Array.isArray(coursesData) ? coursesData : [])
       } else {
         throw new Error(response.error || 'Failed to fetch courses')
@@ -241,8 +270,9 @@ export default function CourseResourcesPage() {
       })
 
       if (response.success && response.data) {
-        const data = response.data as any
-        const resources = data?.resources || data?.data?.resources || []
+        const d: any = response.data
+        const inner = d?.data?.data ?? d?.data ?? d
+        const resources = Array.isArray(inner?.resources) ? inner.resources : Array.isArray(inner) ? inner : []
         setCourseResources(Array.isArray(resources) ? resources : [])
       } else {
         throw new Error(response.error || 'Failed to fetch course resources')
@@ -438,48 +468,18 @@ export default function CourseResourcesPage() {
                 <h3 className="text-lg font-semibold">Select a Unit or Module</h3>
               </div>
 
-              {/* Units Section */}
-              {filters?.unites && filters.unites.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-md font-medium text-muted-foreground">Units</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filters.unites.map((unit) => (
-                      <UnitCard
-                        key={unit.id}
-                        unit={unit}
-                        onClick={() => navigateToModules(unit)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Independent Modules Section */}
-              {filters?.independentModules && filters.independentModules.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-md font-medium text-muted-foreground">Independent Modules</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filters.independentModules.map((module) => (
-                      <ModuleCard
-                        key={module.id}
-                        module={module}
-                        isIndependent={true}
-                        onClick={() => navigateToCoursesFromModule({ ...module, isIndependent: true })}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Empty State */}
-              {(!filters?.unites || filters.unites.length === 0) &&
-               (!filters?.independentModules || filters.independentModules.length === 0) && (
-                <EmptyState
-                  icon={BookOpen}
-                  title="No Content Available"
-                  description="No units or modules are available for your current subscription."
-                />
-              )}
+              {/* Use UnitModuleGrid for consistent layout */}
+              <UnitModuleGrid
+                units={filters?.unites}
+                independentModules={filters?.independentModules}
+                onItemClick={handleUnitModuleSelection}
+                variant="practice"
+                layout="compact"
+                loading={false}
+                error={null}
+                showSessionCounts={false}
+                selectedItem={null}
+              />
             </div>
           )}
           {/* Modules Level */}
@@ -490,28 +490,18 @@ export default function CourseResourcesPage() {
                 <h3 className="text-lg font-semibold">Modules in {navigation.selectedUnit.name}</h3>
               </div>
 
-              {filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)?.modules && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filters.unites
-                    .find(u => u.id === navigation.selectedUnit?.id)
-                    ?.modules?.map((module) => (
-                    <ModuleCard
-                      key={module.id}
-                      module={module}
-                      onClick={() => navigateToCoursesFromModule(module)}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Empty State */}
-              {!filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)?.modules?.length && (
-                <EmptyState
-                  icon={FolderOpen}
-                  title="No Modules Available"
-                  description="No modules are available in this unit."
-                />
-              )}
+              {/* Use UnitModuleGrid for consistent layout */}
+              <UnitModuleGrid
+                units={[]} // No units at module level
+                independentModules={filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)?.modules || []}
+                onItemClick={handleUnitModuleSelection}
+                variant="practice"
+                layout="compact"
+                loading={false}
+                error={null}
+                showSessionCounts={false}
+                selectedItem={null}
+              />
             </div>
           )}
 

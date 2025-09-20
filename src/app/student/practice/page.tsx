@@ -9,6 +9,7 @@ import { FullPageLoading } from '@/components/loading-states';
 import { useStudentAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { UnitModuleGrid } from '@/components/student/shared/unit-module-grid';
+import { MedicalModulesGrid } from '@/components/student/shared/medical-modules-grid';
 import { SessionList } from '@/components/student/shared/session-list';
 import { useContentHistory } from '@/hooks/use-content-history';
 
@@ -41,7 +42,7 @@ export default function PracticePage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8 max-w-7xl space-y-4 sm:space-y-6 lg:space-y-8">
 
           {/* Header */}
@@ -85,14 +86,23 @@ export default function PracticePage() {
               onRefresh={refetchSessions}
             />
           ) : (
-            <UnitModuleGrid
+            <MedicalModulesGrid
+              variant="practice"
               units={contentFilters?.unites}
               independentModules={contentFilters?.independentModules}
-              onItemClick={selectItem}
-              variant="practice"
               loading={contentLoading}
               error={contentError}
-              selectedItem={selectedItem}
+              onItemClick={(item) => {
+                // Convert to UnitModuleItem format for compatibility
+                const unitModuleItem = {
+                  id: item.id,
+                  name: item.name,
+                  type: item.type,
+                  isIndependent: item.isIndependent,
+                  sessionCount: item.sessionCount
+                };
+                selectItem(unitModuleItem);
+              }}
             />
           )}
         </div>

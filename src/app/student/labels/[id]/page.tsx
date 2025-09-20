@@ -133,7 +133,7 @@ export default function LabelDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
           <div className="flex items-center justify-center py-12">
             <div className="text-center space-y-4">
@@ -148,7 +148,7 @@ export default function LabelDetailsPage() {
 
   if (error || !label) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
           <Card className="border-border/50 shadow-sm">
             <CardContent className="py-12 text-center">
@@ -178,7 +178,7 @@ export default function LabelDetailsPage() {
   const questionIds = label.questionIds || []
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl space-y-8">
 
         {/* Header */}

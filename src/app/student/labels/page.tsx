@@ -368,7 +368,7 @@ export default function LabelsPage() {
                         placeholder="Search your labels..."
                         value={q}
                         onChange={(e) => { setQ(e.target.value); setPage(1) }}
-                        className="pl-10 h-10 border-border/50 focus:border-primary/50"
+                        className="pl-10 h-10 border-border focus:border-primary/50"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -395,77 +395,159 @@ export default function LabelsPage() {
                     }
                   />
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {pageItems.map((l) => (
-                      <Card key={l.id} className="group border-border/50 shadow-sm hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:border-primary/30 bg-card/50 backdrop-blur-sm hover:bg-card/80">
-                        <CardContent className="p-6">
-                          <div className="flex flex-col space-y-4">
-                            {/* Label Header */}
-                            <div className="text-center space-y-2">
-                              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto group-hover:bg-primary/15 transition-colors duration-300">
-                                <Tag className="h-6 w-6 text-primary" />
-                              </div>
-                              <h3 className="text-xl font-bold text-card-foreground group-hover:text-primary transition-colors duration-300 leading-tight">{l.name}</h3>
+                  <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
+                    {/* Table Header - Hidden on mobile */}
+                    <div className="bg-muted/30 border-b border-border hidden sm:block">
+                      <div className="grid grid-cols-12 gap-4 px-4 py-3">
+                        <div className="col-span-1 flex items-center">
+                          <input 
+                            type="checkbox" 
+                            className="h-4 w-4 text-primary border-border rounded focus:ring-primary/20"
+                          />
+                        </div>
+                        <div className="col-span-5">
+                          <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            TITRE
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-center">
+                          <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            NOMBRE DE QUESTIONS
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-right">
+                          <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            ACTION
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Table Body */}
+                    <div className="divide-y divide-border">
+                      {pageItems.map((l) => (
+                        <div key={l.id} className="hover:bg-muted/20 transition-colors">
+                          {/* Desktop Layout */}
+                          <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-4">
+                            {/* Checkbox */}
+                            <div className="col-span-1 flex items-center">
+                              <input 
+                                type="checkbox" 
+                                className="h-4 w-4 text-primary border-border rounded focus:ring-primary/20"
+                              />
                             </div>
-
-                            {/* Questions Count */}
-                            <div className="text-center">
-                              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border/50">
-                                <BookOpen className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm font-medium text-muted-foreground">
-                                  {l.questionIds?.length || 0} question{(l.questionIds?.length || 0) !== 1 ? 's' : ''}
-                                </span>
-                              </div>
+                            
+                            {/* Title */}
+                            <div className="col-span-5 flex items-center">
+                              <span className="text-sm font-medium text-foreground truncate">
+                                {l.name}
+                              </span>
                             </div>
-
-                            {/* Existing Sessions - REMOVED: No longer supported */}
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col gap-3 pt-2">
-                              {/* Start New Session Button */}
+                            
+                            {/* Question Count */}
+                            <div className="col-span-3 flex items-center justify-center">
+                              <span className="text-sm text-muted-foreground">
+                                {l.questionIds?.length || 0}
+                              </span>
+                            </div>
+                            
+                            {/* Actions */}
+                            <div className="col-span-3 flex items-center justify-end gap-2">
+                              {/* Play/Start Practice Button */}
                               <Button
-                                className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleStartPractice(l)}
                                 disabled={!l.questionIds || l.questionIds.length === 0 || creatingSessionId === l.id}
+                                className="h-8 w-8 p-0 hover:bg-primary/10 hover:border-primary/30"
                               >
                                 {creatingSessionId === l.id ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Loading...
-                                  </>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <>
-                                    <Play className="mr-2 h-4 w-4" />
-                                    Start Practice Session
-                                  </>
+                                  <Play className="h-4 w-4" />
                                 )}
                               </Button>
-
-                              {/* Secondary Actions */}
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => { setEditId(l.id); setEditName(l.name) }}
-                                  className="flex-1 h-9 hover:bg-muted/50 border-border/50"
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20 hover:border-destructive/30"
-                                  onClick={() => setDeletingId(l.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              
+                              {/* Edit Button */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => { setEditId(l.id); setEditName(l.name) }}
+                                className="h-8 w-8 p-0 hover:bg-muted/50"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Delete Button */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDeletingId(l.id)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20 hover:border-destructive/30"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+
+                          {/* Mobile Layout */}
+                          <div className="sm:hidden p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <input 
+                                  type="checkbox" 
+                                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary/20"
+                                />
+                                <div>
+                                  <h3 className="text-sm font-medium text-foreground">{l.name}</h3>
+                                  <p className="text-xs text-muted-foreground">
+                                    {l.questionIds?.length || 0} questions
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Mobile Actions */}
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Play/Start Practice Button */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleStartPractice(l)}
+                                disabled={!l.questionIds || l.questionIds.length === 0 || creatingSessionId === l.id}
+                                className="h-8 w-8 p-0 hover:bg-primary/10 hover:border-primary/30"
+                              >
+                                {creatingSessionId === l.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Play className="h-4 w-4" />
+                                )}
+                              </Button>
+                              
+                              {/* Edit Button */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => { setEditId(l.id); setEditName(l.name) }}
+                                className="h-8 w-8 p-0 hover:bg-muted/50"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              
+                              {/* Delete Button */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDeletingId(l.id)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20 hover:border-destructive/30"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -473,7 +555,7 @@ export default function LabelsPage() {
 
         {/* Pagination */}
         {hasLabels && totalPages > 1 && (
-          <Card className="mt-8 border-border/50 shadow-sm">
+          <Card className="mt-8 border-border shadow-sm">
             <CardContent className="py-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground font-medium">

@@ -252,9 +252,9 @@ export function QuizSidebar() {
   ).length;
 
   return (
-    <div className="h-full flex flex-col bg-card/30 backdrop-blur-sm overflow-hidden">
+    <div className="h-full flex flex-col bg-card overflow-hidden sm:bg-card/30 md:bg-card/50 lg:bg-card/50 backdrop-blur-sm">
       {/* Header */}
-      <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 xl:p-8 border-b bg-card/50">
+      <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 xl:p-8 border-b bg-card sm:bg-card/50 md:bg-card/50 lg:bg-card/50">
         <div className="space-y-3 sm:space-y-4 lg:space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0 flex-1">
@@ -297,7 +297,7 @@ export function QuizSidebar() {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 xl:p-8 space-y-3 sm:space-y-4 lg:space-y-5 border-b bg-muted/20">
+      <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 xl:p-8 space-y-3 sm:space-y-4 lg:space-y-5 border-b bg-muted/50 sm:bg-muted/20 md:bg-muted/20 lg:bg-muted/20">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -342,9 +342,9 @@ export function QuizSidebar() {
                   "w-full justify-start p-2 sm:p-3 lg:p-3 xl:p-4 h-auto text-left btn-modern focus-ring transition-all duration-300",
                   "min-h-[48px] sm:min-h-[52px] lg:min-h-[56px] xl:min-h-[60px]",
                   isActive && "ring-2 ring-primary/30 shadow-md bg-primary/5",
-                  !isActive && status === 'correct' && "hover:bg-green-50 bg-green-50/50 border-green-200/50 text-green-800",
-                  !isActive && status === 'incorrect' && "hover:bg-red-50 bg-red-50/50 border-red-200/50 text-red-800",
-                  !isActive && status === 'answered' && "hover:bg-blue-50 bg-blue-50/30 border-blue-200/30 text-blue-800",
+                  !isActive && status === 'correct' && "hover:bg-green-500/20 bg-green-500/10 border-green-500/30 text-green-700 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 dark:hover:bg-green-500/20",
+                  !isActive && status === 'incorrect' && "hover:bg-red-500/20 bg-red-500/10 border-red-500/30 text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/30 dark:hover:bg-red-500/20",
+                  !isActive && status === 'answered' && "hover:bg-blue-50 bg-blue-50/30 border-blue-200/30 text-blue-800 dark:bg-secondary dark:text-secondary-foreground dark:border-secondary dark:hover:bg-accent",
                   !isActive && status === 'unanswered' && "hover:bg-accent/50 hover:shadow-sm text-muted-foreground"
                 )}
                 onClick={() => goToQuestion(originalIndex)}

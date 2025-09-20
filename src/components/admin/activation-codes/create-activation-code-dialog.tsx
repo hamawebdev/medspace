@@ -22,8 +22,8 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle, Calendar, Users, Clock } from 'lucide-react';
-import { AdminService } from '@/lib/api-services';
+import { Loader2, AlertCircle, Calendar, Users, Clock, Package } from 'lucide-react';
+import { AdminService, StudentService } from '@/lib/api-services';
 import { CreateActivationCodeRequest, StudyPack } from '@/types/api';
 import { toast } from 'sonner';
 
@@ -67,15 +67,25 @@ export function CreateActivationCodeDialog({
   const loadStudyPacks = async () => {
     try {
       setStudyPacksLoading(true);
-      const response = await AdminService.getStudyPacks({ limit: 100 });
-      
+      // Use the correct endpoint: GET /api/v1/study-packs
+      const response = await StudentService.getStudyPacks({ limit: 100 });
+
       if (response.success && response.data) {
-        const packs = response.data.studyPacks || [];
-        setStudyPacks(packs.filter(pack => pack.isActive));
+        // Handle the nested response structure from the API
+        const data = response.data?.data?.data || response.data?.data || response.data || [];
+        const studyPacks = Array.isArray(data) ? data : [];
+
+        // Filter only active study packs
+        const activeStudyPacks = studyPacks.filter((pack: StudyPack) => pack.isActive);
+        setStudyPacks(activeStudyPacks);
+      } else {
+        throw new Error('Failed to load study packs');
       }
     } catch (error) {
       console.error('Failed to load study packs:', error);
-      toast.error('Failed to load study packs');
+      toast.error('Erreur', {
+        description: 'Impossible de charger les Study Packs.',
+      });
     } finally {
       setStudyPacksLoading(false);
     }
@@ -102,9 +112,9 @@ export function CreateActivationCodeDialog({
     }
 
     if (formData.studyPackIds.length === 0) {
-      newErrors.studyPackIds = 'At least one study pack must be selected';
+      newErrors.studyPackIds = 'Au moins un Study Pack doit être sélectionné';
     } else if (formData.studyPackIds.length > 50) {
-      newErrors.studyPackIds = 'Maximum 50 study packs can be selected';
+      newErrors.studyPackIds = 'Maximum 50 Study Packs peuvent être sélectionnés';
     }
 
     setErrors(newErrors);
@@ -264,32 +274,35 @@ export function CreateActivationCodeDialog({
             </p>
             
             {studyPacksLoading ? (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-4 border rounded-md bg-muted/50">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Loading study packs...
+                <span className="text-sm text-muted-foreground">Chargement des Study Packs...</span>
               </div>
             ) : (
-              <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2">
+              <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2 bg-background">
                 {studyPacks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No active study packs available</p>
+                  <div className="flex items-center justify-center py-4">
+                    <p className="text-sm text-muted-foreground">Aucun Study Pack disponible.</p>
+                  </div>
                 ) : (
                   studyPacks.map((pack) => (
-                    <div key={pack.id} className="flex items-center space-x-2">
+                    <div key={pack.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
                       <Checkbox
                         id={`pack-${pack.id}`}
                         checked={formData.studyPackIds.includes(pack.id)}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           handleStudyPackToggle(pack.id, checked as boolean)
                         }
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
-                      <Label 
-                        htmlFor={`pack-${pack.id}`} 
-                        className="text-sm font-normal cursor-pointer flex-1"
+                      <Label
+                        htmlFor={`pack-${pack.id}`}
+                        className="text-sm font-normal cursor-pointer flex-1 leading-none"
                       >
-                        <div>
-                          <div className="font-medium">{pack.name}</div>
+                        <div className="space-y-1">
+                          <div className="font-medium text-foreground">{pack.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {pack.type} • ${pack.price}
+                            {pack.type}{pack.yearNumber ? ` • Année ${pack.yearNumber}` : ''}{pack.price ? ` • ${pack.price}€` : ''}
                           </div>
                         </div>
                       </Label>
@@ -304,9 +317,12 @@ export function CreateActivationCodeDialog({
             )}
             
             {formData.studyPackIds.length > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {formData.studyPackIds.length} study pack(s) selected
-              </p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-md">
+                <Package className="h-4 w-4" />
+                <span>
+                  {formData.studyPackIds.length} Study Pack{formData.studyPackIds.length > 1 ? 's' : ''} sélectionné{formData.studyPackIds.length > 1 ? 's' : ''}
+                </span>
+              </div>
             )}
           </div>
 

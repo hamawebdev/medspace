@@ -401,7 +401,7 @@ export function SessionResultsSection() {
                             {result.explanation && (
                               <div>
                                 <h4 className="font-medium text-sm mb-2">Explanation:</h4>
-                                <div className="p-3 rounded-lg bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100 text-sm">
+                                <div className="p-3 rounded-lg bg-primary/10 text-primary-foreground dark:bg-primary/20 dark:text-primary-foreground text-sm">
                                   {result.explanation}
                                 </div>
                               </div>

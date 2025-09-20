@@ -40,7 +40,7 @@ export default function CreateExamPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
+      <div className="container mx-auto max-w-5xl px-4 sm:px-6 pb-6 sm:pb-8">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -51,7 +51,7 @@ export default function CreateExamPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-chart-3 to-chart-3 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
                   Create Exam Session
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground mt-1">

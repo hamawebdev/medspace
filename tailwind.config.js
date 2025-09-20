@@ -8,6 +8,7 @@ module.exports = {
   ],
   theme: {
     screens: {
+      'xs': '475px',
       'sm': '640px',
       'md': '768px',
       'lg': '1024px',
@@ -228,6 +229,24 @@ module.exports = {
           backgroundColor: theme('colors.muted.DEFAULT'),
           borderRadius: theme('borderRadius.lg'),
           animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        },
+        '.line-clamp-1': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '1',
+        },
+        '.line-clamp-2': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '2',
+        },
+        '.line-clamp-3': {
+          overflow: 'hidden',
+          display: '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '3',
         },
       }
       addUtilities(newUtilities)

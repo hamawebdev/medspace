@@ -131,6 +131,9 @@ export function QuestionDisplay() {
         explanation: answer.explanation,
         explanationImages: answer.explanationImages || []
       })),
+      // Ensure image arrays are properly passed through
+      questionImages: question.questionImages || [],
+      questionExplanationImages: question.questionExplanationImages || [],
       // Ensure other required properties exist
       title: question.title || question.questionText || `Question ${question.id}`,
       difficulty: question.difficulty || 'intermediate',
@@ -215,7 +218,7 @@ export function QuestionDisplay() {
 
           {/* Explanation - Only when revealed, compact */}
           {(isAnswerRevealed || showExplanation) && (
-            <div className="flex-shrink-0 animate-fade-in-up animate-delay-200 max-h-32 overflow-y-auto">
+            <div className="flex-shrink-0 animate-fade-in-up animate-delay-200">
               <AnswerExplanation
                 question={transformedQuestion}
                 userAnswer={userAnswer}

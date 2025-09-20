@@ -72,11 +72,21 @@ export default function QuizCompletionPage() {
     }
   }, [sessionId, router, params.sessionId]);
 
-  const { session: apiSession, loading, error } = useQuizSession(sessionId);
+  const { session: apiSession, loading, error, refresh } = useQuizSession(sessionId);
   const [completionData, setCompletionData] = useState<CompletionData | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [retakeDialogOpen, setRetakeDialogOpen] = useState(false);
   const [retakeDefaultTitle, setRetakeDefaultTitle] = useState<string>('');
+  const [hasRefreshed, setHasRefreshed] = useState(false);
+
+  // Force refresh session data on mount to get fresh results after submission
+  useEffect(() => {
+    if (!hasRefreshed && refresh) {
+      console.log('🔄 Results page: Forcing fresh session data fetch...');
+      refresh();
+      setHasRefreshed(true);
+    }
+  }, [refresh, hasRefreshed]);
 
   // Process completion data when session is available
   useEffect(() => {

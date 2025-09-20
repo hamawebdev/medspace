@@ -99,26 +99,28 @@ export function TodosToday({ todos, loading }: TodosTodayProps) {
   if (loading) {
     return (
       <Card className="relative overflow-hidden transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 border-border/50 hover:border-primary/20">
-        <CardHeader className="pb-4 sm:pb-6">
-          <CardTitle className="flex items-center gap-3 sm:gap-4 text-lg sm:text-xl font-bold text-foreground">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg sm:rounded-xl border border-primary/20">
-              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3 text-lg font-bold text-foreground">
+            <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg border border-primary/20">
+              <Calendar className="w-5 h-5 text-primary" />
             </div>
             Tâches d'aujourd'hui
           </CardTitle>
-          <CardDescription className="text-base text-muted-foreground leading-relaxed font-medium">
+          <CardDescription className="text-sm text-muted-foreground font-medium mt-1">
             Chargement de vos tâches...
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 sm:space-y-6">
+        <CardContent className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="p-4 sm:p-6 bg-muted/30 rounded-lg sm:rounded-xl animate-pulse border border-border/50">
-              <div className="h-4 sm:h-5 bg-muted rounded mb-2 sm:mb-3"></div>
-              <div className="h-3 sm:h-4 bg-muted rounded w-3/4 mb-3 sm:mb-4"></div>
-              <div className="flex gap-2 sm:gap-3">
-                <div className="h-5 sm:h-6 w-16 sm:w-20 bg-muted rounded"></div>
-                <div className="h-5 sm:h-6 w-20 sm:w-24 bg-muted rounded"></div>
+            <div key={i} className="p-4 bg-muted/30 rounded-lg animate-pulse border border-border/50">
+              <div className="h-4 bg-muted rounded mb-2"></div>
+              <div className="h-3 bg-muted rounded w-3/4 mb-3"></div>
+              <div className="flex gap-2 mb-3">
+                <div className="h-6 w-16 bg-muted rounded"></div>
+                <div className="h-6 w-20 bg-muted rounded"></div>
+                <div className="h-6 w-16 bg-muted rounded"></div>
               </div>
+              <div className="h-4 bg-muted rounded w-1/2"></div>
             </div>
           ))}
         </CardContent>
@@ -128,21 +130,21 @@ export function TodosToday({ todos, loading }: TodosTodayProps) {
 
   return (
     <Card className="relative overflow-hidden transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 border-border/50 hover:border-primary/20">
-      <CardHeader className="pb-4 sm:pb-6">
-        <CardTitle className="flex items-center gap-3 sm:gap-4 text-lg sm:text-xl font-bold text-foreground">
-          <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg sm:rounded-xl border border-primary/20">
-            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+      <CardHeader className="pb-6">
+        <CardTitle className="flex items-center gap-3 text-lg font-bold text-foreground">
+          <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg border border-primary/20">
+            <Calendar className="w-5 h-5 text-primary" />
           </div>
           Tâches d'aujourd'hui
         </CardTitle>
-        <CardDescription className="text-base text-muted-foreground leading-relaxed font-medium">
+        <CardDescription className="text-sm text-muted-foreground font-medium mt-1">
           Vos tâches prioritaires pour aujourd'hui
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-6">
+      <CardContent className="space-y-4">
         {todos.length === 0 ? (
-          <div className="text-center py-8 sm:py-12 text-muted-foreground">
-            <div className="text-base font-medium">Aucun élément disponible.</div>
+          <div className="text-center py-6 text-muted-foreground">
+            <div className="text-sm font-medium">Aucun élément disponible.</div>
           </div>
         ) : (
           todos.map((todo) => {
@@ -153,37 +155,37 @@ export function TodosToday({ todos, loading }: TodosTodayProps) {
             return (
               <div
                 key={todo.id}
-                className="p-4 sm:p-6 bg-muted/30 rounded-lg sm:rounded-xl border border-border/50 hover:bg-muted/50 transition-all duration-300 ease-out hover:shadow-sm"
+                className="p-4 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-all duration-300 ease-out hover:shadow-sm"
               >
-                <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="p-2 sm:p-3 bg-primary/10 rounded-lg sm:rounded-xl flex-shrink-0 border border-primary/20">
-                    <TypeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="p-2 bg-primary/10 rounded-md flex-shrink-0 border border-primary/20">
+                    <TypeIcon className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-sm sm:text-base line-clamp-2 mb-2 text-foreground">
+                    <h3 className="font-bold text-base line-clamp-1 mb-1 text-foreground">
                       {todo.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-3 font-medium">
+                    <p className="text-sm text-muted-foreground line-clamp-1 mb-2 font-medium">
                       {todo.description}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                  <Badge variant="outline" className={cn("text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1", getPriorityColor(todo.priority))}>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <Badge variant="outline" className={cn("text-xs font-semibold px-2.5 py-1", getPriorityColor(todo.priority))}>
                     {todo.priority}
                   </Badge>
-                  <Badge variant="outline" className={cn("text-xs sm:text-sm flex items-center gap-1 font-semibold px-2 sm:px-3 py-1", statusInfo.color)}>
-                    <StatusIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <Badge variant="outline" className={cn("text-xs flex items-center gap-1.5 font-semibold px-2.5 py-1", statusInfo.color)}>
+                    <StatusIcon className="h-3 w-3" />
                     {todo.status}
                   </Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 bg-chart-3/10 text-chart-3 border-chart-3/20">
+                  <Badge variant="outline" className="text-xs font-semibold px-2.5 py-1 bg-chart-3/10 text-chart-3 border-chart-3/20">
                     {todo.type}
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground font-medium">
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+                  <Clock className="h-4 w-4" />
                   <span>Échéance: {formatDueDate(todo.dueDate)}</span>
                 </div>
               </div>

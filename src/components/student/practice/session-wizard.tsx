@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// Card components removed - component is now wrapped by parent Card
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -545,16 +545,7 @@ export function SessionWizard({
   };
 
   return (
-    <Card className="quiz-card-enhanced">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Create Practice Session</CardTitle>
-            <p className="text-sm text-muted-foreground">3 steps • no data connected yet</p>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-6">
         {/* Error handling */}
         {contentError && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
@@ -586,40 +577,38 @@ export function SessionWizard({
           </div>
         )}
 
-        {/* Stepper */}
-        <div className="flex items-center gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                  step >= i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {step > i ? <CheckCircle2 className="w-4 h-4" /> : i}
-              </div>
-              {i < 3 && <div className="w-10 h-0.5 bg-border" />}
+      {/* Stepper */}
+      <div className="flex items-center justify-center gap-3 mb-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                step >= i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {step > i ? <CheckCircle2 className="w-4 h-4" /> : i}
             </div>
-          ))}
-        </div>
+            {i < 3 && <div className="w-10 h-0.5 bg-border" />}
+          </div>
+        ))}
+      </div>
 
-        {step === 1 && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title (optional)</Label>
-                <Input
-                  id="title"
-                  placeholder={suggestedTitle || "e.g. Cardiology Practice - Week 12"}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="quiz-input-enhanced w-full"
-                />
-              </div>
-            </div>
+      {step === 1 && (
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="title">Title (optional)</Label>
+            <Input
+              id="title"
+              placeholder={suggestedTitle || "e.g. Cardiology Practice - Week 12"}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="quiz-input-enhanced w-full"
+            />
+          </div>
 
-            <Separator />
+          <Separator />
 
-            <div className="space-y-6">
+          <div className="space-y-5">
               {/* Unit and Modules Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -789,11 +778,11 @@ export function SessionWizard({
             </div>
 
 
-          </div>
-        )}
+        </div>
+      )}
 
-        {step === 2 && (
-          <div className="space-y-6">
+      {step === 2 && (
+        <div className="space-y-5">
             <div>
               <h3 className="text-lg font-semibold">
                 {(moduleIds.length ? availableModules.filter((m: any) => moduleIds.includes(m.value)).map((m: any) => m.label).join(', ') : 'Modules')}
@@ -813,8 +802,8 @@ export function SessionWizard({
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4" aria-live="polite">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" aria-live="polite">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label>
                     Question Types
@@ -849,11 +838,8 @@ export function SessionWizard({
                   placeholder="Select one or more types"
                 />
               </div>
-              {/** Compute allowed exam years based on selected sources */}
-              {(() => null)()}
 
-
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label>
                     Exam Years
@@ -894,7 +880,7 @@ export function SessionWizard({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label>
                     Sources
@@ -943,30 +929,25 @@ export function SessionWizard({
                 label="Universités"
                 sessionType="PRACTICE"
               />
-
-              {/* Rotations dropdown removed from practice creation */}
-
-              {/* Keep years and sources consistent: prune selected years if not allowed by selected sources */}
-              <React.Fragment>
-                {(() => {
-                  const selectedSourceYears = new Set<number>();
-                  (sessionFilters?.questionSources || [])
-                    .filter((s: any) => quizSourceIds.includes(Number(s.id)))
-                    .forEach((s: any) => (s.availableYears || []).forEach((y: number) => selectedSourceYears.add(y)));
-                  // Union of allowed by selected sources; if none selected, allow all questionYears
-                  const allowedYears = selectedSourceYears.size ? Array.from(selectedSourceYears) : (sessionFilters?.questionYears || []);
-                  if (quizYears.length && allowedYears.length) {
-                    const pruned = quizYears.filter((y) => allowedYears.includes(y));
-                    if (pruned.length !== quizYears.length) setQuizYears(pruned);
-                  }
-                  return null;
-                })()}
-              </React.Fragment>
-
             </div>
 
+            {/* Keep years and sources consistent: prune selected years if not allowed by selected sources */}
+            {(() => {
+              const selectedSourceYears = new Set<number>();
+              (sessionFilters?.questionSources || [])
+                .filter((s: any) => quizSourceIds.includes(Number(s.id)))
+                .forEach((s: any) => (s.availableYears || []).forEach((y: number) => selectedSourceYears.add(y)));
+              // Union of allowed by selected sources; if none selected, allow all questionYears
+              const allowedYears = selectedSourceYears.size ? Array.from(selectedSourceYears) : (sessionFilters?.questionYears || []);
+              if (quizYears.length && allowedYears.length) {
+                const pruned = quizYears.filter((y) => allowedYears.includes(y));
+                if (pruned.length !== quizYears.length) setQuizYears(pruned);
+              }
+              return null;
+            })()}
+
             {/* Question count slider */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Question Count</Label>
               <div className="flex items-center gap-3">
                 <div className="flex-1">
@@ -1021,52 +1002,11 @@ export function SessionWizard({
               </div>
             )}
 
-            {areRequiredFiltersComplete && !questionCountError ? (
-              <div className="space-y-2">
-                <Label>Available Questions</Label>
-                {questionCountLoading ? (
-                  <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <div className="text-sm text-muted-foreground">
-                      Fetching question count...
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-4">
-                      <Progress value={Math.min(100, totalAvailable > 0 ? 100 : 0)} className="flex-1" />
-                      <div className="text-sm text-muted-foreground whitespace-nowrap">
-                        {`${totalAvailable} total`}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {mappedTypes.length === 2
-                        ? `${counts?.MULTIPLE_CHOICE ?? '—'} QCM, ${counts?.SINGLE_CHOICE ?? '—'} QCS available`
-                        : mappedTypes[0] === 'MULTIPLE_CHOICE'
-                          ? `${counts?.MULTIPLE_CHOICE ?? totalAvailable} QCM available`
-                          : mappedTypes[0] === 'SINGLE_CHOICE'
-                            ? `${counts?.SINGLE_CHOICE ?? totalAvailable} QCS available`
-                            : 'Counts update with your selections.'}
-                    </p>
-                    {totalAvailable === 0 && (
-                      <p className="text-xs text-red-600">0 questions available with current filters. Please adjust your filters.</p>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : areRequiredFiltersComplete && questionCountError ? null : (
-              <div className="space-y-2">
-                <Label>Available Questions</Label>
-                <div className="text-sm text-muted-foreground p-4 border rounded-lg bg-muted/50">
-                  <p>Complete your selection to see available questions.</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        </div>
+      )}
 
-        {step === 3 && (
-          <div className="space-y-6">
+      {step === 3 && (
+        <div className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Title</Label>
@@ -1116,43 +1056,42 @@ export function SessionWizard({
                 <div className="md:col-span-2"><span className="text-muted-foreground">Years:</span> {quizYears.length ? quizYears.sort().join(", ") : "—"}</div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Footer actions */}
-        <div className="flex items-center justify-between pt-2">
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <div className="flex items-center gap-2">
-            {step > 1 && (
-              <Button variant="secondary" onClick={prev}>
-                <ChevronLeft className="w-4 h-4 mr-1" /> Previous
-              </Button>
-            )}
-            {step < 3 ? (
-              <Button onClick={next} disabled={!canNext}>
-                Next <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleCreate}
-                disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
-                className="practice-button"
-                aria-disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
-              >
-                {isCreating ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  'Create Session'
-                )}
-              </Button>
-            )}
-          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* Footer actions */}
+      <div className="flex items-center justify-between pt-4 border-t border-border/50">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <div className="flex items-center gap-2">
+          {step > 1 && (
+            <Button variant="secondary" onClick={prev}>
+              <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+            </Button>
+          )}
+          {step < 3 ? (
+            <Button onClick={next} disabled={!canNext}>
+              Next <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleCreate}
+              disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
+              className="practice-button"
+              aria-disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
+            >
+              {isCreating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Session'
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

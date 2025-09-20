@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AdminService } from '@/lib/api-services';
-import { ActivationCode, CreateActivationCodeRequest, ActivationCodeFilters, PaginationParams } from '@/types/api';
+import { ActivationCode, CreateActivationCodeRequest, UpdateActivationCodeRequest, ActivationCodeFilters, PaginationParams } from '@/types/api';
 import { toast } from 'sonner';
+import { getActivationCodeErrorMessage } from '@/lib/activation-code-errors';
 
 // Interface for activation codes management state
 interface ActivationCodesState {
@@ -60,8 +61,8 @@ export function useActivationCodesManagement() {
         setState(prev => ({
           ...prev,
           codes: rawCodes,
-          totalCodes: pagination.total || 0,
-          currentPage: pagination.page || 1,
+          totalCodes: pagination.totalItems || pagination.total || 0,
+          currentPage: pagination.currentPage || pagination.page || 1,
           totalPages: pagination.totalPages || 1,
           loading: false,
           error: null,
@@ -71,8 +72,8 @@ export function useActivationCodesManagement() {
       }
     } catch (err) {
       console.error('❌ Error fetching activation codes:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch activation codes';
-      
+      const errorMessage = getActivationCodeErrorMessage(err);
+
       setState(prev => ({
         ...prev,
         loading: false,
@@ -139,8 +140,8 @@ export function useActivationCodesManagement() {
       if (response.success && response.data) {
         console.log('✅ Activation code created successfully:', response.data);
         
-        toast.success('Success', {
-          description: 'Activation code created successfully',
+        toast.success('Succès', {
+          description: 'Code d\'activation créé avec succès',
         });
 
         // Refresh the codes list
@@ -152,9 +153,9 @@ export function useActivationCodesManagement() {
       }
     } catch (err) {
       console.error('❌ Error creating activation code:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create activation code';
-      
-      toast.error('Error', {
+      const errorMessage = getActivationCodeErrorMessage(err);
+
+      toast.error('Erreur', {
         description: errorMessage,
       });
       
@@ -162,7 +163,7 @@ export function useActivationCodesManagement() {
     }
   }, [fetchCodes, state.currentPage]);
 
-  // Deactivate activation code
+  // Deactivate activation code using the correct PATCH endpoint
   const deactivateCode = useCallback(async (codeId: number) => {
     try {
       console.log('🔄 Deactivating activation code:', codeId);
@@ -171,26 +172,117 @@ export function useActivationCodesManagement() {
 
       if (response.success && response.data) {
         console.log('✅ Activation code deactivated successfully:', response.data);
-        
-        toast.success('Success', {
-          description: 'Activation code deactivated successfully',
+
+        toast.success('Succès', {
+          description: 'Code d\'activation désactivé avec succès',
         });
 
         // Refresh the codes list
         await fetchCodes(state.currentPage);
-        
+
         return response.data.activationCode;
       } else {
         throw new Error(response.error || 'Failed to deactivate activation code');
       }
     } catch (err) {
       console.error('❌ Error deactivating activation code:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to deactivate activation code';
-      
-      toast.error('Error', {
+      const errorMessage = getActivationCodeErrorMessage(err);
+
+      toast.error('Erreur', {
         description: errorMessage,
       });
-      
+
+      throw err;
+    }
+  }, [fetchCodes, state.currentPage]);
+
+  // Get activation code by ID
+  const getCodeById = useCallback(async (codeId: number) => {
+    try {
+      console.log('🔄 Getting activation code by ID:', codeId);
+
+      const response = await AdminService.getActivationCodeById(codeId);
+
+      if (response.success && response.data) {
+        console.log('✅ Activation code fetched successfully:', response.data);
+        return response.data.activationCode;
+      } else {
+        throw new Error(response.error || 'Failed to get activation code');
+      }
+    } catch (err) {
+      console.error('❌ Error getting activation code:', err);
+      const errorMessage = getActivationCodeErrorMessage(err);
+
+      toast.error('Erreur', {
+        description: errorMessage,
+      });
+
+      throw err;
+    }
+  }, []);
+
+  // Update activation code
+  const updateCode = useCallback(async (codeId: number, codeData: UpdateActivationCodeRequest) => {
+    try {
+      console.log('🔄 Updating activation code:', codeId, codeData);
+
+      const response = await AdminService.updateActivationCode(codeId, codeData);
+
+      if (response.success && response.data) {
+        console.log('✅ Activation code updated successfully:', response.data);
+
+        toast.success('Succès', {
+          description: 'Code d\'activation mis à jour avec succès',
+        });
+
+        // Refresh the codes list
+        await fetchCodes(state.currentPage);
+
+        return response.data.activationCode;
+      } else {
+        throw new Error(response.error || 'Failed to update activation code');
+      }
+    } catch (err) {
+      console.error('❌ Error updating activation code:', err);
+      const errorMessage = getActivationCodeErrorMessage(err);
+
+      toast.error('Erreur', {
+        description: errorMessage,
+      });
+
+      throw err;
+    }
+  }, [fetchCodes, state.currentPage]);
+
+  // Delete activation code
+  const deleteCode = useCallback(async (codeId: number) => {
+    try {
+      console.log('🔄 Deleting activation code:', codeId);
+
+      const response = await AdminService.deleteActivationCode(codeId);
+
+      if (response.success) {
+        console.log('✅ Activation code deleted successfully');
+
+        toast.success('Succès', {
+          description: 'Code d\'activation supprimé avec succès',
+        });
+
+        // Refresh the codes list
+        await fetchCodes(state.currentPage);
+
+        return true;
+      } else {
+        throw new Error(response.error || 'Failed to delete activation code');
+      }
+    } catch (err) {
+      console.error('❌ Error deleting activation code:', err);
+      const errorMessage = getActivationCodeErrorMessage(err);
+
+      toast.error('Erreur', {
+        description: errorMessage,
+      });
+
       throw err;
     }
   }, [fetchCodes, state.currentPage]);
@@ -221,6 +313,9 @@ export function useActivationCodesManagement() {
     updateFilters,
     clearFilters,
     createCode,
+    getCodeById,
+    updateCode,
+    deleteCode,
     deactivateCode,
     goToPage,
     refresh,

@@ -41,7 +41,7 @@ export interface UseUniversitySelectionOptions {
  * 
  * Rules:
  * 1. If 0 universities available: Show error, block creation
- * 2. If 1 university available: Auto-select, show label, no dropdown
+ * 2. If 1 university available: Auto-select, hide UI, no dropdown
  * 3. If 2+ universities available: Show dropdown for selection
  * 4. For practice sessions: Allow multiple selection (if allowMultiple=true)
  * 5. For exam sessions: Allow single selection only (allowMultiple=false)

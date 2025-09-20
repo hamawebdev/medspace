@@ -345,45 +345,45 @@ export function WeeklyPerformanceChart({ weeklyPerformance, loading }: Props) {
 
         {/* Performance Summary */}
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4'>
-          <div className='rounded-lg p-3 text-center border bg-primary border-primary dark:bg-primary/10 dark:border-primary/20'>
+          <div className='rounded-lg p-3 text-center border bg-primary/10 border-primary/20'>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full bg-primary-foreground dark:bg-primary/20'>
-                <Target className='h-3 w-3 text-primary-foreground dark:text-primary' />
+              <div className='p-1 rounded-full bg-primary/20'>
+                <Target className='h-3 w-3 text-primary' />
               </div>
             </div>
-            <div className='text-lg font-bold text-hero-gradient'>{overallAccuracy}%</div>
-            <div className='text-xs font-medium text-hero-gradient'>Overall Accuracy</div>
+            <div className='text-lg font-bold' style={{ color: '#18686E' }}>{overallAccuracy}%</div>
+            <div className='text-xs font-medium' style={{ color: '#18686E' }}>Overall Accuracy</div>
           </div>
 
-          <div className='rounded-lg p-3 text-center border bg-muted/50 border-muted'>
+          <div className='rounded-lg p-3 text-center border bg-primary/10 border-primary/20'>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full bg-muted'>
-                <BarChart3 className='h-3 w-3 text-muted-foreground' />
+              <div className='p-1 rounded-full bg-primary/20'>
+                <BarChart3 className='h-3 w-3 text-primary' />
               </div>
             </div>
-            <div className='text-lg font-bold text-hero-gradient'>{totalQuestions}</div>
-            <div className='text-xs font-medium text-hero-gradient'>Total Questions</div>
+            <div className='text-lg font-bold' style={{ color: '#18686E' }}>{totalQuestions}</div>
+            <div className='text-xs font-medium' style={{ color: '#18686E' }}>Total Questions</div>
           </div>
 
-          <div className='rounded-lg p-3 text-center border bg-primary border-primary dark:bg-primary/10 dark:border-primary/20'>
+          <div className='rounded-lg p-3 text-center border bg-primary/10 border-primary/20'>
             <div className='flex items-center justify-center mb-1'>
-              <div className='p-1 rounded-full bg-primary-foreground dark:bg-primary/20'>
+              <div className='p-1 rounded-full bg-primary/20'>
                 {accuracyTrend > 0 ? (
-                  <TrendingUp className='h-3 w-3 text-primary-foreground dark:text-primary' />
+                  <TrendingUp className='h-3 w-3 text-primary' />
                 ) : accuracyTrend < 0 ? (
                   <TrendingDown className='h-3 w-3 text-destructive' />
                 ) : (
-                  <Award className='h-3 w-3 text-primary-foreground dark:text-primary' />
+                  <Award className='h-3 w-3 text-primary' />
                 )}
               </div>
             </div>
             <div className={cn(
               'text-lg font-bold',
-              accuracyTrend < 0 ? 'text-destructive' : 'text-hero-gradient'
-            )}>
+              accuracyTrend < 0 ? 'text-destructive' : ''
+            )} style={accuracyTrend >= 0 ? { color: '#18686E' } : {}}>
               {Math.abs(accuracyTrend)}%
             </div>
-            <div className='text-xs font-medium text-hero-gradient'>Weekly Trend</div>
+            <div className='text-xs font-medium' style={{ color: '#18686E' }}>Weekly Trend</div>
           </div>
         </div>
       </CardHeader>

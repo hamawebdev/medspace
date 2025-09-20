@@ -27,7 +27,7 @@ export default function ReportDetailsPage() {
 
   if (authLoading || !isAuthenticated || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
           <div className="flex items-center justify-center py-12">
             <LoadingSpinner size="lg" />
@@ -39,7 +39,7 @@ export default function ReportDetailsPage() {
 
   if (error || !report) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10">
         <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
           <Card className="border-border/50 shadow-sm">
             <CardHeader>
@@ -104,7 +104,7 @@ export default function ReportDetailsPage() {
           )}
 
           <div className="pt-2">
-            <Button variant="outline" onClick={() => router.back()}>Back to list</Button>
+            <Button variant="default" onClick={() => router.back()}>Back to list</Button>
           </div>
         </CardContent>
       </Card>

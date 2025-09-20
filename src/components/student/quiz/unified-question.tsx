@@ -28,6 +28,7 @@ import { useQuiz } from './quiz-api-context';
 import { QuizQuestion } from './quiz-context';
 import { QuestionActions } from './question-actions';
 import { QuestionMetadata } from './question-metadata';
+import { ImageGallery } from './image-gallery';
 
 interface Props {
   question: QuizQuestion;
@@ -67,6 +68,8 @@ export function UnifiedQuestion({ question, type }: Props) {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [textAnswer, setTextAnswer] = useState<string>('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
 
   const userAnswer = (state.localAnswers?.[Number(question.id)]) || session.userAnswers[String(question.id)];
@@ -141,22 +144,43 @@ export function UnifiedQuestion({ question, type }: Props) {
   }, [hasSubmitted, isAnswerRevealed, question.options, handleOptionToggle]);
 
   // Handle text answer submission for QROC questions
-  const handleTextSubmit = useCallback(() => {
-    if (!textAnswer.trim()) return;
+  const handleTextSubmit = useCallback(async () => {
+    if (!textAnswer.trim() || isSubmitting || hasSubmitted) return;
     if (session.status === 'completed' || session.status === 'COMPLETED') {
       console.warn('Cannot submit answer: Quiz session is completed');
       return;
     }
 
-    const isCorrect = checkAnswerCorrectness(textAnswer, question.correctAnswers || []);
-    submitAnswer({
-      textAnswer: textAnswer.trim(),
-      isCorrect,
-    });
-    setHasSubmitted(true);
-    // Reveal immediately to match Enter/button behavior
-    revealAnswer();
-  }, [textAnswer, session.status, question.correctAnswers, submitAnswer, revealAnswer]);
+    setIsSubmitting(true);
+    setSubmissionError(null);
+    try {
+      // Validate text answer
+      const trimmedAnswer = textAnswer.trim();
+      if (trimmedAnswer.length === 0) {
+        throw new Error('Answer cannot be empty');
+      }
+
+      if (trimmedAnswer.length > 1000) {
+        throw new Error('Answer is too long (maximum 1000 characters)');
+      }
+
+      const isCorrect = checkAnswerCorrectness(trimmedAnswer, question.correctAnswers || []);
+      await submitAnswer({
+        textAnswer: trimmedAnswer,
+        isCorrect,
+      });
+      setHasSubmitted(true);
+      // Reveal immediately to match Enter/button behavior
+      revealAnswer();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit answer';
+      console.error('Text answer submission error:', error);
+      setSubmissionError(errorMessage);
+      // Don't set hasSubmitted to true on error, allow retry
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [textAnswer, isSubmitting, hasSubmitted, session.status, question.correctAnswers, submitAnswer, revealAnswer]);
 
   // Simple keyword matching for QROC scoring
   const checkAnswerCorrectness = useCallback((userText: string, correctAnswers: string[]): boolean => {
@@ -171,29 +195,54 @@ export function UnifiedQuestion({ question, type }: Props) {
   }, []);
 
   // Handle choice submission for multiple choice questions
-  const handleChoiceSubmit = useCallback(() => {
-    if (selectedOptions.length === 0) return;
+  const handleChoiceSubmit = useCallback(async () => {
+    if (selectedOptions.length === 0 || isSubmitting || hasSubmitted) return;
     if (session.status === 'completed' || session.status === 'COMPLETED') {
       console.warn('Cannot submit answer: Quiz session is completed');
       return;
     }
 
-    // Normalize IDs to strings for reliable comparison
-    const correctIds = (question.options?.filter(opt => opt.isCorrect).map(opt => String(opt.id)) || []);
-    const selectedIds = selectedOptions.map(String);
+    setIsSubmitting(true);
+    setSubmissionError(null);
+    try {
+      // Validate that we have valid options selected
+      if (!question.options || question.options.length === 0) {
+        throw new Error('No answer options available for this question');
+      }
 
-    const isCorrect = isMultipleChoice
-      ? selectedIds.length === correctIds.length && selectedIds.every(id => correctIds.includes(id))
-      : selectedIds.length === 1 && correctIds.includes(selectedIds[0]);
+      // Normalize IDs to strings for reliable comparison
+      const correctIds = (question.options?.filter(opt => opt.isCorrect).map(opt => String(opt.id)) || []);
+      const selectedIds = selectedOptions.map(String);
 
-    submitAnswer({
-      selectedOptions,
-      isCorrect,
-    });
-    setHasSubmitted(true);
-    // Reveal immediately to match Enter/button behavior
-    revealAnswer();
-  }, [selectedOptions, session.status, question.options, isMultipleChoice, submitAnswer, revealAnswer]);
+      // Validate that selected options exist in the question
+      const validSelectedIds = selectedIds.filter(id =>
+        question.options?.some(opt => String(opt.id) === id)
+      );
+
+      if (validSelectedIds.length === 0) {
+        throw new Error('Selected options are not valid for this question');
+      }
+
+      const isCorrect = isMultipleChoice
+        ? validSelectedIds.length === correctIds.length && validSelectedIds.every(id => correctIds.includes(id))
+        : validSelectedIds.length === 1 && correctIds.includes(validSelectedIds[0]);
+
+      await submitAnswer({
+        selectedOptions: validSelectedIds,
+        isCorrect,
+      });
+      setHasSubmitted(true);
+      // Reveal immediately to match Enter/button behavior
+      revealAnswer();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit answer';
+      console.error('Answer submission error:', error);
+      setSubmissionError(errorMessage);
+      // Don't set hasSubmitted to true on error, allow retry
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedOptions, isSubmitting, hasSubmitted, session.status, question.options, isMultipleChoice, submitAnswer, revealAnswer]);
 
   const handleReset = useCallback(() => {
     if (isTextQuestion) {
@@ -248,17 +297,31 @@ export function UnifiedQuestion({ question, type }: Props) {
       if (key === 'enter' && !isTextQuestion) {
         event.preventDefault();
         event.stopPropagation(); // Prevent global keyboard handler from also firing
-        if (!hasSubmitted && selectedOptions.length > 0) {
+
+        // Debug logging for Enter key behavior validation
+        console.log('🔍 Enter key pressed:', {
+          hasSubmitted,
+          isSubmitting,
+          selectedOptionsCount: selectedOptions.length,
+          isAnswerRevealed,
+          questionId: question.id
+        });
+
+        if (!hasSubmitted && !isSubmitting && selectedOptions.length > 0) {
+          console.log('✅ Enter key triggering answer submission');
           handleChoiceSubmit();
         } else if (hasSubmitted && !isAnswerRevealed) {
+          console.log('✅ Enter key triggering answer reveal');
           revealAnswer();
+        } else {
+          console.log('⚠️ Enter key ignored - conditions not met');
         }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyboardSelection, hasSubmitted, selectedOptions, isAnswerRevealed, isTextQuestion, handleChoiceSubmit, revealAnswer]);
+  }, [handleKeyboardSelection, hasSubmitted, isSubmitting, selectedOptions, isAnswerRevealed, isTextQuestion, handleChoiceSubmit, revealAnswer]);
 
   const getOptionStatus = useCallback((option: any) => {
     if (!isAnswerRevealed) return 'default';
@@ -459,33 +522,38 @@ export function UnifiedQuestion({ question, type }: Props) {
               isUltraCompactMode ? "mb-1.5" : isCompactMode ? "mb-2" : "mb-2.5"
             )} />
 
-            {/* Optional Question Images - Ultra Compact */}
+            {/* Question Images - Enhanced Display */}
             {(Array.isArray(question.questionImages) && question.questionImages.length > 0) && (
               <div className={cn(
-                "grid gap-0.5 grid-cols-1 sm:grid-cols-2",
-                isUltraCompactMode ? "mb-0" : "mb-0.5"
+                isUltraCompactMode ? "mb-1" : isCompactMode ? "mb-2" : "mb-3"
               )}>
-                {question.questionImages.map((img: any, idx: number) => (
-                  <img key={img.id || idx} src={img.imagePath || img.url} alt={img.altText || `Question image ${idx+1}`} className={cn(
-                    "w-full h-auto rounded border object-contain",
-                    isUltraCompactMode ? "max-h-12" : "max-h-16"
-                  )} />
-                ))}
+                <ImageGallery
+                  images={question.questionImages}
+                  title="Question Images"
+                  maxHeight={isUltraCompactMode ? "max-h-32" : isCompactMode ? "max-h-40" : "max-h-64"}
+                  gridCols="auto"
+                  showZoom={true}
+                  compact={isUltraCompactMode || isCompactMode}
+                  className="quiz-question-images"
+                />
               </div>
             )}
 
-            {/* Optional hint/comment images - Ultra Compact */}
+
+            {/* Optional hint/comment images (legacy support) */}
             {(Array.isArray((question as any).commentImages) && (question as any).commentImages.length > 0) && (
               <div className={cn(
-                "grid gap-0.5 grid-cols-1 sm:grid-cols-2",
-                isUltraCompactMode ? "mb-0" : "mb-0.5"
+                isUltraCompactMode ? "mb-1" : isCompactMode ? "mb-2" : "mb-3"
               )}>
-                {(question as any).commentImages.map((img: any, idx: number) => (
-                  <img key={img.id || idx} src={img.imagePath || img.url} alt={img.altText || `Hint image ${idx+1}`} className={cn(
-                    "w-full h-auto rounded border object-contain",
-                    isUltraCompactMode ? "max-h-12" : "max-h-16"
-                  )} />
-                ))}
+                <ImageGallery
+                  images={(question as any).commentImages}
+                  title="Hint Images"
+                  maxHeight={isUltraCompactMode ? "max-h-32" : isCompactMode ? "max-h-40" : "max-h-64"}
+                  gridCols="auto"
+                  showZoom={true}
+                  compact={isUltraCompactMode || isCompactMode}
+                  className="quiz-hint-images"
+                />
               </div>
             )}
 
@@ -700,11 +768,7 @@ export function UnifiedQuestion({ question, type }: Props) {
             <div className={`${isUltraCompactMode ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground`}>
               {selectedOptions.length} selected
             </div>
-          ) : (
-            <div className={`${isUltraCompactMode ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground`}>
-              {selectedOptions.length > 0 ? '1 selected' : 'Select one'}
-            </div>
-          )}
+          ) : null}
 
           {/* Center - Submit Button (when answer selected but not submitted) or Show Explanation Button (when submitted) */}
           <div className="flex-1 flex justify-center">
@@ -713,12 +777,13 @@ export function UnifiedQuestion({ question, type }: Props) {
                 variant="default"
                 size={isUltraCompactMode ? "sm" : "default"}
                 onClick={handleChoiceSubmit}
+                disabled={isSubmitting}
                 className={`gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm hover:shadow-md transition-all duration-200 touch-manipulation ${
                   isUltraCompactMode ? 'px-3 py-1 text-sm min-h-[36px]' : 'px-4 py-2 text-base min-h-[44px]'
                 }`}
               >
                 <Send className={`${isUltraCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                Submit Answer
+                {isSubmitting ? 'Submitting...' : 'Submit Answer'}
               </Button>
             )}
 
@@ -727,12 +792,13 @@ export function UnifiedQuestion({ question, type }: Props) {
                 variant="default"
                 size={isUltraCompactMode ? "sm" : "default"}
                 onClick={handleTextSubmit}
+                disabled={isSubmitting}
                 className={`gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm hover:shadow-md transition-all duration-200 touch-manipulation ${
                   isUltraCompactMode ? 'px-3 py-1 text-sm min-h-[36px]' : 'px-4 py-2 text-base min-h-[44px]'
                 }`}
               >
                 <Send className={`${isUltraCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                Submit Answer
+                {isSubmitting ? 'Submitting...' : 'Submit Answer'}
               </Button>
             )}
 
@@ -741,7 +807,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                 variant="outline"
                 size={isUltraCompactMode ? "sm" : "default"}
                 onClick={revealAnswer}
-                className={`gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold shadow-sm hover:shadow-md transition-all duration-200 touch-manipulation ${
+                className={`gap-1 text-primary border-primary/20 hover:bg-primary/10 font-semibold shadow-sm hover:shadow-md transition-all duration-200 touch-manipulation ${
                   isUltraCompactMode ? 'px-3 py-1 text-sm min-h-[36px]' : 'px-4 py-2 text-base min-h-[44px]'
                 }`}
               >
@@ -770,7 +836,7 @@ export function UnifiedQuestion({ question, type }: Props) {
                 variant="outline"
                 size="sm"
                 onClick={() => setEditMode(true)}
-                className="gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                className="gap-1 text-primary border-primary/20 hover:bg-primary/10"
               >
                 <Edit3 className="h-3 w-3" />
                 Edit
@@ -778,6 +844,35 @@ export function UnifiedQuestion({ question, type }: Props) {
             )}
           </div>
         </div>
+
+        {/* Error Display and Retry */}
+        {submissionError && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <X className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-red-700 font-medium">Submission Failed</p>
+                <p className="text-sm text-red-600 mt-1">{submissionError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSubmissionError(null);
+                    if (isTextQuestion) {
+                      handleTextSubmit();
+                    } else {
+                      handleChoiceSubmit();
+                    }
+                  }}
+                  disabled={isSubmitting}
+                  className="mt-2 text-red-600 border-red-300 hover:bg-red-50"
+                >
+                  {isSubmitting ? 'Retrying...' : 'Retry Submission'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

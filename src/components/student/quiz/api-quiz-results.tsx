@@ -43,7 +43,7 @@ export function ApiQuizResults() {
   const totalQuestions = session.totalQuestions;
   const answeredQuestions = Object.keys(session.userAnswers).length;
   const correctAnswers = Object.values(session.userAnswers).filter(
-    (answer: any) => answer.isCorrect
+    (answer: any) => answer.isCorrect === true
   ).length;
   const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
   // Prefer API-provided timing from session.answers[].timeSpent, fallback to client timer

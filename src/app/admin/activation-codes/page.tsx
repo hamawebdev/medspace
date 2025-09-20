@@ -20,6 +20,8 @@ import { useActivationCodesManagement } from '@/hooks/admin/use-activation-codes
 import { ActivationCodesTable } from '@/components/admin/activation-codes/activation-codes-table';
 import { ActivationCodesFilters } from '@/components/admin/activation-codes/activation-codes-filters';
 import { CreateActivationCodeDialog } from '@/components/admin/activation-codes/create-activation-code-dialog';
+import { EditActivationCodeDialog } from '@/components/admin/activation-codes/edit-activation-code-dialog';
+import { ActivationCode } from '@/types/api';
 
 /**
  * Admin Activation Codes Management Page
@@ -29,6 +31,8 @@ import { CreateActivationCodeDialog } from '@/components/admin/activation-codes/
  */
 export default function AdminActivationCodesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCode, setEditingCode] = useState<ActivationCode | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const {
@@ -42,6 +46,9 @@ export default function AdminActivationCodesPage() {
     updateFilters,
     clearFilters,
     createCode,
+    getCodeById,
+    updateCode,
+    deleteCode,
     deactivateCode,
     goToPage,
     hasCodes,
@@ -54,6 +61,29 @@ export default function AdminActivationCodesPage() {
     try {
       await createCode(codeData);
       setShowCreateDialog(false);
+    } catch (error) {
+      // Error is already handled in the hook
+    }
+  };
+
+  const handleEditCode = (code: ActivationCode) => {
+    setEditingCode(code);
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateCode = async (codeId: number, codeData: any) => {
+    try {
+      await updateCode(codeId, codeData);
+      setShowEditDialog(false);
+      setEditingCode(null);
+    } catch (error) {
+      // Error is already handled in the hook
+    }
+  };
+
+  const handleDeleteCode = async (codeId: number) => {
+    try {
+      await deleteCode(codeId);
     } catch (error) {
       // Error is already handled in the hook
     }
@@ -244,6 +274,8 @@ export default function AdminActivationCodesPage() {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={goToPage}
+            onEditCode={handleEditCode}
+            onDeleteCode={handleDeleteCode}
             onDeactivateCode={handleDeactivateCode}
           />
         </CardContent>
@@ -254,6 +286,14 @@ export default function AdminActivationCodesPage() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onCreateCode={handleCreateCode}
+      />
+
+      {/* Edit Code Dialog */}
+      <EditActivationCodeDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        onUpdateCode={handleUpdateCode}
+        activationCode={editingCode}
       />
     </div>
   );

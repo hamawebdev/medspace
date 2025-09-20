@@ -18,7 +18,7 @@ import {
 import { useQuestionManagement } from '@/hooks/admin/use-question-management';
 import { QuestionTable } from '@/components/admin/questions/question-table';
 import QuestionFilters from '@/components/admin/questions/question-filters';
-import { CreateQuestionDialog } from '@/components/admin/questions/create-question-dialog';
+
 import { useRouter } from 'next/navigation';
 
 /**
@@ -29,7 +29,7 @@ import { useRouter } from 'next/navigation';
  */
 export default function AdminQuestionsPage() {
   const router = useRouter();
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+
   const [showFilters, setShowFilters] = useState(false);
 
   const {
@@ -42,7 +42,7 @@ export default function AdminQuestionsPage() {
     filters,
     updateFilters,
     clearFilters,
-    createQuestion,
+
     updateQuestion,
     deleteQuestion,
     updateQuestionExplanation,
@@ -53,15 +53,7 @@ export default function AdminQuestionsPage() {
     hasFilters,
   } = useQuestionManagement();
 
-  const handleCreateQuestion = async (questionData: any) => {
-    try {
-      await createQuestion(questionData);
-      setShowCreateDialog(false);
-    } catch (error) {
-      // Error is handled in the hook
-      console.error('Failed to create question:', error);
-    }
-  };
+
 
   return (
     <div className="flex-1 p-6 space-y-6">
@@ -107,13 +99,7 @@ export default function AdminQuestionsPage() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button
-            onClick={() => setShowCreateDialog(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Question
-          </Button>
+
         </div>
       </div>
 
@@ -245,12 +231,7 @@ export default function AdminQuestionsPage() {
         </CardContent>
       </Card>
 
-      {/* Create Question Dialog */}
-      <CreateQuestionDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onCreateQuestion={handleCreateQuestion}
-      />
+
     </div>
   );
 }

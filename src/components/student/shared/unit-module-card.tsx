@@ -58,7 +58,7 @@ export function UnitModuleCard({
       };
     } else if (isIndependentModule) {
       return {
-        borderColor: variant === 'practice' ? 'border-l-chart-1/30 hover:border-l-chart-1/50' : 'border-l-chart-3/30 hover:border-l-chart-3/50',
+        borderColor: variant === 'practice' ? 'border-l-[var(--gradient-left)]/30 hover:border-l-[var(--gradient-left)]/50' : 'border-l-chart-3/30 hover:border-l-chart-3/50',
         bgColor: variant === 'practice' ? 'bg-chart-1/10' : 'bg-chart-3/10',
         iconColor: variant === 'practice' ? 'text-chart-1' : 'text-chart-3',
         icon: GraduationCap

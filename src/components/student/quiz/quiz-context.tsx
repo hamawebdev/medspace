@@ -26,6 +26,11 @@ export interface QuizQuestion {
     imagePath: string;
     altText?: string;
   }>;
+  questionExplanationImages?: Array<{
+    id: number;
+    imagePath: string;
+    altText?: string;
+  }>;
   university?: {
     id: number;
     name: string;

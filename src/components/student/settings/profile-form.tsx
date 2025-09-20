@@ -213,74 +213,70 @@ export default function ProfileForm() {
               <Separator />
 
               {/* Academic Information */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4" />
-                  Academic Information
-                </h4>
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                Academic Information
+              </h4>
 
-                {/* University */}
-                <FormField
-                  control={form.control}
-                  name="universityId"
-                  render={({ field }) => (
+              {/* University */}
+              <FormField
+                control={form.control}
+                name="universityId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <University className="h-4 w-4" />
+                      University
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your university" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {universities.map((university) => (
+                          <SelectItem key={university.id} value={university.id.toString()}>
+                            {university.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />  
+              <FormField
+                control={form.control}
+                name="currentYear"
+                render={({ field }) => {
+                  const hasActive = (profile?.subscriptions || []).some((s) => s.status === 'ACTIVE' && new Date(s.endDate).getTime() >= Date.now());
+                  return (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
-                        <University className="h-4 w-4" />
-                        University
+                        <Calendar className="h-4 w-4" />
+                        Current Year
                       </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={hasActive}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select your university" />
+                            <SelectValue placeholder="Select your current year" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {universities.map((university) => (
-                            <SelectItem key={university.id} value={university.id.toString()}>
-                              {university.name}
-                            </SelectItem>
+                          {['ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN'].map((y) => (
+                            <SelectItem key={y} value={y}>Year {y}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      {hasActive && (
+                        <p className="text-xs text-muted-foreground">Current year cannot be changed while a study pack is active.</p>
+                      )}
                       <FormMessage />
                     </FormItem>
-                  )}
-/>  
-                <FormField
-                  control={form.control}
-                  name="currentYear"
-                  render={({ field }) => {
-                    const hasActive = (profile?.subscriptions || []).some((s) => s.status === 'ACTIVE' && new Date(s.endDate).getTime() >= Date.now());
-                    return (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          Current Year
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={hasActive}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select your current year" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {['ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN'].map((y) => (
-                              <SelectItem key={y} value={y}>Year {y}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {hasActive && (
-                          <p className="text-xs text-muted-foreground">Current year cannot be changed while a study pack is active.</p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )
-                  }}
-                />
-               
-
-                </div>
+                  )
+                }}
+              />
 
                 {/* Specialty (uneditable) */}
                 <FormField

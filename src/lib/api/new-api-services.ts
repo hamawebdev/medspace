@@ -106,6 +106,17 @@ export interface PracticeSession {
   percentage: number;
   averageTimePerQuestion: number;
   completedAt: string;
+  // Unit and Module information with logos
+  unit?: {
+    id: number;
+    name: string;
+    logoUrl?: string;
+  };
+  module?: {
+    id: number;
+    name: string;
+    logoUrl?: string;
+  };
 }
 
 export interface PracticeSessionsResponse {
@@ -262,8 +273,10 @@ export class NewApiService {
           console.log(`📥 [NewApiService] Unite ${index + 1}:`, {
             id: unite.id,
             name: unite.name,
-            modulesCount: unite.modules?.length || 0,
-            modules: unite.modules
+            logoUrl: unite.logoUrl,
+            hasLogoUrl: !!unite.logoUrl,
+            logoUrlType: typeof unite.logoUrl,
+            modulesCount: unite.modules?.length || 0
           });
         });
       } else {
@@ -276,8 +289,10 @@ export class NewApiService {
           console.log(`📥 [NewApiService] Independent Module ${index + 1}:`, {
             id: module.id,
             name: module.name,
-            coursesCount: module.courses?.length || 0,
-            courses: module.courses
+            logoUrl: module.logoUrl,
+            hasLogoUrl: !!module.logoUrl,
+            logoUrlType: typeof module.logoUrl,
+            coursesCount: module.courses?.length || 0
           });
         });
       } else {

@@ -425,7 +425,7 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
     });
   }, []);
 
-  // Resource creation
+  // Resource creation (enhanced from test file pattern)
   const createResource = useCallback(async (resourceData: CreateResourceData, file?: File, onProgress?: (progress: number) => void): Promise<boolean> => {
     try {
       setCreating(true);
@@ -436,19 +436,37 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
         type: resourceData.type,
         courseId: resourceData.courseId,
         hasFile: !!file,
-        fileName: file?.name
+        fileName: file?.name,
+        fileSize: file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : 'N/A'
       });
 
       const response = await AdminCourseResourcesService.createCourseResource(resourceData, file, onProgress);
 
-      if (response.success) {
-        console.log('✅ [AdminCourseResources] Resource created successfully:', response.data?.resource?.id);
-        toast.success('Course resource created successfully');
-        // Navigate back to courses after successful creation
+      console.log('📥 [AdminCourseResources] API Response:', {
+        success: response.success,
+        hasData: !!response.data,
+        error: response.error
+      });
+
+      if (response.success && response.data) {
+        console.log('✅ [AdminCourseResources] Resource created successfully:', {
+          id: response.data.resource?.id,
+          title: response.data.resource?.title,
+          type: response.data.resource?.type
+        });
+        toast.success(`Course resource "${resourceData.title}" created successfully`);
+
+        // Refresh the course resources list
+        if (navigation.selectedCourse) {
+          await fetchCourseResources(navigation.selectedCourse.id);
+        }
+
+        // Navigate back to resources list after successful creation
         navigateBack();
         return true;
       } else {
         const errorMsg = typeof response.error === 'string' ? response.error : 'Failed to create course resource';
+        console.error('❌ [AdminCourseResources] API Error:', errorMsg);
         throw new Error(errorMsg);
       }
     } catch (err) {
@@ -460,7 +478,7 @@ export function useAdminCourseResources(): UseAdminCourseResourcesResult {
     } finally {
       setCreating(false);
     }
-  }, [navigateBack]);
+  }, [navigateBack, navigation.selectedCourse, fetchCourseResources]);
 
   // Delete course resource
   const deleteResource = useCallback(async (resourceId: number): Promise<boolean> => {

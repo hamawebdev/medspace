@@ -41,12 +41,12 @@ interface ResourceCardProps {
   formatDate: (dateString: string) => string
 }
 
-export function ResourceCard({ 
-  resource, 
-  viewMode, 
-  onView, 
-  onDownload, 
-  formatDate 
+export function ResourceCard({
+  resource,
+  viewMode,
+  onView,
+  onDownload,
+  formatDate
 }: ResourceCardProps) {
   const FileIcon = FILE_TYPE_ICONS[resource.type] || FileText
 
@@ -155,6 +155,35 @@ export function ResourceCard({
             </div>
           )}
         </div>
+
+          {/* Action buttons */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                onView(resource)
+              }}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              View resource
+            </Button>
+
+            {resource.externalUrl && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.open(resource.externalUrl as string, '_blank', 'noopener,noreferrer')
+                }}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open externalUrl
+              </Button>
+            )}
+          </div>
+
       </CardContent>
     </Card>
   )

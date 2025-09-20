@@ -1,19 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MoreHorizontal, 
-  Edit, 
-  Trash2, 
-  School, 
-  BookOpen, 
-  Layers, 
-  GraduationCap, 
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  School,
+  BookOpen,
+  Layers,
+  GraduationCap,
   Database,
-  Calendar
+  Calendar,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,6 +35,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { LogoDisplay } from '@/components/ui/logo-display';
 import { toast } from 'sonner';
 import { AdminContentService, UniversityService } from '@/lib/api-services';
 
@@ -93,6 +99,92 @@ export function EntityCard({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Image upload dialog state and helpers
+  const isUnit = entityType === 'unit';
+  const isModule = entityType === 'module';
+  const [showImageDialog, setShowImageDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [localLogoUrl, setLocalLogoUrl] = useState<string | undefined>(() => (entity as any)?.logoUrl);
+
+  const allowedTypes = useMemo(() => new Set([
+    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'
+  ]), []);
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const openImageDialog = (e?: React.MouseEvent) => {
+    e?.stopPropagation?.();
+    setShowImageDialog(true);
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!allowedTypes.has(file.type)) {
+      toast.error('Invalid file type. Allowed: JPEG, PNG, GIF, WebP, SVG');
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      toast.error('File too large. Max 5MB');
+      return;
+    }
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleSaveImage = async () => {
+    if (!selectedFile) {
+      toast.error('Please select an image');
+      return;
+    }
+    try {
+      setIsUploading(true);
+      if (isUnit) {
+        const u = entity as Unit;
+        const res = await AdminContentService.updateUnitLogo({
+          unitId: u.id,
+          name: u.name,
+          studyPackId: u.studyPackId,
+          description: u.description,
+          logo: selectedFile,
+        });
+        if (res?.success) {
+          const newUrl = (res.data?.unite?.logoUrl) || (res.data?.data?.unite?.logoUrl) || (res.data as any)?.logoUrl;
+          if (newUrl) setLocalLogoUrl(newUrl);
+          toast.success('Unit image updated');
+          setShowImageDialog(false);
+          setSelectedFile(null);
+          setPreviewUrl(null);
+        }
+      } else if (isModule) {
+        const m = entity as Module;
+        const res = await AdminContentService.updateModuleLogo({
+          moduleId: m.id,
+          name: m.name,
+          // Pass both IDs if present; service will include exactly one per API docs
+          uniteId: (m as any).uniteId,
+          studyPackId: (m as any).studyPackId,
+          description: m.description,
+          logo: selectedFile,
+        });
+        if (res?.success) {
+          const newUrl = (res.data?.module?.logoUrl) || (res.data?.data?.module?.logoUrl) || (res.data as any)?.logoUrl;
+          if (newUrl) setLocalLogoUrl(newUrl);
+          toast.success('Module image updated');
+          setShowImageDialog(false);
+          setSelectedFile(null);
+          setPreviewUrl(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update image', error);
+      toast.error('Failed to update image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const getEntityIcon = () => {
     switch (entityType) {
       case 'university':
@@ -152,7 +244,7 @@ export function EntityCard({
     setIsDeleting(true);
     try {
       let result;
-      
+
       switch (entityType) {
         case 'university':
           result = await UniversityService.deleteUniversity(entity.id);
@@ -190,10 +282,10 @@ export function EntityCard({
 
   return (
     <>
-      <Card 
+      <Card
         className={`transition-all duration-200 ${
-          isSelectable 
-            ? 'cursor-pointer hover:shadow-md hover:border-primary/50' 
+          isSelectable
+            ? 'cursor-pointer hover:shadow-md hover:border-primary/50'
             : ''
         }`}
         onClick={isSelectable ? () => onSelect?.(entity) : undefined}
@@ -201,7 +293,17 @@ export function EntityCard({
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <CardTitle className="flex items-center space-x-2 text-base">
-              <Icon className="h-5 w-5 text-primary" />
+              {(isUnit || isModule) ? (
+                <LogoDisplay
+                  logoUrl={localLogoUrl || (entity as any)?.logoUrl}
+                  fallbackIcon={isUnit ? GraduationCap : Layers}
+                  alt={`${entity.name} logo`}
+                  size="md"
+                  variant="rounded"
+                />
+              ) : (
+                <Icon className="h-5 w-5 text-primary" />
+              )}
               <span>{entity.name}</span>
             </CardTitle>
             {showActions && (
@@ -212,6 +314,17 @@ export function EntityCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {(isUnit || isModule) && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openImageDialog();
+                      }}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {isUnit ? 'Update Unit Image' : 'Update Module Image'}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={(e) => {
                     e.stopPropagation();
                     onEdit?.(entity);
@@ -219,7 +332,7 @@ export function EntityCard({
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowDeleteDialog(true);
@@ -238,6 +351,59 @@ export function EntityCard({
           {getEntityDetails()}
         </CardContent>
       </Card>
+
+
+      {(isUnit || isModule) && (
+        <Dialog
+          open={showImageDialog}
+          onOpenChange={(open) => {
+            setShowImageDialog(open);
+            if (!open) {
+              setSelectedFile(null);
+              setPreviewUrl(null);
+            }
+          }}
+        >
+          <DialogContent onClick={(e) => e.stopPropagation()}>
+            <DialogHeader>
+              <DialogTitle>{isUnit ? 'Update Unit Image' : 'Update Module Image'}</DialogTitle>
+              <DialogDescription>
+                Upload a new logo image (JPEG, PNG, GIF, WebP, SVG; max 5MB). Preview before saving.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="image-file">Select image</Label>
+                <Input id="image-file" type="file" accept="image/*" onChange={onFileChange} />
+              </div>
+
+              {previewUrl && (
+                <div className="rounded-md border p-2">
+                  <img src={previewUrl} alt="Preview" className="max-h-48 object-contain mx-auto" />
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowImageDialog(false);
+                  setSelectedFile(null);
+                  setPreviewUrl(null);
+                }}
+                disabled={isUploading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSaveImage} disabled={isUploading || !selectedFile}>
+                {isUploading ? 'Saving...' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>

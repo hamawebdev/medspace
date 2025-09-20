@@ -32,6 +32,7 @@ interface EnhancedQuizFooterProps {
   isLastQuestion: boolean;
   className?: string;
   hideSubmit?: boolean;
+  isSubmitting?: boolean; // external submission state
 }
 
 export function EnhancedQuizFooter({
@@ -46,8 +47,12 @@ export function EnhancedQuizFooter({
   isLastQuestion,
   className,
   hideSubmit = false,
+  isSubmitting: externalIsSubmitting = false,
 }: EnhancedQuizFooterProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [internalIsSubmitting, setInternalIsSubmitting] = useState(false);
+
+  // Use external submission state if provided, otherwise use internal state
+  const isSubmitting = externalIsSubmitting || internalIsSubmitting;
 
   const progressPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
   const currentProgress = totalQuestions > 0 ? ((currentQuestionIndex + 1) / totalQuestions) * 100 : 0;
@@ -55,11 +60,16 @@ export function EnhancedQuizFooter({
   const hasAnswers = answeredQuestions > 0;
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
+    // Only use internal state if no external state is provided
+    if (!externalIsSubmitting) {
+      setInternalIsSubmitting(true);
+    }
     try {
       await onSubmit();
     } finally {
-      setIsSubmitting(false);
+      if (!externalIsSubmitting) {
+        setInternalIsSubmitting(false);
+      }
     }
   };
 
@@ -220,9 +230,10 @@ export function EnhancedQuizFooter({
 
             <Button
               onClick={() => (isLastQuestion ? (typeof onSubmit === 'function' ? onSubmit() : undefined) : onNext())}
-              disabled={isLastQuestion ? (answeredQuestions !== totalQuestions) || isSubmitting : !canGoForward}
+              disabled={isLastQuestion ? isSubmitting : !canGoForward}
               className="gap-2 min-w-[100px]"
               aria-label={isLastQuestion ? "Finish quiz" : "Go to next question"}
+              data-finish-button={isLastQuestion ? "true" : undefined}
             >
               {isLastQuestion ? (
                 <>

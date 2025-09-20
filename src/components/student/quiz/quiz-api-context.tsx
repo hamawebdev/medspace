@@ -767,7 +767,7 @@ export function ApiQuizProvider({
 
   const pauseQuiz = useCallback(async () => {
     try {
-      // First submit all answered questions to the API
+      // Always submit current answers and fetch fresh stats on pause
       if (apiSessionId && enableApiSubmission) {
         const userAnswers = state.session?.userAnswers || {};
         const answersToSubmit = Object.keys(userAnswers).filter(
@@ -854,11 +854,36 @@ export function ApiQuizProvider({
               console.log(`✅ Submitted ${apiAnswers.length} answers on pause (no response data)`);
             }
           }
+        } else {
+          // Even if no new answers to submit, fetch fresh session stats for pause display
+          console.log('📊 Fetching fresh session stats for pause display...');
+          try {
+            // Use a simple API call to get current session stats without submitting answers
+            const response = await QuizService.submitAnswersBulk(apiSessionId, [], state.timer.totalTime || 0);
+            if (response.success && response.data) {
+              dispatch({
+                type: 'UPDATE_SESSION_RESULTS',
+                results: {
+                  score: response.data.scoreOutOf20 || 0,
+                  percentage: response.data.percentageScore || 0,
+                  timeSpent: response.data.timeSpent || (state.timer.totalTime || 0),
+                  answeredQuestions: response.data.answeredQuestions || 0,
+                  totalQuestions: response.data.totalQuestions || state.session.totalQuestions
+                }
+              });
+              console.log('✅ Fresh session stats fetched for pause display:', response.data);
+            }
+          } catch (error) {
+            console.warn('Failed to fetch fresh session stats on pause:', error);
+          }
         }
       }
     } catch (error) {
       console.error('Failed to submit answers on pause:', error);
-      // Continue with pause even if submission fails
+      // Show user-friendly error message but continue with pause
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.warn(`Pause submission failed: ${errorMessage}. Quiz will be paused without submitting answers.`);
+      // Continue with pause even if submission fails to ensure user can still pause
     }
 
     // Update session status to IN_PROGRESS when pausing with unanswered questions
@@ -917,7 +942,19 @@ export function ApiQuizProvider({
   const submitAllAnswers = useCallback(async () => {
     if (!apiSessionId) {
       console.error('Cannot submit quiz: No session ID');
-      return false;
+      throw new Error('No session ID available for submission');
+    }
+
+    // Validate session state
+    if (!state.session) {
+      console.error('Cannot submit quiz: No session data');
+      throw new Error('No session data available');
+    }
+
+    // Check if session is already completed
+    if (state.session.status === 'COMPLETED' || state.session.status === 'completed') {
+      console.warn('Quiz is already completed, skipping submission');
+      return true;
     }
 
     try {
@@ -932,10 +969,29 @@ export function ApiQuizProvider({
       // Get all answers for submission
       const answersForSubmission = quizStorage.getAnswersForSubmission(apiSessionId);
 
+      // Validate answers before submission
+      const totalQuestions = state.session.totalQuestions || state.session.questions?.length || 0;
+
       if (answersForSubmission.length === 0) {
         console.warn('No answers to submit');
-        toast.warning('No answers to submit');
-        return false;
+
+        // Allow submission with no answers but warn user
+        const shouldContinue = confirm(
+          'You have not answered any questions. Do you want to submit an empty quiz?'
+        );
+
+        if (!shouldContinue) {
+          dispatch({ type: 'SET_PENDING_SUBMISSION', pending: false });
+          return false;
+        }
+
+        toast.warning('Submitting quiz with no answers');
+      } else if (answersForSubmission.length < totalQuestions) {
+        // Partial submission - warn user
+        const unansweredCount = totalQuestions - answersForSubmission.length;
+        console.warn(`Submitting partial quiz: ${answersForSubmission.length}/${totalQuestions} questions answered`);
+
+        toast.info(`Submitting ${answersForSubmission.length} of ${totalQuestions} answers. ${unansweredCount} questions left unanswered.`);
       }
 
       console.log(`📤 Submitting ${answersForSubmission.length} answers to server...`);

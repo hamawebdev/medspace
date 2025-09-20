@@ -6,16 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Shield,
   Mail,
   Calendar,
   CheckCircle,
   XCircle,
-  AlertTriangle,
   Key,
-  Globe,
   Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -90,13 +87,6 @@ export function AccountForm() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Account ID</Label>
-              <p className="text-sm text-muted-foreground font-mono">
-                {profile?.id || 'Not available'}
-              </p>
-            </div>
-
-            <div className="space-y-2">
               <Label className="text-sm font-medium">Email Address</Label>
               <p className="text-sm text-muted-foreground">
                 {profile?.email || 'Not available'}
@@ -143,7 +133,7 @@ export function AccountForm() {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setChangePasswordOpen(true)}>
+              <Button variant="default" size="sm" onClick={() => setChangePasswordOpen(true)}>
                 Change Password
               </Button>
             </div>
@@ -157,39 +147,7 @@ export function AccountForm() {
 
 
 
-      {/* Data & Privacy */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Data & Privacy
-          </CardTitle>
-          <CardDescription>
-            Manage your data and privacy preferences.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-start" disabled>
-              <Globe className="h-4 w-4 mr-2" />
-              Download My Data
-            </Button>
-
-            <Button variant="outline" className="w-full justify-start" disabled>
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Delete Account
-            </Button>
-          </div>
-
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Data management features will be available in a future update.
-            </AlertDescription>
-          </Alert>
       <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
-        </CardContent>
-      </Card>
     </div>
   )
 }

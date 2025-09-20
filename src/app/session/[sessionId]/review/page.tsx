@@ -18,6 +18,7 @@ import {
   Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ImageGallery } from '@/components/student/quiz/image-gallery';
 
 export default function SessionReviewPage() {
   const params = useParams();
@@ -162,20 +163,18 @@ export default function SessionReviewPage() {
                     {question.questionImages && question.questionImages.length > 0 && (
                       <div className="space-y-3">
                         <h4 className="text-sm font-medium text-muted-foreground">Question Images</h4>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          {question.questionImages.map((img: any, idx: number) => (
-                            <div key={img.id || idx} className="space-y-2">
-                              <img
-                                src={img.imagePath || img.url}
-                                alt={img.altText || `Question image ${idx + 1}`}
-                                className="w-full h-auto rounded-lg border object-contain max-h-64"
-                              />
-                              {img.altText && (
-                                <p className="text-xs text-muted-foreground">{img.altText}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                        <ImageGallery
+                          images={question.questionImages.map((img: any, idx: number) => ({
+                            id: img.id || idx,
+                            imagePath: img.imagePath || img.url,
+                            altText: img.altText || `Question image ${idx + 1}`
+                          }))}
+                          title="Question Images"
+                          maxHeight="max-h-64"
+                          gridCols="auto"
+                          showZoom={true}
+                          compact={false}
+                        />
                       </div>
                     )}
 
@@ -267,20 +266,18 @@ export default function SessionReviewPage() {
                     {question.questionExplanationImages && question.questionExplanationImages.length > 0 && (
                       <div className="space-y-3">
                         <h4 className="text-sm font-medium text-muted-foreground">Explanation Images</h4>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          {question.questionExplanationImages.map((img: any, idx: number) => (
-                            <div key={img.id || idx} className="space-y-2">
-                              <img
-                                src={img.imagePath || img.url}
-                                alt={img.altText || `Explanation image ${idx + 1}`}
-                                className="w-full h-auto rounded-lg border object-contain max-h-64"
-                              />
-                              {img.altText && (
-                                <p className="text-xs text-muted-foreground">{img.altText}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                        <ImageGallery
+                          images={question.questionExplanationImages.map((img: any, idx: number) => ({
+                            id: img.id || idx,
+                            imagePath: img.imagePath || img.url,
+                            altText: img.altText || `Explanation image ${idx + 1}`
+                          }))}
+                          title="Explanation Images"
+                          maxHeight="max-h-64"
+                          gridCols="auto"
+                          showZoom={true}
+                          compact={false}
+                        />
                       </div>
                     )}
 
@@ -294,20 +291,18 @@ export default function SessionReviewPage() {
                               <p className="text-xs font-medium text-muted-foreground">
                                 For answer: "{answer.answerText || answer.text}"
                               </p>
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                {answer.explanationImages.map((img: any, idx: number) => (
-                                  <div key={img.id || idx} className="space-y-2">
-                                    <img
-                                      src={img.imagePath || img.url}
-                                      alt={img.altText || `Answer explanation image ${idx + 1}`}
-                                      className="w-full h-auto rounded-lg border object-contain max-h-64"
-                                    />
-                                    {img.altText && (
-                                      <p className="text-xs text-muted-foreground">{img.altText}</p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
+                              <ImageGallery
+                                images={answer.explanationImages.map((img: any, idx: number) => ({
+                                  id: img.id || idx,
+                                  imagePath: img.imagePath || img.url,
+                                  altText: img.altText || `Answer explanation image ${idx + 1}`
+                                }))}
+                                title={`Answer Explanation Images for: "${answer.answerText || answer.text}"`}
+                                maxHeight="max-h-64"
+                                gridCols="auto"
+                                showZoom={true}
+                                compact={false}
+                              />
                             </div>
                           ))}
                         </div>

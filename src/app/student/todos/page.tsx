@@ -1199,7 +1199,7 @@ export default function TodosPage() {
         </div>
       ) : (
         /* List View */
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredTodos.map((todo, idx) => (
             <TodoCard
               key={`list-${todo.id ?? idx}`}
@@ -1443,32 +1443,42 @@ function TodoCard({ todo, expandedDescriptions, toggleDescription, truncateDescr
 
           {/* Course Information for Reading Todos */}
           {todo.type === 'READING' && todo.courses && todo.courses.length > 0 && (
-            <div className="border-t pt-3 space-y-2">
-              <div className="text-xs font-medium text-muted-foreground mb-2">
+            <div className="border-t pt-3 space-y-3">
+              <div className="text-xs font-medium text-muted-foreground">
                 {todo.courses.length > 1 ? `Courses (${todo.courses.length}):` : 'Course:'}
               </div>
-              {todo.courses.map((course, courseIndex) => (
-                <div key={course.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <Checkbox
-                    checked={course.completed || false}
-                    onCheckedChange={() => handleToggleCourse(todo.id, course.id)}
-                    className="transition-all duration-200"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className={cn(
-                      "text-sm font-medium",
-                      course.completed && "line-through text-muted-foreground"
-                    )}>
-                      {course.name}
-                    </span>
-                    {course.moduleName && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        • {course.moduleName}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                {todo.courses.map((course, courseIndex) => (
+                  <div 
+                    key={course.id} 
+                    className={cn(
+                      "relative group cursor-pointer p-2 rounded-lg border transition-all duration-200 hover:shadow-sm",
+                      "bg-card hover:bg-accent/50 border-border hover:border-primary/30",
+                      course.completed && "opacity-60 bg-muted/30"
+                    )}
+                    onClick={() => handleToggleCourse(todo.id, course.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={course.completed || false}
+                        className="h-3 w-3 transition-all duration-200"
+                        readOnly
+                      />
+                      <span className={cn(
+                        "text-xs font-medium truncate leading-tight",
+                        course.completed && "line-through text-muted-foreground"
+                      )}>
+                        {course.name}
                       </span>
+                    </div>
+                    {course.moduleName && (
+                      <div className="text-xs text-muted-foreground truncate mt-1">
+                        {course.moduleName}
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>

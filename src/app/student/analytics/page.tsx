@@ -3,7 +3,9 @@
 
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AnalyticsSessionsTable } from '@/components/student/analytics/analytics-sessions-table';
+import { AnalyticsChartsGrid } from '@/components/student/analytics/analytics-charts-grid';
 import { SessionTypeFilter } from '@/components/student/analytics/session-type-filter';
+import { ViewToggle, useViewToggle } from '@/components/student/analytics/view-toggle';
 import { useAnalyticsSessions, useSessionTypeState } from '@/hooks/use-analytics-sessions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,7 @@ import { BarChart3, RefreshCw, AlertCircle, TrendingUp } from 'lucide-react';
 export default function StudentAnalyticsPage() {
   const { sessionType, setSessionType } = useSessionTypeState();
   const { sessions, loading, error, refetch } = useAnalyticsSessions({ sessionType });
+  const { viewMode, setViewMode, isInitialized } = useViewToggle('table');
 
   return (
     <ErrorBoundary>

@@ -54,9 +54,11 @@ export function useContentHistory(sessionType: 'PRACTICE' | 'EXAM'): UseContentH
       if (response.success && response.data) {
         console.log('🌐 [useContentHistory] Content filters loaded successfully:', {
           unites: response.data.unites?.length || 0,
-          independentModules: response.data.independentModules?.length || 0
+          independentModules: response.data.independentModules?.length || 0,
+          unitesData: response.data.unites,
+          independentModulesData: response.data.independentModules
         });
-        
+
         setState(prev => ({
           ...prev,
           contentFilters: response.data,
@@ -69,14 +71,14 @@ export function useContentHistory(sessionType: 'PRACTICE' | 'EXAM'): UseContentH
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to fetch content filters';
       console.error('🌐 [useContentHistory] Error:', err);
-      
+
       setState(prev => ({
         ...prev,
         loading: false,
         error: errorMessage,
         contentFilters: null
       }));
-      
+
       toast.error(errorMessage);
     }
   }, []);
@@ -120,9 +122,41 @@ export function useContentHistory(sessionType: 'PRACTICE' | 'EXAM'): UseContentH
         const sessions = sessionsData.sessions || [];
         const paginationData = sessionsData.pagination || null;
 
+        // Enrich sessions with unit/module logo information
+        const enrichedSessions = sessions.map((session: any) => {
+          const enrichedSession = { ...session };
+
+          // Add unit information with logo if this is a unit-based session
+          if (item.type === 'unite') {
+            enrichedSession.unit = {
+              id: item.id,
+              name: item.name,
+              logoUrl: item.logoUrl
+            };
+          }
+
+          // Add module information with logo if this is a module-based session
+          if (item.type === 'module') {
+            enrichedSession.module = {
+              id: item.id,
+              name: item.name,
+              logoUrl: item.logoUrl
+            };
+          }
+
+          return enrichedSession;
+        });
+
         console.log(`🎯 [useContentHistory] Sessions loaded successfully:`, {
           sessionsCount: sessions.length,
+          enrichedSessionsCount: enrichedSessions.length,
           pagination: paginationData,
+          logoInfo: {
+            itemType: item.type,
+            itemName: item.name,
+            hasLogo: !!item.logoUrl,
+            logoUrl: item.logoUrl
+          },
           rawResponseStructure: {
             hasNestedData: !!response.data.data,
             dataKeys: Object.keys(response.data),
@@ -132,7 +166,7 @@ export function useContentHistory(sessionType: 'PRACTICE' | 'EXAM'): UseContentH
 
         setState(prev => ({
           ...prev,
-          sessions: sessions,
+          sessions: enrichedSessions,
           pagination: paginationData,
           sessionsLoading: false,
           sessionsError: null

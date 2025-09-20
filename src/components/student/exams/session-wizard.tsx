@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// Card components removed - component is now wrapped by parent Card
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -467,30 +467,18 @@ export function ExamSessionWizard({
   return (
     <ApiErrorBoundary>
       <LoadingOverlay loading={loading} message="Creating exam session...">
-        <Card className="quiz-card-enhanced">
-          <CardHeader>
+        <div>
+          {/* Header Section */}
+          <div className="px-4 sm:px-6">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 exam-icon" /> Create Exam Session
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">Select a Unite (all modules) or an Independent Module - selecting one will automatically deselect the other</p>
-              </div>
-
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-        {/* Visual stepper (1 step to keep consistency) */}
-        <div className="flex items-center gap-3">
-          {[1].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold bg-primary text-primary-foreground`}>
-                <CheckCircle2 className="w-4 h-4" />
+               
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+
+          {/* Content Section */}
+          <div className="space-y-6 px-4 sm:px-6 pb-4 sm:pb-6">
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -556,7 +544,6 @@ export function ExamSessionWizard({
             {/* Module Selection - Independent Modules Only */}
             <div className="space-y-2">
               <Label>Independent Module</Label>
-              <p className="text-xs text-muted-foreground">Only independent modules are available for exam sessions</p>
               <Select
                 value={selectedModule ? String(selectedModule.id) : ''}
                 onValueChange={(value) => {
@@ -605,12 +592,10 @@ export function ExamSessionWizard({
           <div className="space-y-4">
             <div>
               <Label className="text-base font-semibold">Exam Session Filters</Label>
-              <p className="text-sm text-muted-foreground">
-                <span className="text-red-600 font-medium">Required:</span> University, Question Source, and Exam Year must be selected for exam sessions
-              </p>
+              
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-4">
               <UniversitySelector
                 universitySelection={universitySelection}
                 allowMultiple={false}
@@ -699,8 +684,8 @@ export function ExamSessionWizard({
             Create Exam Session
           </Button>
         </div>
-      </CardContent>
-    </Card>
+          </div>
+        </div>
       </LoadingOverlay>
     </ApiErrorBoundary>
   );

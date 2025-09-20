@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { LogoDisplay } from '@/components/ui/logo-display';
 import { LoadingSpinner } from '@/components/loading-states';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RetakeDialog, RetakeType } from '@/components/student/quiz/retake-dialog';
@@ -22,7 +23,10 @@ import {
   BarChart3,
   ArrowLeft,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Building2,
+  GraduationCap,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -52,7 +56,10 @@ function normalizeSessionData(session: any): SessionItem {
     questionsNotAnswered: session.questionsNotAnswered,
     timeSpent: session.timeSpent,
     percentage: session.percentage,
-    averageTimePerQuestion: session.averageTimePerQuestion
+    averageTimePerQuestion: session.averageTimePerQuestion,
+    // Include unit and module information with logos if available
+    unit: session.unit,
+    module: session.module
   };
 }
 
@@ -73,6 +80,17 @@ interface SessionItem {
   timeSpent?: number;
   percentage?: number;
   averageTimePerQuestion?: number;
+  // Unit and Module information with logos
+  unit?: {
+    id: number;
+    name: string;
+    logoUrl?: string;
+  };
+  module?: {
+    id: number;
+    name: string;
+    logoUrl?: string;
+  };
 }
 
 interface PaginationInfo {
@@ -353,11 +371,11 @@ export function SessionList({
           icon={isErrorState ? XCircle : (variant === 'practice' ? Play : FileText)}
           title={isErrorState ? "Unable to Load Sessions" : `No ${variant === 'practice' ? 'Practice' : 'Exam'} Sessions Found`}
           description={emptyMessage}
-          action={!isErrorState ? undefined : (
+          action={isErrorState ? (
             <Button onClick={onRefresh} variant="outline">
               Try Again
             </Button>
-          )}
+          ) : undefined}
         />
       </div>
     );
@@ -375,51 +393,51 @@ export function SessionList({
               </Button>
             )}
             <h2 className="text-lg sm:text-xl font-semibold">
-              {variant === 'practice' ? 'Practice' : 'Exam'} Sessions
+              Sessions {variant === 'practice' ? 'de pratique' : "d'examen"}
             </h2>
             <Badge variant="secondary" className="text-xs">{sessions.length}</Badge>
           </div>
           {selectedItemName && (
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Showing sessions for {selectedItemName}
+              Affichage des sessions pour {selectedItemName}
             </p>
           )}
         </div>
       </div>
 
       {/* Sessions List */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {sessions.map((session) => (
           <Card
             key={session.id}
             className="cursor-pointer hover:shadow-md transition-all duration-200"
             onClick={() => handleSessionClick(session)}
           >
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="p-3 sm:p-4">
               {/* Mobile-first responsive layout */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Header section with icon and title */}
-                <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex items-start gap-2 sm:gap-3">
                   <div className={cn(
-                    "p-2 sm:p-3 rounded-lg flex-shrink-0",
+                    "p-1.5 sm:p-2 rounded-md flex-shrink-0",
                     variant === 'practice' ? "bg-primary/10" : "bg-chart-2/10"
                   )}>
                     {variant === 'practice' ? (
                       <Play className={cn(
-                        "h-4 w-4 sm:h-5 sm:w-5",
+                        "h-3.5 w-3.5 sm:h-4 sm:w-4",
                         variant === 'practice' ? "text-primary" : "text-chart-2"
                       )} />
                     ) : (
                       <FileText className={cn(
-                        "h-4 w-4 sm:h-5 sm:w-5",
+                        "h-3.5 w-3.5 sm:h-4 sm:w-4",
                         variant === 'practice' ? "text-primary" : "text-chart-2"
                       )} />
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-base sm:text-lg text-foreground leading-tight">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 mb-1.5">
+                      <h3 className="font-semibold text-sm sm:text-base text-foreground leading-tight">
                         {session.title}
                       </h3>
                       <Badge className={cn("text-xs w-fit", getStatusColor(session.status))}>
@@ -427,31 +445,54 @@ export function SessionList({
                         <span className="ml-1">{session.status.replace('_', ' ')}</span>
                       </Badge>
                     </div>
-                    
+
+                    {/* Unit Information with Logo */}
+                    {session.unit && (
+                      <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-3 mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <LogoDisplay
+                            logoUrl={session.unit.logoUrl}
+                            fallbackIcon={Building2}
+                            alt={`${session.unit.name} logo`}
+                            size="sm"
+                            variant="rounded"
+                            className="bg-primary/5 border border-primary/20"
+                            iconClassName="text-primary"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">Unit</p>
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {session.unit.name}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Session details - responsive grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-3 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <Calendar className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{formatDate(session.createdAt)}</span>
                       </div>
                       
                       {session.totalQuestions && (
                         <div className="flex items-center gap-1">
-                          <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <BarChart3 className="h-3 w-3 flex-shrink-0" />
                           <span>{session.totalQuestions} questions</span>
                         </div>
                       )}
                       
                       {session.score !== undefined && (
                         <div className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <CheckCircle className="h-3 w-3 flex-shrink-0" />
                           <span>{session.score}%</span>
                         </div>
                       )}
                       
                       {session.timeSpent && (
                         <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <Clock className="h-3 w-3 flex-shrink-0" />
                           <span>{formatTimeSpent(session.timeSpent)}</span>
                         </div>
                       )}
@@ -460,13 +501,13 @@ export function SessionList({
                 </div>
                 
                 {/* Action buttons - responsive layout */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 border-t border-border/50">
-                  <div className="flex flex-wrap gap-2 flex-1">
+                <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 pt-1.5 border-t border-border/50">
+                  <div className="flex flex-wrap gap-1.5 flex-1">
                     {session.status === 'NOT_STARTED' && (
                       <Button
                         size="sm"
                         variant="default"
-                        className="flex-1 sm:flex-none touch-target"
+                        className="flex-1 sm:flex-none touch-target text-xs h-8"
                         onClick={async (e) => {
                           e.stopPropagation();
                           try {
@@ -475,7 +516,7 @@ export function SessionList({
                           router.push(`/session/${session.id}`);
                         }}
                       >
-                        <Play className="h-4 w-4 mr-1" />
+                        <Play className="h-3 w-3 mr-1" />
                         Start
                       </Button>
                     )}
@@ -484,7 +525,7 @@ export function SessionList({
                       <Button
                         size="sm"
                         variant="default"
-                        className="flex-1 sm:flex-none touch-target"
+                        className="flex-1 sm:flex-none touch-target text-xs h-8"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/session/${session.id}`);
@@ -499,7 +540,7 @@ export function SessionList({
                         <Button
                           size="sm"
                           variant="default"
-                          className="flex-1 sm:flex-none touch-target"
+                          className="flex-1 sm:flex-none touch-target text-xs h-8"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/session/${session.id}/results`);
@@ -510,7 +551,7 @@ export function SessionList({
                         <Button
                           size="sm"
                           variant="default"
-                          className="flex-1 sm:flex-none touch-target"
+                          className="flex-1 sm:flex-none touch-target text-xs h-8"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenRetake(session);
@@ -525,7 +566,7 @@ export function SessionList({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10 touch-target"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 touch-target text-xs h-8"
                     onClick={async (e) => {
                       e.stopPropagation();
                       await handleDeleteSession(session.id);

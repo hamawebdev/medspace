@@ -55,33 +55,9 @@ export function UniversitySelector({
     );
   }
 
-  // Show auto-selected university (single university case)
+  // Hide university UI when auto-selected (single university case)
   if (autoSelectedUniversity && !showDropdown) {
-    return (
-      <div className={cn("space-y-2", className)}>
-        <Label className="flex items-center gap-1">
-          <UniversityIcon className="h-4 w-4" />
-          {label}
-          {required && <span className="text-red-500">*</span>}
-        </Label>
-        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <div className="flex-1">
-            <div className="font-medium text-green-900">
-              {autoSelectedUniversity.name}
-            </div>
-            {autoSelectedUniversity.country && (
-              <div className="text-sm text-green-700">
-                {autoSelectedUniversity.country}
-              </div>
-            )}
-            <div className="text-xs text-green-600 mt-1">
-              Auto-sélectionnée (seule université disponible)
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Show dropdown for multiple universities

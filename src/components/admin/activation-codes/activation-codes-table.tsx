@@ -17,14 +17,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  MoreHorizontal, 
-  Copy, 
-  Ban, 
+import {
+  MoreHorizontal,
+  Copy,
+  Ban,
   Calendar,
   Users,
-  Package
+  Package,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { ActivationCode } from '@/types/api';
 import { toast } from 'sonner';
@@ -36,6 +46,8 @@ interface ActivationCodesTableProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onEditCode: (code: ActivationCode) => void;
+  onDeleteCode: (codeId: number) => void;
   onDeactivateCode: (codeId: number) => void;
 }
 
@@ -45,9 +57,12 @@ export function ActivationCodesTable({
   currentPage,
   totalPages,
   onPageChange,
+  onEditCode,
+  onDeleteCode,
   onDeactivateCode,
 }: ActivationCodesTableProps) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const handleCopyCode = async (code: string) => {
     try {
@@ -70,6 +85,15 @@ export function ActivationCodesTable({
 
   const isExpired = (expiresAt: string) => {
     return new Date(expiresAt) < new Date();
+  };
+
+  const handleDeleteConfirm = async (codeId: number) => {
+    try {
+      await onDeleteCode(codeId);
+      setDeleteConfirmId(null);
+    } catch (error) {
+      // Error is handled in parent component
+    }
   };
 
   const isExpiringSoon = (expiresAt: string) => {
@@ -220,15 +244,28 @@ export function ActivationCodesTable({
                         <Copy className="mr-2 h-4 w-4" />
                         Copy Code
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onEditCode(code)}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
                       {code.isActive && (
                         <DropdownMenuItem
                           onClick={() => onDeactivateCode(code.id)}
-                          className="text-red-600"
+                          className="text-orange-600"
                         >
                           <Ban className="mr-2 h-4 w-4" />
                           Deactivate
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem
+                        onClick={() => setDeleteConfirmId(code.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -263,6 +300,34 @@ export function ActivationCodesTable({
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmId && (
+        <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this activation code? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteConfirm(deleteConfirmId)}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

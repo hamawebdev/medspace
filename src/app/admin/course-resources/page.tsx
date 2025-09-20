@@ -350,14 +350,6 @@ export default function AdminCourseResourcesPage() {
                 <Plus className="h-4 w-4" />
                 Add Resource
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => console.log('Test delete button works!')}
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Test Delete
-              </Button>
             </div>
           </div>
 

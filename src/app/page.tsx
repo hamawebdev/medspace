@@ -352,7 +352,7 @@ export default function Home() {
                   <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
                 </div>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
-                  Quizy vous donne la possibilité de choisir les cours sur lesquels vous voulez vous exercer. Vous pouvez choisir un ou plusieurs cours à la fois, selon vos préférences. Vous pouvez même choisir des cours de modules différents.
+                  MedCortex vous donne la possibilité de choisir les cours sur lesquels vous voulez vous exercer. Vous pouvez choisir un ou plusieurs cours à la fois, selon vos préférences. Vous pouvez même choisir des cours de modules différents.
                 </p>
               </div>
             </div>
@@ -445,6 +445,332 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Feature 3: Anciennes sessions et Playlists personnalisées - Image Left, Text Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              {/* Image Container */}
+              <div className="relative group">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-card border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                  {/* Sessions & Playlists Interface Mockup */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-muted/50 to-card p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold text-foreground">Mes Sessions</h4>
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Sessions List */}
+                    <div className="space-y-3">
+                      <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-foreground">Cardiologie - Session 1</span>
+                          <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 8 8">
+                              <path d="M6.564.75l-3.59 3.612-1.538-1.55L0 4.26l2.974 2.99L8 2.193z"/>
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">Reprendre à la question 15/50</div>
+                      </div>
+
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-foreground">Pneumologie - Session 2</span>
+                          <div className="w-6 h-6 bg-muted-foreground/30 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">Terminée - 45/50 correctes</div>
+                      </div>
+
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-foreground">Ma Playlist Personnalisée</span>
+                          <div className="w-6 h-6 bg-muted-foreground/30 rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">25 questions sélectionnées</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Text Content */}
+              <div className="space-y-6 text-center lg:text-left group">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 transition-colors duration-300 group-hover:text-primary">
+                    Anciennes sessions et Playlists personnalisées
+                  </h3>
+                  {/* Primary color underline accent */}
+                  <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
+                </div>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
+                  Quizy vous donne la possibilité de sauvegarder toutes vos sessions et vos progressions pour continuer quand bon vous semble à l'endroit exact où vous vous êtes arrêtés. Vous avez la possibilité de créer des playlists de questions personnalisées.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature 4: Notes personnelles - Text Left, Image Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              {/* Text Content */}
+              <div className="space-y-6 text-center lg:text-left lg:order-1 group">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 transition-colors duration-300 group-hover:text-primary">
+                    Notes personnelles
+                  </h3>
+                  {/* Primary color underline accent */}
+                  <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
+                </div>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
+                  Vous avez la possibilité d'ajouter des notes personnelles sauvegardées avec les questions correspondantes et que vous pourrez consulter quand bon vous semble.
+                </p>
+              </div>
+
+              {/* Image Container */}
+              <div className="relative group lg:order-2">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-card border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                  {/* Notes Interface Mockup */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-muted/50 to-card p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold text-foreground">Mes Notes</h4>
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Notes List */}
+                    <div className="space-y-3">
+                      <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-foreground mb-1">Insuffisance cardiaque</div>
+                            <div className="text-xs text-muted-foreground">Rappel: BNP > 400 pg/mL...</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-muted-foreground/30 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-foreground mb-1">Pneumonie</div>
+                            <div className="text-xs text-muted-foreground">Critères de CURB-65...</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-muted-foreground/30 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-foreground mb-1">Électrocardiogramme</div>
+                            <div className="text-xs text-muted-foreground">Définition des ondes...</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 5: Analyse des performances - Image Left, Text Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              {/* Image Container */}
+              <div className="relative group">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-card border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                  {/* Analytics Interface Mockup */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-muted/50 to-card p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold text-foreground">Analytics</h4>
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Analytics Content */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+                          <div className="text-xs text-muted-foreground mb-1">Temps moyen</div>
+                          <div className="text-lg font-bold text-foreground">2m 30s</div>
+                        </div>
+                        <div className="p-3 bg-muted rounded-xl">
+                          <div className="text-xs text-muted-foreground mb-1">Précision</div>
+                          <div className="text-lg font-bold text-foreground">85%</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                          <span className="text-sm text-foreground">Cardiologie</span>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 h-2 bg-muted rounded-full">
+                              <div className="w-12 h-2 bg-primary rounded-full"></div>
+                            </div>
+                            <span className="text-xs text-muted-foreground">75%</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                          <span className="text-sm text-foreground">Pneumologie</span>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 h-2 bg-muted rounded-full">
+                              <div className="w-8 h-2 bg-primary rounded-full"></div>
+                            </div>
+                            <span className="text-xs text-muted-foreground">50%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Text Content */}
+              <div className="space-y-6 text-center lg:text-left group">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 transition-colors duration-300 group-hover:text-primary">
+                    Analyse des performances
+                  </h3>
+                  {/* Primary color underline accent */}
+                  <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
+                </div>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
+                  Quizy dispose d'un timer qui vous permet de monitorer le temps que vous passez sur la question et sur la session dans son ensemble. La plateforme propose aussi un outil statistique avancé pour suivre vos progressions par module, par session et par examen.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature 6: Surligneur - Text Left, Image Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              {/* Text Content */}
+              <div className="space-y-6 text-center lg:text-left lg:order-1 group">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 transition-colors duration-300 group-hover:text-primary">
+                    Surligneur : mettez en évidence les points clés !
+                  </h3>
+                  {/* Primary color underline accent */}
+                  <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
+                </div>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
+                  Nous avons intégré un surligneur à la plateforme qui vous permet, à la lecture des questions et notamment des cas cliniques, de mettre en évidence toutes les informations que vous jugez utiles pour résoudre le problème. Vous n'avez donc pas besoin de relire incessamment les énoncés interminables…
+                </p>
+              </div>
+
+              {/* Image Container */}
+              <div className="relative group lg:order-2">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-card border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                  {/* Highlighter Interface Mockup */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-muted/50 to-card p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold text-foreground">Question</h4>
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Question with highlighting */}
+                    <div className="space-y-3">
+                      <div className="text-sm text-foreground leading-relaxed">
+                        <p className="mb-2">Un patient de 65 ans se présente aux urgences avec une douleur thoracique...</p>
+                        <p className="bg-yellow-200 text-yellow-900 px-2 py-1 rounded">
+                          <strong>douleur thoracique rétrosternale</strong>
+                        </p>
+                        <p className="mb-2">...depuis 2 heures. Il a des antécédents de...</p>
+                        <p className="bg-blue-200 text-blue-900 px-2 py-1 rounded">
+                          <strong>diabète de type 2</strong>
+                        </p>
+                        <p>...et d'hypertension artérielle.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 7: Mode nuit - Image Left, Text Right */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              {/* Image Container */}
+              <div className="relative group">
+                <div className="relative overflow-hidden rounded-2xl shadow-lg bg-card border border-border/50 transition-all duration-500 group-hover:shadow-2xl group-hover:scale-[1.02] group-hover:border-primary/20">
+                  {/* Dark Mode Interface Mockup */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-gray-900 to-gray-800 p-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-6">
+                      <h4 className="text-lg font-semibold text-white">Mode Nuit</h4>
+                      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Dark mode content */}
+                    <div className="space-y-4">
+                      <div className="p-3 bg-white/10 rounded-lg border border-white/20">
+                        <div className="text-sm text-white mb-2">Question 15/50</div>
+                        <div className="text-xs text-gray-300">Cardiologie - Insuffisance cardiaque</div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="p-2 bg-white/5 rounded-lg">
+                          <div className="text-xs text-gray-300">A) Option 1</div>
+                        </div>
+                        <div className="p-2 bg-white/5 rounded-lg">
+                          <div className="text-xs text-gray-300">B) Option 2</div>
+                        </div>
+                        <div className="p-2 bg-white/5 rounded-lg">
+                          <div className="text-xs text-gray-300">C) Option 3</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="text-xs text-gray-400">Temps: 2m 30s</div>
+                        <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Text Content */}
+              <div className="space-y-6 text-center lg:text-left group">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3 transition-colors duration-300 group-hover:text-primary">
+                    Mode nuit
+                  </h3>
+                  {/* Primary color underline accent */}
+                  <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
+                </div>
+                <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
+                  Notre plateforme dispose d'un mode nuit tout à fait agréable pour les yeux, idéal pour les longues soirées de révisions…
+                </p>
               </div>
             </div>
           </div>

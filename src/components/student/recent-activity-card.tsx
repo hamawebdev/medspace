@@ -76,33 +76,33 @@ export function RecentActivityCard({ session, loading }: RecentActivityCardProps
   if (loading) {
     return (
       <Card className="relative overflow-hidden transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 border-border/50 hover:border-primary/20">
-        <CardHeader className="pb-4 sm:pb-6">
-          <CardTitle className="flex items-center gap-3 sm:gap-4 text-lg sm:text-xl font-bold text-foreground">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg sm:rounded-xl border border-primary/20">
-              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+        <CardHeader className="pb-6">
+          <CardTitle className="flex items-center gap-3 text-lg font-bold text-foreground">
+            <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg border border-primary/20">
+              <Clock className="w-5 h-5 text-primary" />
             </div>
             Recent Activity
           </CardTitle>
-          <CardDescription className="text-base text-muted-foreground leading-relaxed font-medium">
+          <CardDescription className="text-sm text-muted-foreground font-medium mt-1">
             Chargement de votre activité récente...
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="p-4 sm:p-6 bg-muted/30 rounded-lg sm:rounded-xl animate-pulse border border-border/50">
-            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 bg-muted rounded-lg sm:rounded-xl"></div>
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-muted/30 rounded-lg animate-pulse border border-border/50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 bg-muted rounded-lg"></div>
               <div className="flex-1">
-                <div className="h-4 sm:h-5 bg-muted rounded mb-2 sm:mb-3"></div>
-                <div className="h-3 sm:h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-4 bg-muted rounded mb-2"></div>
+                <div className="h-3 bg-muted rounded w-3/4"></div>
               </div>
             </div>
-            <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
-              <div className="h-5 sm:h-6 w-12 sm:w-16 bg-muted rounded"></div>
-              <div className="h-5 sm:h-6 w-16 sm:w-20 bg-muted rounded"></div>
+            <div className="flex gap-2 mb-4">
+              <div className="h-6 w-16 bg-muted rounded"></div>
+              <div className="h-6 w-20 bg-muted rounded"></div>
             </div>
             <div className="flex justify-between">
-              <div className="h-6 sm:h-8 w-16 sm:w-20 bg-muted rounded"></div>
-              <div className="h-8 sm:h-10 w-20 sm:w-24 bg-muted rounded"></div>
+              <div className="h-8 w-20 bg-muted rounded"></div>
+              <div className="h-8 w-24 bg-muted rounded"></div>
             </div>
           </div>
         </CardContent>
@@ -112,36 +112,36 @@ export function RecentActivityCard({ session, loading }: RecentActivityCardProps
 
   return (
     <Card className="relative overflow-hidden transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 border-border/50 hover:border-primary/20">
-      <CardHeader className="pb-4 sm:pb-6">
-        <CardTitle className="flex items-center gap-3 sm:gap-4 text-lg sm:text-xl font-bold text-foreground">
-          <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-lg sm:rounded-xl border border-primary/20">
-            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+      <CardHeader className="pb-6">
+        <CardTitle className="flex items-center gap-3 text-lg font-bold text-foreground">
+          <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg border border-primary/20">
+            <Clock className="w-5 h-5 text-primary" />
           </div>
           Recent Activity
         </CardTitle>
-        <CardDescription className="text-base text-muted-foreground leading-relaxed font-medium">
+        <CardDescription className="text-sm text-muted-foreground font-medium mt-1">
           Votre dernière session d'étude
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {!session ? (
-          <div className="text-center py-8 sm:py-12 text-muted-foreground">
-            <div className="text-base font-medium">Aucun élément disponible.</div>
+          <div className="text-center py-6 text-muted-foreground">
+            <div className="text-sm font-medium">Aucun élément disponible.</div>
           </div>
         ) : (
-          <div className="p-4 sm:p-6 bg-muted/30 rounded-lg sm:rounded-xl border border-border/50 hover:bg-muted/50 transition-all duration-300 ease-out hover:shadow-sm">
-            <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <div className="p-2 sm:p-3 bg-primary/10 rounded-lg sm:rounded-xl flex-shrink-0 border border-primary/20">
+          <div className="p-4 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-all duration-300 ease-out hover:shadow-sm">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 bg-primary/10 rounded-md flex-shrink-0 border border-primary/20">
                 {(() => {
                   const Icon = getSessionIcon(session.type);
-                  return <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />;
+                  return <Icon className="h-4 w-4 text-primary" />;
                 })()}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-base sm:text-lg line-clamp-1 mb-2 text-foreground">
+                <h3 className="font-bold text-base line-clamp-1 mb-1 text-foreground">
                   {session.title}
                 </h3>
-                <p className="text-sm sm:text-base text-muted-foreground font-medium mb-3">
+                <p className="text-sm text-muted-foreground font-medium">
                   {session.createdAt && formatDistanceToNow(new Date(session.createdAt), {
                     addSuffix: true,
                     locale: fr,
@@ -150,8 +150,8 @@ export function RecentActivityCard({ session, loading }: RecentActivityCardProps
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-              <Badge variant="outline" className="text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1 bg-chart-3/10 text-chart-3 border-chart-3/20">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <Badge variant="outline" className="text-xs font-semibold px-2.5 py-1 bg-chart-3/10 text-chart-3 border-chart-3/20">
                 {session.type}
               </Badge>
 
@@ -159,8 +159,8 @@ export function RecentActivityCard({ session, loading }: RecentActivityCardProps
                 const statusInfo = getStatusInfo(session.status);
                 const StatusIcon = statusInfo.icon;
                 return (
-                  <Badge variant="outline" className={cn("text-xs sm:text-sm flex items-center gap-1 font-semibold px-2 sm:px-3 py-1", statusInfo.color)}>
-                    <StatusIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <Badge variant="outline" className={cn("text-xs flex items-center gap-1.5 font-semibold px-2.5 py-1", statusInfo.color)}>
+                    <StatusIcon className="h-3 w-3" />
                     {session.status}
                   </Badge>
                 );
@@ -168,23 +168,23 @@ export function RecentActivityCard({ session, loading }: RecentActivityCardProps
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-4">
                 <div className="text-center">
-                  <div className={cn("text-xl sm:text-2xl font-bold", getPerformanceColor(session.percentage))}>
+                  <div className={cn("text-xl font-bold", getPerformanceColor(session.percentage))}>
                     {session.percentage.toFixed(1)}%
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground font-semibold">Score</div>
+                  <div className="text-xs text-muted-foreground font-semibold">Score</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl sm:text-2xl font-bold text-foreground">
+                  <div className="text-xl font-bold text-foreground">
                     {session.score.toFixed(1)}
                   </div>
-                  <div className="text-xs sm:text-sm text-muted-foreground font-semibold">Points</div>
+                  <div className="text-xs text-muted-foreground font-semibold">Points</div>
                 </div>
               </div>
 
               {session.status === 'IN_PROGRESS' && (
-                <Button size="sm" variant="outline" className="text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 hover:bg-primary hover:text-primary-foreground transition-colors">
+                <Button size="sm" variant="outline" className="text-sm font-semibold px-3 py-2 hover:bg-primary hover:text-primary-foreground transition-colors">
                   Continuer
                 </Button>
               )}

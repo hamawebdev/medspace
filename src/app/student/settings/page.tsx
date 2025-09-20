@@ -6,13 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { User, Shield, Palette } from 'lucide-react'
-import ProfileForm from '@/components/student/settings/profile-form'
 import { AccountForm } from '@/components/student/settings/account-form'
 import { AppearanceForm } from '@/components/student/settings/appearance-form'
 
 
 export default function StudentSettingsPage() {
-  const [activeTab, setActiveTab] = useState('profile')
+  const [activeTab, setActiveTab] = useState('account')
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--background)' }}>
@@ -35,27 +34,20 @@ export default function StudentSettingsPage() {
         </div>
 
       <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
-        <aside className="-mx-4 lg:w-1/5">
+        <aside className="lg:w-1/5">
           <nav className="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="w-full">
-              <TabsList className="grid w-full grid-cols-1 lg:grid-cols-1 h-auto bg-transparent">
-                <TabsTrigger 
-                  value="profile" 
-                  className="w-full justify-start gap-2 data-[state=active]:bg-muted"
-                >
-                  <User className="h-4 w-4" />
-                  Profile
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-1 lg:grid-cols-1 h-auto bg-transparent p-0">
                 <TabsTrigger 
                   value="account" 
-                  className="w-full justify-start gap-2 data-[state=active]:bg-muted"
+                  className="w-full justify-start gap-2 data-[state=active]:bg-muted px-3 py-2"
                 >
                   <Shield className="h-4 w-4" />
                   Account
                 </TabsTrigger>
                 <TabsTrigger 
                   value="appearance" 
-                  className="w-full justify-start gap-2 data-[state=active]:bg-muted"
+                  className="w-full justify-start gap-2 data-[state=active]:bg-muted px-3 py-2"
                 >
                   <Palette className="h-4 w-4" />
                   Appearance
@@ -68,17 +60,6 @@ export default function StudentSettingsPage() {
         
         <div className="flex-1 lg:max-w-2xl">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsContent value="profile" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium">Profile</h3>
-                <p className="text-sm text-muted-foreground">
-                  Update your profile information and academic details.
-                </p>
-              </div>
-              <Separator />
-              <ProfileForm />
-            </TabsContent>
-
             <TabsContent value="account" className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium">Account</h3>
@@ -100,7 +81,6 @@ export default function StudentSettingsPage() {
               <Separator />
               <AppearanceForm />
             </TabsContent>
-
 
           </Tabs>
         </div>

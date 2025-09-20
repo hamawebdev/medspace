@@ -35,7 +35,7 @@ export function QuizResults() {
   const totalQuestions = session.totalQuestions || session.questions?.length || 0;
   const answeredQuestions = Object.keys(session.userAnswers || {}).length;
   const correctAnswers = Object.values(session.userAnswers || {}).filter(
-    (answer: any) => answer.isCorrect
+    (answer: any) => answer.isCorrect === true
   ).length;
   const incorrectAnswers = answeredQuestions - correctAnswers;
   const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;

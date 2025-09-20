@@ -86,6 +86,7 @@ import {
   ReviewQuestionReportRequest,
   ActivationCode,
   CreateActivationCodeRequest,
+  UpdateActivationCodeRequest,
   ActivationCodeFilters,
   AdminQuestion,
   AdminQuestionFilters,
@@ -102,6 +103,13 @@ import {
   StudyPackModule,
   StudyPackCourse,
   CurrentYear,
+  // Question Sources types
+  QuestionSource,
+  QuestionSourcesResponse,
+  QuestionSourceResponse,
+  CreateQuestionSourceRequest,
+  UpdateQuestionSourceRequest,
+  QuestionSourceFilters,
 } from '@/types/api';
 
 // Authentication Services
@@ -1572,6 +1580,44 @@ export class SubscriptionService {
   }
 
   /**
+   * Redeem activation code
+   * POST /students/codes/redeem
+   */
+  static async redeemActivationCode(code: string): Promise<ApiResponse<{
+    message: string;
+    subscription: {
+      id: number;
+      studyPackId: number;
+      status: string;
+      startDate: string;
+      endDate: string;
+      studyPack: {
+        id: number;
+        name: string;
+        type: string;
+        yearNumber?: string;
+      };
+    };
+  }>> {
+    return apiClient.post<{
+      message: string;
+      subscription: {
+        id: number;
+        studyPackId: number;
+        status: string;
+        startDate: string;
+        endDate: string;
+        studyPack: {
+          id: number;
+          name: string;
+          type: string;
+          yearNumber?: string;
+        };
+      };
+    }>('/students/codes/redeem', { code });
+  }
+
+  /**
    * Start a free trial for a subscription plan
    */
   static async startFreeTrial(planType: string): Promise<ApiResponse<{
@@ -2884,18 +2930,19 @@ export class AdminService {
     return AdminCourseResourcesService.getAdminContentFilters(params);
   }
 
-  // ==================== ACTIVATION CODES MANAGEMENT ====================
+  // ==================== ACTIVATION CODES MANAGEMENT (NEW API) ====================
 
   /**
    * Get all activation codes with pagination and filtering
+   * GET /admin/activation-codes
    */
   static async getActivationCodes(params: PaginationParams & ActivationCodeFilters = {}): Promise<ApiResponse<{
     activationCodes: ActivationCode[];
     pagination: {
-      page: number;
-      limit: number;
-      total: number;
+      currentPage: number;
       totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
     };
   }>> {
     const queryParams = new URLSearchParams();
@@ -2903,22 +2950,38 @@ export class AdminService {
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
     if (params.search) queryParams.append('search', params.search);
-    if (params.createdBy) queryParams.append('createdBy', params.createdBy.toString());
+    if (params.studyPackId) queryParams.append('studyPackId', params.studyPackId.toString());
+    if (params.expiryDate) queryParams.append('expiryDate', params.expiryDate);
 
     const url = queryParams.toString() ? `/admin/activation-codes?${queryParams.toString()}` : '/admin/activation-codes';
     return apiClient.get<{
       activationCodes: ActivationCode[];
       pagination: {
-        page: number;
-        limit: number;
-        total: number;
+        currentPage: number;
         totalPages: number;
+        totalItems: number;
+        itemsPerPage: number;
       };
     }>(url);
   }
 
   /**
+   * Get activation code by ID
+   * GET /admin/activation-codes/{id}
+   */
+  static async getActivationCodeById(codeId: number): Promise<ApiResponse<{
+    message: string;
+    activationCode: ActivationCode;
+  }>> {
+    return apiClient.get<{
+      message: string;
+      activationCode: ActivationCode;
+    }>(`/admin/activation-codes/${codeId}`);
+  }
+
+  /**
    * Create new activation code
+   * POST /admin/activation-codes
    */
   static async createActivationCode(codeData: CreateActivationCodeRequest): Promise<ApiResponse<{
     message: string;
@@ -2931,7 +2994,34 @@ export class AdminService {
   }
 
   /**
+   * Update activation code
+   * PUT /admin/activation-codes/{id}
+   */
+  static async updateActivationCode(codeId: number, codeData: UpdateActivationCodeRequest): Promise<ApiResponse<{
+    message: string;
+    activationCode: ActivationCode;
+  }>> {
+    return apiClient.put<{
+      message: string;
+      activationCode: ActivationCode;
+    }>(`/admin/activation-codes/${codeId}`, codeData);
+  }
+
+  /**
+   * Delete activation code
+   * DELETE /admin/activation-codes/{id}
+   */
+  static async deleteActivationCode(codeId: number): Promise<ApiResponse<{
+    message: string;
+  }>> {
+    return apiClient.delete<{
+      message: string;
+    }>(`/admin/activation-codes/${codeId}`);
+  }
+
+  /**
    * Deactivate activation code
+   * PATCH /admin/activation-codes/{id}/deactivate
    */
   static async deactivateActivationCode(codeId: number): Promise<ApiResponse<{
     message: string;
@@ -2941,6 +3031,72 @@ export class AdminService {
       message: string;
       activationCode: ActivationCode;
     }>(`/admin/activation-codes/${codeId}/deactivate`);
+  }
+
+  // ==================== QUESTION SOURCES MANAGEMENT ====================
+
+  /**
+   * Get all question sources with pagination
+   * GET /admin/question-sources
+   */
+  static async getQuestionSources(params: PaginationParams & {
+    search?: string;
+  } = {}): Promise<ApiResponse<QuestionSourcesResponse>> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.search) queryParams.append('search', params.search);
+
+    const url = queryParams.toString() ? `/admin/question-sources?${queryParams.toString()}` : '/admin/question-sources';
+    return apiClient.get<QuestionSourcesResponse>(url);
+  }
+
+  /**
+   * Get question source by ID
+   * GET /admin/question-sources/:id
+   */
+  static async getQuestionSource(id: number): Promise<ApiResponse<QuestionSourceResponse>> {
+    return apiClient.get<QuestionSourceResponse>(`/admin/question-sources/${id}`);
+  }
+
+  /**
+   * Create new question source
+   * POST /admin/question-sources
+   */
+  static async createQuestionSource(data: CreateQuestionSourceRequest): Promise<ApiResponse<{
+    message: string;
+    questionSource: QuestionSource;
+  }>> {
+    return apiClient.post<{
+      message: string;
+      questionSource: QuestionSource;
+    }>('/admin/question-sources', data);
+  }
+
+  /**
+   * Update question source
+   * PUT /admin/question-sources/:id
+   */
+  static async updateQuestionSource(id: number, data: UpdateQuestionSourceRequest): Promise<ApiResponse<{
+    message: string;
+    questionSource: QuestionSource;
+  }>> {
+    return apiClient.put<{
+      message: string;
+      questionSource: QuestionSource;
+    }>(`/admin/question-sources/${id}`, data);
+  }
+
+  /**
+   * Delete question source
+   * DELETE /admin/question-sources/:id
+   */
+  static async deleteQuestionSource(id: number): Promise<ApiResponse<{
+    message: string;
+  }>> {
+    return apiClient.delete<{
+      message: string;
+    }>(`/admin/question-sources/${id}`);
   }
 }
 
@@ -3165,6 +3321,63 @@ export class AdminContentService {
       message: string;
     }>(`/admin/content/modules/${moduleId}`);
   }
+
+  /**
+   * Update a unit including optional logo file via multipart/form-data
+   * Uses: PUT /admin/content/unites/:id with field name `logo`
+   */
+  static async updateUnitLogo(params: {
+    unitId: number;
+    name: string;
+    studyPackId: number;
+    description?: string;
+    logo?: File;
+  }): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    formData.append('studyPackId', String(params.studyPackId));
+    formData.append('name', params.name);
+    if (params.description) formData.append('description', params.description);
+    if (params.logo) formData.append('logo', params.logo);
+
+    return apiClient.put<any>(`/admin/content/unites/${params.unitId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
+  /**
+   * Update a module including optional logo file via multipart/form-data
+   * Uses: PUT /admin/content/modules/:id with field name `logo`
+   * Either uniteId or studyPackId must be supplied according to API docs.
+   */
+  static async updateModuleLogo(params: {
+    moduleId: number;
+    name: string;
+    description?: string;
+    uniteId?: number;
+    studyPackId?: number;
+    logo?: File;
+  }): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+
+    const hasUnite = typeof params.uniteId === 'number' && !Number.isNaN(params.uniteId);
+    const hasSP = typeof params.studyPackId === 'number' && !Number.isNaN(params.studyPackId);
+
+    // API requires exactly one of uniteId OR studyPackId. Prefer uniteId when both provided.
+    if (hasUnite) {
+      formData.append('uniteId', String(params.uniteId));
+    } else if (hasSP) {
+      formData.append('studyPackId', String(params.studyPackId));
+    }
+
+    formData.append('name', params.name);
+    if (params.description) formData.append('description', params.description);
+    if (params.logo) formData.append('logo', params.logo);
+
+    return apiClient.put<any>(`/admin/content/modules/${params.moduleId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+
 
   // ==================== COURSE MANAGEMENT ====================
 
@@ -3527,27 +3740,37 @@ export class AdminCourseResourcesService {
       // Add the file
       formData.append('file', file);
 
-      // Add all the resource data fields
-      formData.append('courseId', cleanData.courseId.toString());
+      // Add all the resource data fields (improved from test file pattern)
       formData.append('type', cleanData.type);
       formData.append('title', cleanData.title);
-      formData.append('isPaid', cleanData.isPaid.toString());
-      formData.append('price', cleanData.price.toString());
+      formData.append('courseId', cleanData.courseId.toString());
 
-      // Add optional fields only if they have values
-      if (cleanData.description) {
-        formData.append('description', cleanData.description);
-      }
-      if (cleanData.externalUrl) {
-        formData.append('externalUrl', cleanData.externalUrl);
-      }
-      if (cleanData.youtubeVideoId) {
-        formData.append('youtubeVideoId', cleanData.youtubeVideoId);
-      }
+      // Add optional fields only if they have values (matching test file logic)
+      if (cleanData.description) formData.append('description', cleanData.description);
+      if (cleanData.externalUrl) formData.append('externalUrl', cleanData.externalUrl);
+      if (cleanData.youtubeVideoId) formData.append('youtubeVideoId', cleanData.youtubeVideoId);
+      if (cleanData.isPaid) formData.append('isPaid', cleanData.isPaid.toString());
+      if (cleanData.price && cleanData.isPaid) formData.append('price', cleanData.price.toString());
 
       // Use XMLHttpRequest for progress tracking with correct API base URL
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token'); // Use correct token key from api-client
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://med-cortex.com/api/v1';
+
+      console.log('🔐 [API] Token retrieval for file upload:', {
+        hasToken: !!token,
+        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+        tokenKey: 'auth_token'
+      });
+
+      // Check if token is available
+      if (!token) {
+        console.error('❌ [API] No authentication token available for file upload');
+        return Promise.resolve({
+          success: false,
+          error: 'Authentication token not found. Please log in again.',
+          data: null
+        });
+      }
 
       return new Promise((resolve) => {
         const xhr = new XMLHttpRequest();
@@ -3566,6 +3789,13 @@ export class AdminCourseResourcesService {
           try {
             const result = JSON.parse(xhr.responseText);
 
+            console.log('📥 [API] XMLHttpRequest response:', {
+              status: xhr.status,
+              statusText: xhr.statusText,
+              hasResult: !!result,
+              resultKeys: result ? Object.keys(result) : []
+            });
+
             if (xhr.status >= 200 && xhr.status < 300) {
               resolve({
                 success: true,
@@ -3573,13 +3803,40 @@ export class AdminCourseResourcesService {
                 error: null
               });
             } else {
+              // Enhanced error handling for different response structures
+              let errorMessage = 'Failed to create resource';
+
+              if (result?.error?.message) {
+                errorMessage = result.error.message;
+              } else if (result?.error && typeof result.error === 'string') {
+                errorMessage = result.error;
+              } else if (result?.message) {
+                errorMessage = result.message;
+              } else if (xhr.status === 401) {
+                errorMessage = 'Authentication failed. Please log in again.';
+              } else if (xhr.status === 403) {
+                errorMessage = 'Access denied. You do not have permission to perform this action.';
+              } else if (xhr.status === 413) {
+                errorMessage = 'File too large. Please select a smaller file.';
+              } else if (xhr.status === 415) {
+                errorMessage = 'Unsupported file type. Please select a supported file format.';
+              }
+
+              console.error('❌ [API] XMLHttpRequest error response:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                errorMessage,
+                result
+              });
+
               resolve({
                 success: false,
-                error: result.message || result.error || 'Failed to create resource',
+                error: errorMessage,
                 data: null
               });
             }
           } catch (error) {
+            console.error('❌ [API] Failed to parse XMLHttpRequest response:', error);
             resolve({
               success: false,
               error: 'Invalid response from server',
@@ -3589,9 +3846,19 @@ export class AdminCourseResourcesService {
         });
 
         xhr.addEventListener('error', () => {
+          console.error('❌ [API] XMLHttpRequest network error');
           resolve({
             success: false,
-            error: 'Network error occurred',
+            error: 'Network error occurred. Please check your connection and try again.',
+            data: null
+          });
+        });
+
+        xhr.addEventListener('timeout', () => {
+          console.error('❌ [API] XMLHttpRequest timeout');
+          resolve({
+            success: false,
+            error: 'Request timeout. Please try again.',
             data: null
           });
         });

@@ -105,12 +105,12 @@ export function ModernRegisterForm() {
       console.error('Failed to load registration data:', error);
 
       // Provide more specific error messages
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load registration options';
+      const errorMessage = error instanceof Error ? error.message : 'Échec du chargement des options d&apos;inscription';
 
       if (errorMessage.includes('API server is currently unavailable')) {
-        toast.error('Registration service is temporarily unavailable. Please try again later or contact support.');
+        toast.error('Le service d&apos;inscription est temporairement indisponible. Veuillez réessayer plus tard ou contacter le support.');
       } else {
-        toast.error('Failed to load registration options. Please refresh the page.');
+        toast.error('Échec du chargement des options d&apos;inscription. Veuillez actualiser la page.');
       }
 
       setUniversities([]);
@@ -286,13 +286,13 @@ export function ModernRegisterForm() {
         }
       }
 
-      toast.success('Registration successful! Welcome to MedCortex!');
+      toast.success('Inscription réussie ! Bienvenue sur MedCortex !');
 
       // Redirect new users directly to subscription browse page
       router.push('/student/subscriptions/browse');
 
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      const errorMessage = error instanceof Error ? error.message : 'Échec de l&apos;inscription';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -367,12 +367,12 @@ export function ModernRegisterForm() {
             
             {/* Title */}
             <CardTitle className="!text-3xl !font-semibold !tracking-tight !text-emerald-400 !text-center !flex !justify-center !items-center !transition-none !group-hover:!text-emerald-400 !leading-tight">
-              Join MedCortex
+              Rejoindre MedCortex
             </CardTitle>
             
             {/* Description */}
             <CardDescription className="text-lg max-w-md mx-auto text-muted-foreground">
-              Start your medical education journey today
+              Commencez votre parcours d&apos;éducation médicale aujourd&apos;hui
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 px-6 md:px-8 pb-8 animate-delay-200">
@@ -388,13 +388,13 @@ export function ModernRegisterForm() {
               {/* Name Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">Prénom</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                     <Input
                       id="firstName"
                       type="text"
-                      placeholder="Enter your first name"
+                      placeholder="Entrez votre prénom"
                       className={cn(
                         "pl-10 h-10 border",
                         errors.firstName 
@@ -410,13 +410,13 @@ export function ModernRegisterForm() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="lastName">Nom de famille</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                     <Input
                       id="lastName"
                       type="text"
-                      placeholder="Enter your last name"
+                      placeholder="Entrez votre nom de famille"
                       className={cn(
                         "pl-10 h-10 border",
                         errors.lastName 
@@ -434,13 +434,13 @@ export function ModernRegisterForm() {
 
               {/* Email Field */}
               <div className="space-y-3">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email">Adresse e-mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Entrez votre e-mail"
                     className="pl-10 h-10 border border-border"
                     {...register("email")}
                   />
@@ -452,7 +452,7 @@ export function ModernRegisterForm() {
 
               {/* University Field */}
               <div className="space-y-3">
-                <Label htmlFor="universityId">University</Label>
+                <Label htmlFor="universityId">Université</Label>
                 <Select
                   onValueChange={(value) => setValue("universityId", value)}
                   onOpenChange={(open) => open && handleDropdownOpen()}
@@ -464,10 +464,10 @@ export function ModernRegisterForm() {
                       <SelectValue
                         placeholder={
                           dataLoading
-                            ? "Loading universities..."
+                            ? "Chargement des universités..."
                             : universities.length === 0 && dataLoaded
-                              ? "No universities available"
-                              : "Select your university"
+                              ? "Aucune université disponible"
+                              : "Sélectionnez votre université"
                         }
                       />
                     </div>
@@ -476,11 +476,11 @@ export function ModernRegisterForm() {
                     {dataLoading ? (
                       <div className="px-2 py-1 text-sm text-muted-foreground flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading universities...
+                        Chargement des universités...
                       </div>
                     ) : universities.length === 0 ? (
                       <div className="px-2 py-1 text-sm text-muted-foreground">
-                        No universities available. Please refresh the page.
+                        Aucune université disponible. Veuillez actualiser la page.
                       </div>
                     ) : (
                       universities.map((university) => (
@@ -502,7 +502,7 @@ export function ModernRegisterForm() {
               {/* Specialty and Year */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <Label>Medical Specialty</Label>
+                  <Label>Spécialité médicale</Label>
                   <Select
                     onValueChange={(value) => setValue("specialtyId", value)}
                     onOpenChange={(open) => open && handleDropdownOpen()}
@@ -514,10 +514,10 @@ export function ModernRegisterForm() {
                         <SelectValue
                           placeholder={
                             dataLoading
-                              ? "Loading specialties..."
+                              ? "Chargement des spécialités..."
                               : specialties.length === 0 && dataLoaded
-                                ? "No specialties available"
-                                : "Select your specialty"
+                                ? "Aucune spécialité disponible"
+                                : "Sélectionnez votre spécialité"
                           }
                         />
                       </div>
@@ -526,11 +526,11 @@ export function ModernRegisterForm() {
                       {dataLoading ? (
                         <div className="px-2 py-1 text-sm text-muted-foreground flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading specialties...
+                          Chargement des spécialités...
                         </div>
                       ) : specialties.length === 0 ? (
                         <div className="px-2 py-1 text-sm text-muted-foreground">
-                          No specialties available. Please refresh the page.
+                          Aucune spécialité disponible. Veuillez actualiser la page.
                         </div>
                       ) : (
                         specialties.map((specialty) => (
@@ -552,18 +552,18 @@ export function ModernRegisterForm() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Current Year</Label>
+                  <Label>Année actuelle</Label>
                   <Select onValueChange={(value) => setValue("currentYear", value)} disabled={isLoading}>
                     <SelectTrigger className={cn("h-10 border border-border", errors.currentYear && "border-destructive")}>
                       <div className="flex items-center gap-2">
                         <Calendar className="size-4 text-muted-foreground" />
-                        <SelectValue placeholder="Select year" />
+                        <SelectValue placeholder="Sélectionnez l&apos;année" />
                       </div>
                     </SelectTrigger>
                     <SelectContent>
                       {yearOptions.map((year) => (
                         <SelectItem key={year} value={year.toString()}>
-                          Year {year}
+                          Année {year}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -577,13 +577,13 @@ export function ModernRegisterForm() {
               {/* Password Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Mot de passe</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Create password"
+                      placeholder="Créer un mot de passe"
                       className="pl-10 pr-10 h-10 border border-border"
                       {...register("password")}
                     />
@@ -601,13 +601,13 @@ export function ModernRegisterForm() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm password"
+                      placeholder="Confirmer le mot de passe"
                       className="pl-10 pr-10 h-10 border border-border"
                       {...register("confirmPassword")}
                     />
@@ -635,13 +635,13 @@ export function ModernRegisterForm() {
                   className="size-4 text-primary focus:ring-primary border border-border rounded mt-0.5"
                 />
                 <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed">
-                  I agree to the{" "}
+                  J&apos;accepte les{" "}
                   <Link href="/terms" className="text-primary hover:text-primary/80 transition-colors underline underline-offset-4">
-                    Terms of Service
+                    Conditions d&apos;utilisation
                   </Link>{" "}
                   and{" "}
                   <Link href="/privacy" className="text-primary hover:text-primary/80 transition-colors underline underline-offset-4">
-                    Privacy Policy
+                    Politique de confidentialité
                   </Link>
                 </label>
               </div>
@@ -656,18 +656,18 @@ export function ModernRegisterForm() {
                   {isSubmitting || isLoading ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="size-4 animate-spin" />
-                      Creating account...
+                      Création du compte...
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2">
-                      Create Account
+                      Créer un compte
                       <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
                     </div>
                   )}
                 </Button>
                 {!isFormValid && !isSubmitting && !isLoading && (
                   <p className="text-xs text-muted-foreground text-center">
-                    Please fill in all fields correctly to continue
+                    Veuillez remplir tous les champs correctement pour continuer
                   </p>
                 )}
               </div>
@@ -676,12 +676,12 @@ export function ModernRegisterForm() {
             {/* Sign In Link */}
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
+                Vous avez déjà un compte ?{" "}
                 <Link
                   href="/login"
                   className="text-primary hover:text-primary/80 font-medium transition-colors underline underline-offset-4"
                 >
-                  Sign in here
+                  Se connecter ici
                 </Link>
               </p>
             </div>

@@ -78,79 +78,124 @@ export function EnhancedExitDialog({
    * Returns the submission response data for parsing scores and stats
    */
   const submitAllAnswers = async (): Promise<any> => {
-    if (!apiSessionId || !localAnswers) {
-      throw new Error('No session ID or answers available for submission');
+    if (!apiSessionId) {
+      throw new Error('No session ID available for submission');
     }
 
-    // Convert localAnswers to API format
-    const answersToSubmit = Object.entries(localAnswers)
-      .filter(([questionId, answer]) => {
-        // Only submit answers that have actual selections
-        return answer && (
-          answer.selectedAnswerId ||
-          answer.selectedAnswerIds?.length ||
-          answer.selectedOptions?.length ||
-          answer.textAnswer
-        );
-      })
-      .map(([questionId, answer]) => {
-        const qId = Number(questionId);
+    // CRITICAL FIX: Use the EXACT same answer collection logic as pause button
+    console.log('🔄 Exit dialog: Collecting all answers using pause logic...');
 
-        // Determine question type from session data
-        const question = session.questions?.find((q: any) => Number(q.id) === qId);
-        const questionType = question?.questionType || 'SINGLE_CHOICE';
+    // Start with userAnswers (same as pause logic)
+    const userAnswers = session?.userAnswers || {};
+    let allAnswers: Record<string, any> = { ...userAnswers };
 
-        const isSingle = questionType === 'SINGLE_CHOICE' || questionType === 'QCS';
-        const isMulti = questionType === 'MULTIPLE_CHOICE' || questionType === 'QCM';
+    // Also merge localAnswers from API context
+    Object.entries(localAnswers || {}).forEach(([questionId, localAnswer]) => {
+      if (!allAnswers[questionId] || !allAnswers[questionId].selectedOptions?.length) {
+        allAnswers[questionId] = {
+          questionId,
+          selectedOptions: localAnswer.selectedOptions || (localAnswer.selectedAnswerId ? [String(localAnswer.selectedAnswerId)] : []),
+          selectedAnswerId: localAnswer.selectedAnswerId,
+          selectedAnswerIds: localAnswer.selectedAnswerIds,
+          textAnswer: localAnswer.textAnswer,
+          timeSpent: localAnswer.timeSpent || 0,
+          isCorrect: localAnswer.isCorrect
+        };
+        console.log(`📥 Exit dialog: Added answer from localAnswers for question ${questionId}`);
+      }
+    });
+
+    // Filter answers that have actual selections (same as pause logic)
+    const answersToSubmit = Object.keys(allAnswers).filter(
+      questionId => {
+        const answer = allAnswers[questionId];
+        return answer && (answer.selectedOptions?.length || answer.textAnswer);
+      }
+    );
+
+    console.log(`📤 Exit dialog: Found ${answersToSubmit.length} answers to submit (using pause logic)`);
+    console.log('🔍 Exit dialog: Answers found:', answersToSubmit.map(qId => ({
+      questionId: qId,
+      hasSelectedOptions: !!allAnswers[qId]?.selectedOptions?.length,
+      hasTextAnswer: !!allAnswers[qId]?.textAnswer
+    })));
+
+    // Convert to API format using the EXACT same logic as pause
+    if (answersToSubmit.length > 0) {
+      console.log(`📤 Exit dialog: Submitting ${answersToSubmit.length} answers using pause logic...`);
+
+      // Convert answers to API format (EXACT same logic as pause)
+      const answersForSubmission = answersToSubmit.map(questionId => {
+        const answer = allAnswers[questionId];
+        return {
+          questionId: Number(questionId),
+          selectedAnswerId: answer.selectedOptions?.[0],
+          selectedAnswerIds: answer.selectedOptions,
+          textAnswer: answer.textAnswer,
+          timeSpent: answer.timeSpent || 0
+        };
+      });
+
+      // Build question type lookup (same as pause)
+      const questionTypeById: Record<number, string> = {};
+      (session.questions || []).forEach((q: any) => {
+        const qt = (q.questionType || q.type || '').toString().toUpperCase();
+        questionTypeById[Number(q.id)] = qt || 'SINGLE_CHOICE';
+      });
+
+      // Convert to API format (EXACT same logic as pause)
+      const apiAnswers = answersForSubmission.map(answer => {
+        const qType = questionTypeById[Number(answer.questionId)] || 'SINGLE_CHOICE';
+        const isSingle = qType === 'SINGLE_CHOICE' || qType === 'QCS';
+        const isMulti = qType === 'MULTIPLE_CHOICE' || qType === 'QCM';
 
         if (isSingle) {
-          // For single choice, use selectedAnswerId or first from array
-          const selectedId = answer.selectedAnswerId ||
-            (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? answer.selectedAnswerIds[0] :
-            (Array.isArray(answer.selectedOptions) && answer.selectedOptions.length ? Number(answer.selectedOptions[0]) : undefined));
-
+          const selectedId = typeof answer.selectedAnswerId === 'number'
+            ? answer.selectedAnswerId
+            : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? Number(answer.selectedAnswerIds[0]) : undefined);
           return {
-            questionId: qId,
-            ...(Number.isFinite(selectedId) ? { selectedAnswerId: Number(selectedId) } : {}),
-            timeSpent: answer.timeSpent || 0
+            questionId: Number(answer.questionId),
+            ...(Number.isFinite(selectedId as number) ? { selectedAnswerId: Number(selectedId) } : {}),
+            timeSpent: answer.timeSpent,
           };
         }
 
         if (isMulti) {
-          // For multiple choice, use selectedAnswerIds array
-          const ids = answer.selectedAnswerIds ||
-            (Array.isArray(answer.selectedOptions) ? answer.selectedOptions.map(Number).filter(n => Number.isFinite(n)) : []);
-
+          const ids = Array.isArray(answer.selectedAnswerIds) ? answer.selectedAnswerIds.map(Number).filter(n => Number.isFinite(n)) : [];
           return {
-            questionId: qId,
+            questionId: Number(answer.questionId),
             ...(ids.length ? { selectedAnswerIds: ids } : {}),
-            timeSpent: answer.timeSpent || 0
+            timeSpent: answer.timeSpent,
           };
         }
 
-        // Fallback for other question types
         return {
-          questionId: qId,
-          ...(answer.selectedAnswerId ? { selectedAnswerId: answer.selectedAnswerId } :
-              answer.selectedAnswerIds?.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {}),
-          ...(answer.textAnswer ? { textAnswer: answer.textAnswer } : {}),
-          timeSpent: answer.timeSpent || 0
+          questionId: Number(answer.questionId),
+          ...(typeof answer.selectedAnswerId === 'number' ? { selectedAnswerId: answer.selectedAnswerId }
+            : (Array.isArray(answer.selectedAnswerIds) && answer.selectedAnswerIds.length ? { selectedAnswerIds: answer.selectedAnswerIds } : {})),
+          timeSpent: answer.timeSpent,
         };
-      })
-      .filter(answer => answer.selectedAnswerId || answer.selectedAnswerIds || answer.textAnswer);
+      }).filter(entry => entry.selectedAnswerId || entry.selectedAnswerIds);
 
-    if (answersToSubmit.length === 0) {
-      console.log('No answers to submit');
+      if (apiAnswers.length === 0) {
+        console.log('Exit dialog: No answers to submit');
+        return { success: true, data: null };
+      } else {
+        console.log(`📤 Exit dialog: Submitting ${apiAnswers.length} answers for session ${apiSessionId}...`);
+        const totalTimeSpent = timer?.totalTime || 0;
+        const response = await QuizService.submitAnswersBulk(apiSessionId, apiAnswers, totalTimeSpent);
+
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to submit answers');
+        }
+
+        console.log('✅ Exit dialog: Successfully submitted all answers:', response.data);
+        return response.data;
+      }
+    } else {
+      console.log('Exit dialog: No answers to submit - no questions answered');
       return { success: true, data: null };
     }
-
-    console.log(`📤 Submitting ${answersToSubmit.length} answers for session ${apiSessionId}...`);
-
-    // Calculate total time spent
-    const totalTimeSpent = timer?.totalTime || 0;
-
-    // Submit answers using the bulk submission endpoint
-    const response = await QuizService.submitAnswersBulk(apiSessionId, answersToSubmit, totalTimeSpent);
 
     if (!response.success) {
       throw new Error(response.error || 'Failed to submit answers');

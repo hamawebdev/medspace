@@ -17,8 +17,6 @@ import {
   BookOpen,
   Target,
   TrendingUp,
-  ChevronDown,
-  ChevronRight,
   CheckCircle
 } from 'lucide-react';
 import { NewApiService } from '@/lib/api/new-api-services';
@@ -299,7 +297,6 @@ export default function TrackerDetailPage() {
   const [progress, setProgress] = useState<CardProgressResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // State for individual checkbox loading and optimistic updates
   const [checkboxLoadingStates, setCheckboxLoadingStates] = useState<Record<string, boolean>>({});
@@ -399,15 +396,6 @@ export default function TrackerDetailPage() {
 
 
 
-  const toggleCategory = (categoryName: string) => {
-    const newExpanded = new Set(expandedCategories);
-    if (newExpanded.has(categoryName)) {
-      newExpanded.delete(categoryName);
-    } else {
-      newExpanded.add(categoryName);
-    }
-    setExpandedCategories(newExpanded);
-  };
 
   const handleLayerToggle = async (courseId: number, layerNumber: number, completed: boolean) => {
     const checkboxKey = `${courseId}-${layerNumber}`;
@@ -485,26 +473,6 @@ export default function TrackerDetailPage() {
     );
   }
 
-  // Group courses by module for accordion display
-  const coursesByModule = progress?.courseProgress?.reduce((acc, course) => {
-    const moduleName = course.course?.module?.name || 'Autres cours';
-    if (!acc[moduleName]) {
-      acc[moduleName] = [];
-    }
-    acc[moduleName].push(course);
-    return acc;
-  }, {} as Record<string, CourseProgressDetails[]>) || {};
-
-  console.log('📚 [TrackerDetailPage] Course grouping:', {
-    progressExists: !!progress,
-    courseProgressExists: !!progress?.courseProgress,
-    courseProgressLength: progress?.courseProgress?.length || 0,
-    coursesByModuleKeys: Object.keys(coursesByModule),
-    coursesByModuleCount: Object.keys(coursesByModule).length,
-    totalCoursesInGroups: Object.values(coursesByModule).reduce((sum, courses) => sum + courses.length, 0),
-    firstCourseInProgress: progress?.courseProgress?.[0] || 'no courses',
-    coursesByModule
-  });
 
   // Calculate layer progress percentages
   const totalCourses = progress?.totalCourses || 0;
@@ -609,7 +577,7 @@ export default function TrackerDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {Object.keys(coursesByModule).length === 0 ? (
+            {!progress?.courseProgress || progress.courseProgress.length === 0 ? (
               <div className="text-center py-8">
                 <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
@@ -617,42 +585,17 @@ export default function TrackerDetailPage() {
                 </p>
               </div>
             ) : (
-              Object.entries(coursesByModule).map(([moduleName, courses]) => (
-                <div key={moduleName} className="space-y-2">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between p-4 h-auto border border-border rounded-lg hover:bg-muted/50"
-                    onClick={() => toggleCategory(moduleName)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="font-medium text-foreground">
-                        {moduleName}
-                      </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {courses.length} cours
-                      </Badge>
-                    </div>
-                    {expandedCategories.has(moduleName) ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                  {expandedCategories.has(moduleName) && (
-                    <div className="space-y-2 mt-2">
-                      {courses.map((course) => (
-                        <CourseItem
-                          key={course.courseId}
-                          course={course}
-                          onLayerToggle={handleLayerToggle}
-                          checkboxLoadingStates={checkboxLoadingStates}
-                          optimisticUpdates={optimisticUpdates}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
+              <div className="space-y-2">
+                {progress.courseProgress.map((course) => (
+                  <CourseItem
+                    key={course.courseId}
+                    course={course}
+                    onLayerToggle={handleLayerToggle}
+                    checkboxLoadingStates={checkboxLoadingStates}
+                    optimisticUpdates={optimisticUpdates}
+                  />
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>

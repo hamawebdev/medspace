@@ -22,16 +22,18 @@ import {
   Trash2
 } from 'lucide-react';
 import { useQuestionImport } from '@/hooks/admin/use-question-import';
+import { useQuestionManagement } from '@/hooks/admin/use-question-management';
 import { JsonQuestionInput } from '@/components/admin/content/json-question-input';
 import { ImportUsageGuide } from '@/components/admin/content/import-usage-guide';
 import { AddEntityDialog } from '@/components/admin/content/add-entity-dialog';
 import { EntityCard } from '@/components/admin/content/entity-card';
 import { EditEntityDialog } from '@/components/admin/content/edit-entity-dialog';
+import { CourseSpecificQuestionDialog } from '@/components/admin/questions/course-specific-question-dialog';
 import { BulkQuestionImportResponse, SelectionState, ImportQuestion, ValidationResult } from '@/types/question-import';
-import { AdminService } from '@/lib/api-services';
+
 import { toast } from 'sonner';
 
-type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'import';
+type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'courseActions' | 'import';
 
 export default function AdminContentPage() {
   const [currentStep, setCurrentStep] = useState<Step>('university');
@@ -52,6 +54,7 @@ export default function AdminContentPage() {
   const [editEntity, setEditEntity] = useState<any>(null);
   const [editEntityType, setEditEntityType] = useState<'university' | 'studyPack' | 'unit' | 'module' | 'course'>('university');
   const [customYearInput, setCustomYearInput] = useState<string>('');
+  const [showCreateQuestionDialog, setShowCreateQuestionDialog] = useState(false);
 
   const {
     loading,
@@ -62,6 +65,9 @@ export default function AdminContentPage() {
     importQuestions,
     resetWizard
   } = useQuestionImport();
+
+  // Question management hook
+  const { createQuestion } = useQuestionManagement();
 
   // Load filters on mount
   useEffect(() => {
@@ -93,7 +99,7 @@ export default function AdminContentPage() {
         setCurrentStep('course');
         break;
       case 'course':
-        setCurrentStep('import');
+        setCurrentStep('courseActions');
         break;
     }
   };
@@ -202,6 +208,25 @@ export default function AdminContentPage() {
     fetchFilters();
   };
 
+  // Handle add question dialog
+  const handleAddQuestion = () => {
+    if (selection.course) {
+      setShowCreateQuestionDialog(true);
+    }
+  };
+
+  // Handle question creation
+  const handleCreateQuestion = async (questionData: any) => {
+    try {
+      await createQuestion(questionData);
+      setShowCreateQuestionDialog(false);
+      toast.success('Question created successfully!');
+    } catch (error) {
+      console.error('Failed to create question:', error);
+      toast.error('Failed to create question');
+    }
+  };
+
   // Handle custom year confirmation
   const handleCustomYearConfirm = () => {
     const year = parseInt(customYearInput);
@@ -239,27 +264,12 @@ export default function AdminContentPage() {
 
     setImporting(true);
     try {
-      // Create the import payload directly
-      const payload = {
-        metadata: {
-          courseId: selection.course.id,
-          universityId: selection.university?.id,
-          examYear: selectedExamYear
-        },
-        questions: parsedQuestions
-      };
-
-      // Use the API service directly
-      const response = await AdminService.bulkImportQuestions(payload);
-
-      if (response.success) {
-        const result: BulkQuestionImportResponse = {
-          success: true,
-          data: response.data
-        };
+      // Import using hook API to avoid client-side class method issues
+      const result = await importQuestions(parsedQuestions);
+      if (result) {
         handleImportComplete(result);
       } else {
-        throw new Error(response.error || 'Failed to import questions');
+        throw new Error('Failed to import questions');
       }
     } catch (error) {
       console.error('Import error:', error);
@@ -301,6 +311,12 @@ export default function AdminContentPage() {
           title: 'Select Course',
           description: `Choose the course from ${selection.module?.name || selection.independentModule?.name}`,
           icon: Database
+        };
+      case 'courseActions':
+        return {
+          title: 'Course Actions',
+          description: `Choose an action for ${selection.course?.name}`,
+          icon: BookOpen
         };
       case 'import':
         return {
@@ -598,6 +614,74 @@ export default function AdminContentPage() {
               </div>
             )}
 
+            {currentStep === 'courseActions' && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                {/* Course Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      {selection.course?.name}
+                    </CardTitle>
+                    <CardDescription>
+                      Choose an action for this course
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <School className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">University:</span>
+                        <Badge variant="secondary">{selection.university?.name}</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Study Pack:</span>
+                        <Badge variant="secondary">{selection.studyPack?.name}</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Unit:</span>
+                        <Badge variant="secondary">{selection.unit?.name}</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Layers className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Module:</span>
+                        <Badge variant="secondary">{selection.module?.name || selection.independentModule?.name}</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50" onClick={() => handleAddQuestion()}>
+                    <CardHeader className="text-center">
+                      <CardTitle className="flex items-center justify-center gap-2">
+                        <Plus className="h-5 w-5" />
+                        Add Question
+                      </CardTitle>
+                      <CardDescription>
+                        Create a new question for this course
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50" onClick={() => setCurrentStep('import')}>
+                    <CardHeader className="text-center">
+                      <CardTitle className="flex items-center justify-center gap-2">
+                        <Upload className="h-5 w-5" />
+                        Bulk Import
+                      </CardTitle>
+                      <CardDescription>
+                        Import multiple questions from JSON
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </div>
+              </div>
+            )}
+
             {currentStep === 'import' && (
               <div className="max-w-4xl mx-auto space-y-6">
                 {/* Selection Summary */}
@@ -823,6 +907,17 @@ export default function AdminContentPage() {
         entity={editEntity}
         onSuccess={handleEditEntitySuccess}
       />
+
+      {/* Course-Specific Question Creation Dialog */}
+      {selection.course && (
+        <CourseSpecificQuestionDialog
+          open={showCreateQuestionDialog}
+          onOpenChange={setShowCreateQuestionDialog}
+          onCreateQuestion={handleCreateQuestion}
+          courseId={selection.course.id}
+          courseName={selection.course.name}
+        />
+      )}
     </div>
   );
 }

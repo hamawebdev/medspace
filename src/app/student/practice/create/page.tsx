@@ -136,10 +136,10 @@ export default function PracticeCreatePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
+      <div className="container mx-auto max-w-3xl px-4 sm:px-6 py-4 sm:py-6">
         {/* Header Section */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
                 <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,7 +147,7 @@ export default function PracticeCreatePage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold text-primary">
                   Create Practice Session
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground mt-1">
@@ -167,7 +167,7 @@ export default function PracticeCreatePage() {
 
         {/* Main Content */}
         <Card className="border-border/50 shadow-lg">
-          <CardContent className="p-0">
+          <CardContent className="p-4 sm:p-6">
             <SessionWizard
               onCreate={(p) => handleCreateSession(p as any)}
               onCancel={() => router.push('/student/practice')}

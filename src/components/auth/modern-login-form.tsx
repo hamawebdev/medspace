@@ -86,19 +86,19 @@ function LoginFormFields({
       </div>
       <div className="space-y-3">
         <div className="flex items-center">
-          <Label htmlFor={passwordId} className="text-sm font-semibold">Password</Label>
+          <Label htmlFor={passwordId} className="text-sm font-semibold">Mot de passe</Label>
           <Link
             href="/forgot-password"
             className="ml-auto text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md px-2 py-1 underline-offset-4"
           >
-            Forgot your password?
+            Mot de passe oublié ?
           </Link>
         </div>
         <div className="relative group">
           <Input
             id={passwordId}
             type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
+            placeholder="Entrez votre mot de passe"
             className="pr-12 h-12"
             {...passwordRegistration}
             disabled={isSubmitting || isLoading}
@@ -109,7 +109,7 @@ function LoginFormFields({
             onClick={handlePasswordToggle}
             disabled={isSubmitting || isLoading}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-md p-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
           >
             {showPassword ? <EyeOff className="w-5 h-5 text-white" /> : <Eye className="w-5 h-5 text-white" />}
           </button>
@@ -130,11 +130,11 @@ function LoginFormFields({
         {isSubmitting || isLoading ? (
           <div className="flex items-center justify-center">
             <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin mr-2" />
-            Signing in...
+            Connexion en cours...
           </div>
         ) : (
           <div className="flex items-center justify-center">
-            Login
+            Se connecter
             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1" />
           </div>
         )}
@@ -157,11 +157,11 @@ export function ModernLoginForm() {
     if (message) {
       switch (message) {
         case 'registration-success':
-          setSuccessMessage('Registration successful! You can now log in.');
+          setSuccessMessage('Inscription réussie ! Vous pouvez maintenant vous connecter.');
           break;
         case 'password-reset':
-          setSuccessMessage('Password reset successful! Please log in with your new password.');
-          toast.success('Password reset successful!');
+          setSuccessMessage('Réinitialisation du mot de passe réussie ! Veuillez vous connecter avec votre nouveau mot de passe.');
+          toast.success('Réinitialisation du mot de passe réussie !');
           break;
         default:
           break;
@@ -216,7 +216,7 @@ export function ModernLoginForm() {
 
       if (response.user) {
         console.log('🚀 LoginForm: Login successful, showing toast...');
-        toast.success('Login successful!');
+        toast.success('Connexion réussie !');
 
         // Clear form only on successful login
         reset();
@@ -229,14 +229,14 @@ export function ModernLoginForm() {
         return;
       } else {
         console.error('🚀 LoginForm: No user in response');
-        setError('Login failed: No user data received');
+        setError('Échec de la connexion : Aucune donnée utilisateur reçue');
       }
     } catch (error: any) {
       console.error('🚀 LoginForm: Login error caught', error);
 
       // Handle API server connection errors
       if (error.message.includes('Cannot connect to API server')) {
-        const errorMessage = 'Backend server is not running. Please check the API configuration in docs/API_CONFIGURATION.md';
+        const errorMessage = 'Le serveur backend ne fonctionne pas. Veuillez vérifier la configuration API dans docs/API_CONFIGURATION.md';
         console.error('🚀 LoginForm: API server connection error:', errorMessage);
         setError(errorMessage);
         toast.error(errorMessage);
@@ -244,7 +244,7 @@ export function ModernLoginForm() {
       }
 
       // Show the actual API error message
-      const errorMessage = error.message || 'Login failed';
+      const errorMessage = error.message || 'Échec de la connexion';
       console.error('🚀 LoginForm: Setting error message:', errorMessage);
       setError(errorMessage);
       toast.error(errorMessage);
@@ -264,7 +264,7 @@ export function ModernLoginForm() {
             <Card className="border-white/20 lg:border-white/20 card-hover-lift animate-fade-in-up shadow-xl bg-transparent lg:bg-transparent glass lg:glass-none">
               <CardHeader className="text-center space-y-4">
                 <CardTitle className="text-3xl font-semibold tracking-tight text-white lg:text-white flex items-center justify-center">
-                  Welcome back
+                  Bon retour
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -298,12 +298,12 @@ export function ModernLoginForm() {
 
                     {/* Sign Up Link */}
                     <div className="text-center text-sm">
-                      <span className="text-white/80">Don&apos;t have an account?</span>{" "}
+                      <span className="text-white/80">Vous n&apos;avez pas de compte ?</span>{" "}
                       <Link
                         href="/register"
                         className="text-white hover:text-white/80 font-semibold hover:underline focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-transparent rounded-md px-2 py-1 underline underline-offset-4"
                       >
-                        Sign up
+                        S&apos;inscrire
                       </Link>
                     </div>
                   </div>
@@ -313,13 +313,13 @@ export function ModernLoginForm() {
 
             {/* Terms and Privacy */}
             <div className="text-white/60 text-center text-xs text-balance mt-6">
-              By clicking continue, you agree to our{" "}
+              En cliquant sur continuer, vous acceptez nos{" "}
               <Link href="#" className="underline underline-offset-4 hover:text-white/80">
-                Terms of Service
+                Conditions d&apos;utilisation
               </Link>{" "}
               and{" "}
               <Link href="#" className="underline underline-offset-4 hover:text-white/80">
-                Privacy Policy
+                Politique de confidentialité
               </Link>.
             </div>
           </div>
@@ -329,7 +329,7 @@ export function ModernLoginForm() {
         <div className="hidden lg:flex flex-1 relative overflow-hidden">
           <img
             src="/auth-image.jpg"
-            alt="Medical Education Platform"
+            alt="Plateforme d&apos;éducation médicale"
             className="absolute inset-0 w-full h-full object-cover"
           />
           {/* Optional overlay for better contrast */}

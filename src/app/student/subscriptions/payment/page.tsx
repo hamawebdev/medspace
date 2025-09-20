@@ -410,93 +410,9 @@ export default function PaymentPage({}: PaymentPageProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Payment Methods */}
-          <div className="lg:col-span-2 order-2 lg:order-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <CreditCard className="h-5 w-5" />
-                  {t.paymentMethodTitle}
-                </CardTitle>
-                <CardDescription className={isRTL ? 'text-right' : 'text-left'}>
-                  {t.paymentMethodDescription}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup 
-                  value={selectedPaymentMethod} 
-                  onValueChange={(value) => setSelectedPaymentMethod(value as PaymentMethod)}
-                  className="space-y-4"
-                >
-                  {paymentMethods.map((method) => (
-                    <div key={method.id} className="relative">
-                      <Label
-                        htmlFor={method.id}
-                        className={`payment-method-card flex items-center p-6 border-2 rounded-xl cursor-pointer transition-all ${
-                          isRTL ? 'space-x-reverse space-x-4 flex-row-reverse' : 'space-x-4'
-                        }`}
-                        data-selected={selectedPaymentMethod === method.id}
-                      >
-                        <RadioGroupItem value={method.id} id={method.id} className="mt-1" />
-                        <PaymentMethodIcon method={method.id} />
-                        <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                          <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
-                            <span className="font-semibold text-lg">{method.name}</span>
-                            {method.recommended && (
-                              <Badge className="text-xs bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                {t.recommended}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">{method.description}</p>
-                          <div className={`flex items-center gap-2 text-xs text-muted-foreground ${
-                            isRTL ? 'flex-row-reverse justify-end' : ''
-                          }`}>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{t.processingTime}: {method.processingTime}</span>
-                            </div>
-                            <div className="flex items-center gap-1 ml-4">
-                              <Shield className="h-3 w-3 text-green-600" />
-                              <span className="text-green-600">Secure</span>
-                            </div>
-                          </div>
-                        </div>
-                        {selectedPaymentMethod === method.id && (
-                          <div className="absolute top-3 right-3">
-                            <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                              <CheckCircle className="h-4 w-4 text-primary-foreground" />
-                            </div>
-                          </div>
-                        )}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-
-                <div className="mt-8 p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 rounded-xl border border-green-200/50 dark:border-green-800/50">
-                  <div className={`flex items-center gap-3 text-sm ${
-                    isRTL ? 'flex-row-reverse' : ''
-                  }`}>
-                    <div className="security-badge p-2 rounded-lg">
-                      <Shield className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-green-800 dark:text-green-200">{t.securityNote}</p>
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                        Powered by Chargily Pay - Algeria's trusted payment gateway
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="max-w-2xl mx-auto">
           {/* Order Summary */}
-          <div className="order-1 lg:order-2">
+          <div>
             <Card className="sticky top-8 shadow-lg border-2">
               <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-t-lg">
                 <CardTitle className={`flex items-center gap-3 text-xl ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -511,12 +427,6 @@ export default function PaymentPage({}: PaymentPageProps) {
                 <div>
                   <h3 className="font-semibold">{studyPack.name}</h3>
                   <p className="text-sm text-muted-foreground">{studyPack.description}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant={studyPack.type === 'RESIDENCY' ? 'default' : 'secondary'}>
-                      {studyPack.type === 'RESIDENCY' ? 'Residency' : 
-                       studyPack.yearNumber ? `${studyPack.yearNumber} Year` : 'Year Pack'}
-                    </Badge>
-                  </div>
                 </div>
 
                 <Separator />
@@ -583,13 +493,6 @@ export default function PaymentPage({}: PaymentPageProps) {
                   )}
                 </Button>
 
-                {/* Terms */}
-                <p className={`text-xs text-muted-foreground text-center ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t.termsText}{' '}
-                  <a href="#" className="underline hover:text-foreground">{t.termsOfService}</a>
-                  {' '}{locale === 'ar' ? 'و' : 'and'}{' '}
-                  <a href="#" className="underline hover:text-foreground">{t.privacyPolicy}</a>
-                </p>
               </CardContent>
             </Card>
           </div>

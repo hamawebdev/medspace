@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Question Creation Test - Medcin Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+            padding: 30px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .form-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+        }
+
+        .response-section {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .response-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .response-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .response-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .token-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .token-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .token-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            word-break: break-all;
+            margin-bottom: 15px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background: #27ae60;
+        }
+
+        .status-disconnected {
+            background: #e74c3c;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .question-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: white;
+            position: relative;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-number {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .remove-question {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .remove-question:hover {
+            background: #c0392b;
+        }
+
+        .answer-item {
+            border: 1px solid #e1e8ed;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+
+        .answer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .answer-number {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .correct-answer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .correct-answer input[type="checkbox"] {
+            width: auto;
+            transform: scale(1.2);
+        }
+
+        .remove-answer {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .remove-answer:hover {
+            background: #c0392b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .flex {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mb-20 {
+            margin-bottom: 20px;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        .json-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .stats-section {
+            background: #e8f5e8;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #2c3e50;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Bulk Question Creation Test</h1>
+            <p>Test interface for creating multiple questions with JSON - Medcin Platform</p>
+        </div>
+
+        <div class="content">
+            <!-- Authentication Section -->
+            <div class="form-section">
+                <h2>🔐 Authentication</h2>
+                <div class="token-section">
+                    <h3>🔑 Hard-coded Admin Token</h3>
+                    <p><strong>Email:</strong> superadmin@medcin.com</p>
+                    <p><strong>Role:</strong> ADMIN</p>
+                    <p><strong>Server:</strong> https://med-cortex.com</p>
+                    <p><strong>Status:</strong> <span style="color: #27ae60; font-weight: bold;">✅ Ready to use</span></p>
+                    
+                    <div class="flex">
+                        <button class="btn" onclick="getAuthToken()">🔄 Refresh Token</button>
+                        <span id="connectionStatus" class="status-indicator status-connected"></span>
+                        <span id="connectionText">Connected (Production)</span>
+                    </div>
+                    
+                    <div id="tokenDisplay" class="token-display">
+                        <strong>Token:</strong> <span id="tokenValue"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="stats-section">
+                <h3>📊 Current Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalQuestions">0</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalAnswers">0</div>
+                        <div class="stat-label">Total Answers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="correctAnswers">0</div>
+                        <div class="stat-label">Correct Answers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="singleChoice">0</div>
+                        <div class="stat-label">Single Choice</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="multipleChoice">0</div>
+                        <div class="stat-label">Multiple Choice</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Common Metadata Section -->
+            <div class="form-section">
+                <h2>⚙️ Common Metadata (Applied to All Questions)</h2>
+                
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="commonCourseId">Course ID *</label>
+                        <input type="number" id="commonCourseId" placeholder="e.g., 1, 2, 3... (157 courses available)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="commonUniversityId">University ID</label>
+                        <input type="number" id="commonUniversityId" placeholder="e.g., 1 (Université de Sétif)">
+                    </div>
+                </div>
+                
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="commonExamYear">Exam Year</label>
+                        <input type="number" id="commonExamYear" placeholder="2024" min="2000" max="2100">
+                    </div>
+                    <div class="form-group">
+                        <label for="commonSourceId">Source ID</label>
+                        <input type="number" id="commonSourceId" placeholder="e.g., 1, 2, 3...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Question Creation Form -->
+            <div class="form-section">
+                <h2>📝 Bulk Question Creation</h2>
+                
+                <div class="flex flex-wrap mb-20">
+                    <button class="btn btn-success" onclick="addQuestion()">➕ Add Question</button>
+                    <button class="btn btn-warning" onclick="addSampleQuestions()">📋 Add Sample Questions (10)</button>
+                    <button class="btn btn-info" onclick="previewJSON()">👁️ Preview JSON</button>
+                    <button class="btn btn-danger" onclick="clearAllQuestions()">🗑️ Clear All</button>
+                </div>
+                
+                <div class="flex flex-wrap mb-20">
+                    <button class="btn" onclick="fillCommonMetadata()">⚙️ Fill Common Metadata</button>
+                    <button class="btn" onclick="clearCommonMetadata()">🗑️ Clear Common Metadata</button>
+                </div>
+
+                <div id="questionsContainer">
+                    <!-- Questions will be dynamically added here -->
+                </div>
+
+                <div class="text-center mt-20">
+                    <button class="btn btn-success" onclick="createBulkQuestions()">🚀 Create All Questions</button>
+                    <button class="btn" onclick="validateQuestions()">✅ Validate Questions</button>
+                </div>
+            </div>
+
+            <!-- JSON Preview Section -->
+            <div id="jsonPreview" class="form-section" style="display: none;">
+                <h2>📄 JSON Preview</h2>
+                <div id="jsonContent" class="json-preview"></div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Processing request...</p>
+            </div>
+
+            <!-- Response Section -->
+            <div id="responseSection" class="response-section">
+                <h3>Response</h3>
+                <pre id="responseContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hard-coded production admin token
+        let authToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2RhdGEiOnsiaWQiOjU2LCJlbWFpbCI6InN1cGVyYWRtaW5AbWVkY2luLmNvbSIsImZ1bGxOYW1lIjoiU3VwZXIgQWRtaW4iLCJyb2xlIjoiQURNSU4iLCJ1bml2ZXJzaXR5SWQiOm51bGwsInNwZWNpYWx0eUlkIjpudWxsLCJjdXJyZW50WWVhciI6Ik9ORSIsImVtYWlsVmVyaWZpZWQiOnRydWUsImlzQWN0aXZlIjp0cnVlfSwic3Vic2NyaXB0aW9ucyI6W10sInBheW1lbnRfc3RhdHVzIjoiYWN0aXZlIiwiaGFzX2FjdGl2ZV9zdWJzY3JpcHRpb24iOnRydWUsImFjY2Vzc2libGVfc3R1ZHlfcGFja3MiOltdLCJpYXQiOjE3NTgxNTE0MzksImV4cCI6MTc2MDc0MzQzOX0.aVdC7UqYeDRBZFyHgxgD82WIZ4wQ55qVEPhkCZWHE_s';
+        let questionCount = 0;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAuthToken();
+            updateStatistics();
+        });
+
+        // Initialize auth token display
+        function initializeAuthToken() {
+            if (authToken) {
+                document.getElementById('tokenValue').textContent = authToken;
+                document.getElementById('tokenDisplay').style.display = 'block';
+                document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+                document.getElementById('connectionText').textContent = 'Connected (Production)';
+            }
+        }
+
+        // Add a new question
+        function addQuestion() {
+            const container = document.getElementById('questionsContainer');
+            const questionIndex = questionCount;
+            
+            const questionHtml = `
+                <div class="question-item" data-question-index="${questionIndex}">
+                    <div class="question-header">
+                        <span class="question-number">Question ${questionIndex + 1}</span>
+                        <button class="remove-question" onclick="removeQuestion(${questionIndex})">Remove</button>
+                    </div>
+                    
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Question Text *</label>
+                            <textarea name="questionText${questionIndex}" required placeholder="Enter the question text here..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Explanation</label>
+                            <textarea name="explanation${questionIndex}" placeholder="Enter explanation for the answer..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Question Type</label>
+                            <select name="questionType${questionIndex}">
+                                <option value="SINGLE_CHOICE">Single Choice</option>
+                                <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Year Level</label>
+                            <select name="yearLevel${questionIndex}">
+                                <option value="">Select Year Level</option>
+                                <option value="ONE">Year 1</option>
+                                <option value="TWO">Year 2</option>
+                                <option value="THREE">Year 3</option>
+                                <option value="FOUR">Year 4</option>
+                                <option value="FIVE">Year 5</option>
+                                <option value="SIX">Year 6</option>
+                                <option value="SEVEN">Year 7</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Rotation</label>
+                            <select name="rotation${questionIndex}">
+                                <option value="">Select Rotation</option>
+                                <option value="R1">R1</option>
+                                <option value="R2">R2</option>
+                                <option value="R3">R3</option>
+                                <option value="R4">R4</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Additional Info</label>
+                            <input type="text" name="additionalInfo${questionIndex}" placeholder="Additional information...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Metadata</label>
+                        <textarea name="metadata${questionIndex}" placeholder='{"difficulty": "medium", "topic": "biology"}'></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Answers *</label>
+                        <div id="answersContainer${questionIndex}">
+                            <!-- Answers will be added here -->
+                        </div>
+                        <div class="flex flex-wrap">
+                            <button type="button" class="btn btn-warning" onclick="addAnswer(${questionIndex})">➕ Add Answer</button>
+                            <button type="button" class="btn btn-danger" onclick="removeAnswer(${questionIndex})">➖ Remove Answer</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', questionHtml);
+            
+            // Add initial answers for this question
+            addAnswer(questionIndex);
+            addAnswer(questionIndex);
+            
+            questionCount++;
+            updateStatistics();
+        }
+
+        // Add sample questions
+        function addSampleQuestions() {
+            console.log('Starting to add sample questions...');
+            const sampleQuestions = [
+                {
+                    questionText: "What is the primary function of the mitochondria in a cell?",
+                    explanation: "Mitochondria are known as the powerhouse of the cell because they produce ATP (adenosine triphosphate), which is the primary energy currency of the cell.",
+                    questionType: "SINGLE_CHOICE",
+                    yearLevel: "ONE",
+                    rotation: "R1",
+                    metadata: '{"difficulty": "medium", "topic": "cell biology", "source": "textbook"}',
+                    answers: [
+                        { text: "Energy production (ATP synthesis)", isCorrect: true, explanation: "Mitochondria produce ATP through cellular respiration." },
+                        { text: "Protein synthesis", isCorrect: false, explanation: "Protein synthesis occurs in ribosomes." },
+                        { text: "DNA replication", isCorrect: false, explanation: "DNA replication occurs in the nucleus." },
+                        { text: "Waste removal", isCorrect: false, explanation: "Waste removal is handled by lysosomes." }
+                    ]
+                },
+                {
+                    questionText: "Which of the following are components of the cardiovascular system?",
+                    explanation: "The cardiovascular system consists of the heart, blood vessels, and blood, working together to transport nutrients and oxygen throughout the body.",
+                    questionType: "MULTIPLE_CHOICE",
+                    yearLevel: "TWO",
+                    rotation: "R2",
+                    metadata: '{"difficulty": "easy", "topic": "anatomy", "source": "clinical practice"}',
+                    answers: [
+                        { text: "Heart", isCorrect: true, explanation: "The heart is the central organ of the cardiovascular system." },
+                        { text: "Lungs", isCorrect: false, explanation: "Lungs are part of the respiratory system." },
+                        { text: "Blood vessels", isCorrect: true, explanation: "Blood vessels transport blood throughout the body." },
+                        { text: "Liver", isCorrect: false, explanation: "Liver is part of the digestive system." }
+                    ]
+                },
+                {
+                    questionText: "What is the normal pH range of human blood?",
+                    explanation: "Human blood maintains a slightly alkaline pH between 7.35-7.45. This narrow range is critical for proper enzyme function and cellular processes.",
+                    questionType: "SINGLE_CHOICE",
+                    yearLevel: "THREE",
+                    rotation: "R3",
+                    metadata: '{"difficulty": "medium", "topic": "physiology", "source": "laboratory"}',
+                    answers: [
+                        { text: "6.0-6.5", isCorrect: false, explanation: "This range is too acidic for human blood." },
+                        { text: "7.35-7.45", isCorrect: true, explanation: "This is the normal pH range for human blood." },
+                        { text: "8.0-8.5", isCorrect: false, explanation: "This range is too alkaline for human blood." },
+                        { text: "5.0-5.5", isCorrect: false, explanation: "This range is far too acidic for human blood." }
+                    ]
+                },
+                {
+                    questionText: "Which of the following are signs of acute myocardial infarction?",
+                    explanation: "Acute myocardial infarction (heart attack) presents with characteristic symptoms including chest pain, shortness of breath, and other cardiovascular signs.",
+                    questionType: "MULTIPLE_CHOICE",
+                    yearLevel: "FOUR",
+                    rotation: "R4",
+                    metadata: '{"difficulty": "hard", "topic": "cardiology", "source": "clinical case"}',
+                    answers: [
+                        { text: "Chest pain", isCorrect: true, explanation: "Chest pain is the most common symptom of myocardial infarction." },
+                        { text: "Shortness of breath", isCorrect: true, explanation: "Dyspnea often accompanies myocardial infarction." },
+                        { text: "Nausea and vomiting", isCorrect: true, explanation: "GI symptoms can occur with inferior wall MI." },
+                        { text: "Headache", isCorrect: false, explanation: "Headache is not typically associated with MI." },
+                        { text: "Diaphoresis", isCorrect: true, explanation: "Profuse sweating is common during acute MI." }
+                    ]
+                },
+                {
+                    questionText: "What is the mechanism of action of ACE inhibitors?",
+                    explanation: "ACE inhibitors work by blocking the angiotensin-converting enzyme, preventing the conversion of angiotensin I to angiotensin II, which is a potent vasoconstrictor.",
+                    questionType: "SINGLE_CHOICE",
+                    yearLevel: "FIVE",
+                    rotation: "R1",
+                    metadata: '{"difficulty": "hard", "topic": "pharmacology", "source": "medical literature"}',
+                    answers: [
+                        { text: "Block angiotensin-converting enzyme", isCorrect: true, explanation: "ACE inhibitors specifically block the ACE enzyme." },
+                        { text: "Block beta-adrenergic receptors", isCorrect: false, explanation: "This describes beta-blockers, not ACE inhibitors." },
+                        { text: "Block calcium channels", isCorrect: false, explanation: "This describes calcium channel blockers." },
+                        { text: "Increase potassium excretion", isCorrect: false, explanation: "ACE inhibitors actually decrease potassium excretion." }
+                    ]
+                },
+                {
+                    questionText: "Which of the following are risk factors for developing type 2 diabetes?",
+                    explanation: "Type 2 diabetes has multiple modifiable and non-modifiable risk factors that contribute to insulin resistance and beta-cell dysfunction.",
+                    questionType: "MULTIPLE_CHOICE",
+                    yearLevel: "SIX",
+                    rotation: "R2",
+                    metadata: '{"difficulty": "medium", "topic": "endocrinology", "source": "clinical guidelines"}',
+                    answers: [
+                        { text: "Obesity", isCorrect: true, explanation: "Obesity is a major modifiable risk factor for type 2 diabetes." },
+                        { text: "Family history", isCorrect: true, explanation: "Genetic predisposition increases diabetes risk." },
+                        { text: "Physical inactivity", isCorrect: true, explanation: "Sedentary lifestyle contributes to insulin resistance." },
+                        { text: "Age over 45", isCorrect: true, explanation: "Risk increases with age due to decreased insulin sensitivity." },
+                        { text: "High fiber diet", isCorrect: false, explanation: "High fiber diet actually reduces diabetes risk." }
+                    ]
+                },
+                {
+                    questionText: "What is the most common cause of acute bacterial meningitis in adults?",
+                    explanation: "Streptococcus pneumoniae is the leading cause of bacterial meningitis in adults, followed by Neisseria meningitidis and Listeria monocytogenes.",
+                    questionType: "SINGLE_CHOICE",
+                    yearLevel: "SEVEN",
+                    rotation: "R3",
+                    metadata: '{"difficulty": "hard", "topic": "infectious diseases", "source": "clinical experience"}',
+                    answers: [
+                        { text: "Streptococcus pneumoniae", isCorrect: true, explanation: "S. pneumoniae is the most common cause in adults." },
+                        { text: "Neisseria meningitidis", isCorrect: false, explanation: "N. meningitidis is more common in children and young adults." },
+                        { text: "Haemophilus influenzae", isCorrect: false, explanation: "H. influenzae is rare in adults due to vaccination." },
+                        { text: "Listeria monocytogenes", isCorrect: false, explanation: "Listeria is more common in immunocompromised patients." }
+                    ]
+                },
+                {
+                    questionText: "Which of the following are components of the Glasgow Coma Scale?",
+                    explanation: "The Glasgow Coma Scale assesses three components: eye opening, verbal response, and motor response, with scores ranging from 3 to 15.",
+                    questionType: "MULTIPLE_CHOICE",
+                    yearLevel: "FOUR",
+                    rotation: "R4",
+                    metadata: '{"difficulty": "medium", "topic": "neurology", "source": "clinical assessment"}',
+                    answers: [
+                        { text: "Eye opening", isCorrect: true, explanation: "Eye opening is one of the three GCS components." },
+                        { text: "Verbal response", isCorrect: true, explanation: "Verbal response is assessed in the GCS." },
+                        { text: "Motor response", isCorrect: true, explanation: "Motor response is the third component of GCS." },
+                        { text: "Pupillary response", isCorrect: false, explanation: "Pupillary response is not part of the GCS." },
+                        { text: "Reflexes", isCorrect: false, explanation: "Reflexes are not included in the GCS." }
+                    ]
+                },
+                {
+                    questionText: "What is the first-line treatment for uncomplicated hypertension in most patients?",
+                    explanation: "Thiazide diuretics are recommended as first-line therapy for most patients with uncomplicated hypertension due to their proven cardiovascular benefits and cost-effectiveness.",
+                    questionType: "SINGLE_CHOICE",
+                    yearLevel: "FIVE",
+                    rotation: "R1",
+                    metadata: '{"difficulty": "medium", "topic": "cardiology", "source": "treatment guidelines"}',
+                    answers: [
+                        { text: "Thiazide diuretics", isCorrect: true, explanation: "Thiazides are first-line for most patients with hypertension." },
+                        { text: "Beta-blockers", isCorrect: false, explanation: "Beta-blockers are not first-line for uncomplicated hypertension." },
+                        { text: "ACE inhibitors", isCorrect: false, explanation: "ACE inhibitors are preferred in specific populations." },
+                        { text: "Calcium channel blockers", isCorrect: false, explanation: "CCBs are alternatives, not first-line for most patients." }
+                    ]
+                },
+                {
+                    questionText: "Which of the following are signs of hypovolemic shock?",
+                    explanation: "Hypovolemic shock results from inadequate circulating blood volume, leading to decreased tissue perfusion and characteristic clinical signs.",
+                    questionType: "MULTIPLE_CHOICE",
+                    yearLevel: "SIX",
+                    rotation: "R2",
+                    metadata: '{"difficulty": "hard", "topic": "emergency medicine", "source": "clinical scenarios"}',
+                    answers: [
+                        { text: "Tachycardia", isCorrect: true, explanation: "Heart rate increases to compensate for low blood volume." },
+                        { text: "Hypotension", isCorrect: true, explanation: "Blood pressure drops due to decreased circulating volume." },
+                        { text: "Cool, clammy skin", isCorrect: true, explanation: "Peripheral vasoconstriction causes cool, clammy skin." },
+                        { text: "Decreased urine output", isCorrect: true, explanation: "Kidneys receive less blood flow, reducing urine output." },
+                        { text: "Bradycardia", isCorrect: false, explanation: "Bradycardia is not typical of hypovolemic shock." }
+                    ]
+                }
+            ];
+
+            sampleQuestions.forEach((sample, index) => {
+                console.log(`Adding question ${index + 1}: ${sample.questionText.substring(0, 50)}...`);
+                addQuestion();
+                const questionIndex = questionCount - 1;
+                console.log(`Question index: ${questionIndex}`);
+                
+                // Fill in the question data
+                const questionTextArea = document.querySelector(`textarea[name="questionText${questionIndex}"]`);
+                const explanationTextArea = document.querySelector(`textarea[name="explanation${questionIndex}"]`);
+                const questionTypeSelect = document.querySelector(`select[name="questionType${questionIndex}"]`);
+                const yearLevelSelect = document.querySelector(`select[name="yearLevel${questionIndex}"]`);
+                const rotationSelect = document.querySelector(`select[name="rotation${questionIndex}"]`);
+                const metadataTextArea = document.querySelector(`textarea[name="metadata${questionIndex}"]`);
+                
+                if (questionTextArea) questionTextArea.value = sample.questionText;
+                if (explanationTextArea) explanationTextArea.value = sample.explanation;
+                if (questionTypeSelect) questionTypeSelect.value = sample.questionType;
+                if (yearLevelSelect) yearLevelSelect.value = sample.yearLevel;
+                if (rotationSelect) rotationSelect.value = sample.rotation;
+                if (metadataTextArea) metadataTextArea.value = sample.metadata;
+                
+                // Clear existing answers and add sample answers
+                const answersContainer = document.getElementById(`answersContainer${questionIndex}`);
+                if (answersContainer) {
+                    answersContainer.innerHTML = '';
+                    
+                    // Add answers first
+                    sample.answers.forEach((answer, answerIndex) => {
+                        addAnswer(questionIndex);
+                    });
+                    
+                    // Then fill in the answer data
+                    sample.answers.forEach((answer, answerIndex) => {
+                        const answerContainer = answersContainer.children[answerIndex];
+                        if (answerContainer) {
+                            const answerTextArea = answerContainer.querySelector('textarea[name^="answerText"]');
+                            const correctCheckbox = answerContainer.querySelector('input[type="checkbox"]');
+                            const explanationTextArea = answerContainer.querySelector('textarea[name^="answerExplanation"]');
+                            
+                            if (answerTextArea) answerTextArea.value = answer.text;
+                            if (correctCheckbox) correctCheckbox.checked = answer.isCorrect;
+                            if (explanationTextArea) explanationTextArea.value = answer.explanation;
+                        }
+                    });
+                }
+            });
+            
+            console.log(`Successfully added ${sampleQuestions.length} sample questions`);
+            updateStatistics();
+            showResponse('success', `Successfully added ${sampleQuestions.length} sample questions!`);
+        }
+
+        // Add answer to a specific question
+        function addAnswer(questionIndex) {
+            const answersContainer = document.getElementById(`answersContainer${questionIndex}`);
+            const answerIndex = answersContainer.children.length;
+            
+            const answerHtml = `
+                <div class="answer-item" data-answer-index="${answerIndex}">
+                    <div class="answer-header">
+                        <span class="answer-number">Answer ${answerIndex + 1}</span>
+                        <div class="correct-answer">
+                            <input type="checkbox" name="correct${questionIndex}_${answerIndex}">
+                            <label>Correct Answer</label>
+                        </div>
+                        <button class="remove-answer" onclick="removeSpecificAnswer(${questionIndex}, ${answerIndex})">Remove</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Answer Text</label>
+                        <textarea name="answerText${questionIndex}_${answerIndex}" required placeholder="Enter answer text..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Answer Explanation</label>
+                        <textarea name="answerExplanation${questionIndex}_${answerIndex}" placeholder="Explanation for this answer..."></textarea>
+                    </div>
+                </div>
+            `;
+            
+            answersContainer.insertAdjacentHTML('beforeend', answerHtml);
+            updateStatistics();
+        }
+
+        // Remove answer from a specific question
+        function removeAnswer(questionIndex) {
+            const answersContainer = document.getElementById(`answersContainer${questionIndex}`);
+            if (answersContainer.children.length > 2) {
+                answersContainer.removeChild(answersContainer.lastChild);
+                updateStatistics();
+            } else {
+                alert('At least 2 answers are required');
+            }
+        }
+
+        // Remove specific answer
+        function removeSpecificAnswer(questionIndex, answerIndex) {
+            const answersContainer = document.getElementById(`answersContainer${questionIndex}`);
+            const answerElement = answersContainer.querySelector(`[data-answer-index="${answerIndex}"]`);
+            if (answerElement && answersContainer.children.length > 2) {
+                answerElement.remove();
+                updateStatistics();
+            } else {
+                alert('At least 2 answers are required');
+            }
+        }
+
+        // Remove question
+        function removeQuestion(questionIndex) {
+            const questionElement = document.querySelector(`[data-question-index="${questionIndex}"]`);
+            if (questionElement) {
+                questionElement.remove();
+                updateStatistics();
+            }
+        }
+
+        // Clear all questions
+        function clearAllQuestions() {
+            if (confirm('Are you sure you want to clear all questions?')) {
+                document.getElementById('questionsContainer').innerHTML = '';
+                questionCount = 0;
+                updateStatistics();
+            }
+        }
+
+        // Fill common metadata with sample data
+        function fillCommonMetadata() {
+            document.getElementById('commonCourseId').value = '1';
+            document.getElementById('commonUniversityId').value = '1';
+            document.getElementById('commonExamYear').value = '2024';
+            document.getElementById('commonSourceId').value = '1';
+        }
+
+        // Clear common metadata
+        function clearCommonMetadata() {
+            document.getElementById('commonCourseId').value = '';
+            document.getElementById('commonUniversityId').value = '';
+            document.getElementById('commonExamYear').value = '';
+            document.getElementById('commonSourceId').value = '';
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const questions = document.querySelectorAll('.question-item');
+            let totalAnswers = 0;
+            let correctAnswers = 0;
+            let singleChoice = 0;
+            let multipleChoice = 0;
+            
+            questions.forEach(question => {
+                const questionType = question.querySelector('select[name^="questionType"]').value;
+                if (questionType === 'SINGLE_CHOICE') singleChoice++;
+                if (questionType === 'MULTIPLE_CHOICE') multipleChoice++;
+                
+                const answers = question.querySelectorAll('.answer-item');
+                totalAnswers += answers.length;
+                
+                const correctCheckboxes = question.querySelectorAll('input[type="checkbox"]:checked');
+                correctAnswers += correctCheckboxes.length;
+            });
+            
+            document.getElementById('totalQuestions').textContent = questions.length;
+            document.getElementById('totalAnswers').textContent = totalAnswers;
+            document.getElementById('correctAnswers').textContent = correctAnswers;
+            document.getElementById('singleChoice').textContent = singleChoice;
+            document.getElementById('multipleChoice').textContent = multipleChoice;
+        }
+
+        // Preview JSON
+        function previewJSON() {
+            const bulkData = buildQuestionsData();
+            const jsonPreview = document.getElementById('jsonPreview');
+            const jsonContent = document.getElementById('jsonContent');
+            
+            jsonContent.textContent = JSON.stringify(bulkData, null, 2);
+            jsonPreview.style.display = 'block';
+            jsonPreview.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Build questions data
+        function buildQuestionsData() {
+            const questionElements = document.querySelectorAll('.question-item');
+            
+            // Get common metadata from the common metadata section
+            const commonMetadata = {
+                courseId: parseInt(document.getElementById('commonCourseId')?.value) || null,
+                universityId: parseInt(document.getElementById('commonUniversityId')?.value) || null,
+                examYear: parseInt(document.getElementById('commonExamYear')?.value) || null,
+                sourceId: parseInt(document.getElementById('commonSourceId')?.value) || null
+            };
+            
+            // Clean up null values
+            Object.keys(commonMetadata).forEach(key => {
+                if (commonMetadata[key] === null) {
+                    delete commonMetadata[key];
+                }
+            });
+            
+            const questions = [];
+            
+            questionElements.forEach((questionElement, index) => {
+                const questionData = {
+                    questionText: questionElement.querySelector(`textarea[name="questionText${index}"]`).value,
+                    explanation: questionElement.querySelector(`textarea[name="explanation${index}"]`).value,
+                    questionType: questionElement.querySelector(`select[name="questionType${index}"]`).value,
+                    answers: []
+                };
+                
+                // Clean up empty optional fields
+                if (!questionData.explanation) delete questionData.explanation;
+                if (!questionData.questionType) delete questionData.questionType;
+                
+                // Add answers
+                const answerElements = questionElement.querySelectorAll('.answer-item');
+                answerElements.forEach(answerElement => {
+                    const answerText = answerElement.querySelector('textarea[name^="answerText"]').value;
+                    const isCorrect = answerElement.querySelector('input[type="checkbox"]').checked;
+                    const explanation = answerElement.querySelector('textarea[name^="answerExplanation"]').value;
+                    
+                    if (answerText.trim()) {
+                        const answer = {
+                            answerText: answerText,
+                            isCorrect: isCorrect
+                        };
+                        
+                        if (explanation && explanation.trim()) {
+                            answer.explanation = explanation;
+                        }
+                        
+                        questionData.answers.push(answer);
+                    }
+                });
+                
+                questions.push(questionData);
+            });
+            
+            return {
+                metadata: commonMetadata,
+                questions: questions
+            };
+        }
+
+        // Validate questions
+        function validateQuestions() {
+            const bulkData = buildQuestionsData();
+            const errors = [];
+            
+            bulkData.questions.forEach((question, index) => {
+                if (!question.questionText.trim()) {
+                    errors.push(`Question ${index + 1}: Question text is required`);
+                }
+                
+                if (!question.answers || question.answers.length < 2) {
+                    errors.push(`Question ${index + 1}: At least 2 answers are required`);
+                }
+                
+                const correctAnswers = question.answers.filter(answer => answer.isCorrect);
+                if (question.questionType === 'SINGLE_CHOICE' && correctAnswers.length !== 1) {
+                    errors.push(`Question ${index + 1}: Single choice questions must have exactly 1 correct answer`);
+                }
+                
+                if (question.questionType === 'MULTIPLE_CHOICE' && correctAnswers.length < 2) {
+                    errors.push(`Question ${index + 1}: Multiple choice questions must have at least 2 correct answers`);
+                }
+            });
+            
+            if (errors.length > 0) {
+                showResponse('error', 'Validation Errors:\n' + errors.join('\n'));
+            } else {
+                showResponse('success', `All ${bulkData.questions.length} questions are valid!`);
+            }
+        }
+
+        // Create bulk questions
+        async function createBulkQuestions() {
+            const bulkData = buildQuestionsData();
+            
+            if (bulkData.questions.length === 0) {
+                showResponse('error', 'No questions to create');
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const response = await fetch('https://med-cortex.com/api/v1/admin/questions/bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(bulkData)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showResponse('success', `Successfully created ${bulkData.questions.length} questions!`, data);
+                } else {
+                    throw new Error(data.message || 'Failed to create questions');
+                }
+            } catch (error) {
+                showResponse('error', 'Failed to create questions: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Get authentication token
+        async function getAuthToken() {
+            try {
+                showLoading(true);
+                
+                const response = await fetch('https://med-cortex.com/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'superadmin@medcin.com',
+                        password: 'SuperAdmin123!'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.data.tokens.accessToken;
+                    document.getElementById('tokenValue').textContent = authToken;
+                    document.getElementById('tokenDisplay').style.display = 'block';
+                    document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+                    document.getElementById('connectionText').textContent = 'Connected';
+                    showResponse('success', 'Authentication successful!', data);
+                } else {
+                    throw new Error(data.message || 'Authentication failed');
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+                document.getElementById('connectionText').textContent = 'Connection Failed';
+                showResponse('error', 'Authentication failed: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Show loading indicator
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        // Show response
+        function showResponse(type, message, data = null) {
+            const responseSection = document.getElementById('responseSection');
+            const responseContent = document.getElementById('responseContent');
+            
+            responseSection.className = `response-section response-${type}`;
+            responseSection.style.display = 'block';
+            
+            let content = message;
+            if (data) {
+                content += '\n\n' + JSON.stringify(data, null, 2);
+            }
+            
+            responseContent.textContent = content;
+            responseSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

@@ -48,8 +48,9 @@ export function useGlobalKeyboardShortcuts({
 
     switch (key) {
       case 'enter':
-        // Show explanation and correct result
-        if (!isAnswerRevealed && !showExplanation) {
+        // Only handle Enter globally if answer is already revealed or if there's no current question
+        // Let the question component handle Enter for answer submission
+        if (isAnswerRevealed && !showExplanation) {
           preventDefault();
           revealAnswer();
         }

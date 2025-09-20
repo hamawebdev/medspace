@@ -1770,7 +1770,7 @@ export interface ReviewQuestionReportRequest {
   response: string;
 }
 
-// Admin Activation Codes Management Types
+// Admin Activation Codes Management Types (New API)
 export interface ActivationCode {
   id: number;
   code: string;
@@ -1781,21 +1781,8 @@ export interface ActivationCode {
   isActive: boolean;
   expiresAt: string;
   createdAt: string;
-  updatedAt: string;
-  createdBy?: number;
-  studyPacks: Array<{
-    studyPack: {
-      id: number;
-      name: string;
-      type?: 'YEAR' | 'COURSE' | 'SPECIALTY';
-      yearNumber?: string;
-    };
-  }>;
-  creator?: {
-    id: number;
-    fullName: string;
-    email: string;
-  };
+  updatedAt?: string;
+  studyPacks: StudyPack[];
 }
 
 export interface CreateActivationCodeRequest {
@@ -1806,10 +1793,42 @@ export interface CreateActivationCodeRequest {
   studyPackIds: number[];
 }
 
+export interface UpdateActivationCodeRequest {
+  description?: string;
+  durationMonths?: number;
+  maxUses?: number;
+  expiresAt?: string;
+  studyPackIds?: number[];
+  isActive?: boolean;
+}
+
 export interface ActivationCodeFilters {
   isActive?: boolean;
   search?: string;
-  createdBy?: number;
+  studyPackId?: number;
+  expiryDate?: string;
+}
+
+// New API Response Types
+export interface ActivationCodeResponse {
+  success: boolean;
+  data: {
+    message: string;
+    activationCode: ActivationCode;
+  };
+}
+
+export interface ActivationCodesListResponse {
+  success: boolean;
+  data: {
+    activationCodes: ActivationCode[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  };
 }
 
 // Admin Question Management Types
@@ -2038,4 +2057,39 @@ export interface CreateCheckoutSessionResponse {
 export interface PaymentValidationError {
   field: string;
   message: string;
+}
+
+// Question Sources types based on API documentation
+export interface QuestionSource {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    questions: number;
+  };
+}
+
+export interface CreateQuestionSourceRequest {
+  name: string;
+}
+
+export interface UpdateQuestionSourceRequest {
+  name?: string;
+}
+
+export interface QuestionSourcesResponse {
+  questionSources: QuestionSource[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface QuestionSourceResponse {
+  questionSource: QuestionSource;
+}
+
+export interface QuestionSourceFilters {
+  search?: string;
 }

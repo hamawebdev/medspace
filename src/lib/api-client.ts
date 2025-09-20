@@ -14,6 +14,9 @@ const isProductionApi = API_CONFIG.baseURL.includes('med-cortex.com');
 const isLocalDevelopment = API_CONFIG.baseURL.includes('localhost') || API_CONFIG.baseURL.includes('127.0.0.1');
 const needsCredentials = isLocalDevelopment && !process.env.NEXT_PUBLIC_DISABLE_CREDENTIALS;
 
+// Check if the API URL is using ngrok tunnel
+const isNgrokUrl = API_CONFIG.baseURL.includes('ngrok.io') || API_CONFIG.baseURL.includes('ngrok-free.app');
+
 // API configuration is set up silently
 
 // Token storage keys

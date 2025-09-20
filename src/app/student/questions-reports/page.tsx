@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Search, Calendar, AlertTriangle } from 'lucide-react'
+import { Search, Calendar, AlertTriangle, Eye, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -76,10 +76,10 @@ export default function QuestionReportsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-warning flex items-center justify-center shadow-lg">
-                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-red-500" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold text-primary">
                   Question Reports
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground mt-1">
@@ -88,35 +88,6 @@ export default function QuestionReportsPage() {
               </div>
             </div>
           </div>
-
-          {/* Search and Filter Section */}
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="relative flex-1 max-w-full sm:max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search reports..."
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
-                    className="pl-10 border-border/50 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 dark:focus:border-blue-600 dark:focus:ring-blue-900/20 min-h-[44px]"
-                  />
-                </div>
-                <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1) }}>
-                  <SelectTrigger className="w-full sm:w-[160px] border-border/50 min-h-[44px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="REVIEWED">Reviewed</SelectItem>
-                    <SelectItem value="RESOLVED">Resolved</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
       {/* Reports Content */}
@@ -130,65 +101,256 @@ export default function QuestionReportsPage() {
           }
         />
       ) : (
-        <div className="space-y-4">
-          {list.map((report) => (
-            <Card
-              key={report.id}
-              className="hover:shadow-md transition-all cursor-pointer"
-              onClick={() => handleViewReport(report.id)}
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="p-2 bg-muted rounded-lg">
-                      <AlertTriangle className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className="text-lg">{report.question?.questionText || `Report #${report.id}`}</CardTitle>
-                        <Badge variant="outline" className="capitalize">
-                          {(report.reportType || report.type || '').toString().toLowerCase?.()}
-                        </Badge>
-                      </div>
-                      <CardDescription>{report.description}</CardDescription>
-                      {report.adminResponse && (
-                        <div className="mt-2 text-xs">
-                          <span className="font-medium">Admin response:</span> {report.adminResponse}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
+        <div className="space-y-6">
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="relative flex-1 max-w-lg">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <Input
+                placeholder="Search reports..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
+                className="pl-10 h-10 border-border focus:border-primary/50"
+              />
+            </div>
+            <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1) }}>
+              <SelectTrigger className="w-full sm:w-[160px] border-border min-h-[40px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="REVIEWED">Reviewed</SelectItem>
+                <SelectItem value="RESOLVED">Resolved</SelectItem>
+                <SelectItem value="REJECTED">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-sm px-3 py-1.5 font-medium">
+                {list.length} report{list.length !== 1 ? 's' : ''} found
+              </Badge>
+            </div>
+          </div>
 
-              <CardContent>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Submitted {formatDate(report.createdAt)}</span>
+          {/* Table Container */}
+          <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
+          {/* Table Header - Hidden on mobile */}
+          <div className="bg-muted/30 border-b border-border hidden sm:block">
+            <div className="grid grid-cols-12 gap-4 px-4 py-3">
+              <div className="col-span-1 flex items-center">
+                <input 
+                  type="checkbox" 
+                  className="h-4 w-4 text-primary border-border rounded focus:ring-primary/20"
+                />
+              </div>
+              <div className="col-span-2">
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  ID
+                </span>
+              </div>
+              <div className="col-span-4">
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  QUESTION
+                </span>
+              </div>
+              <div className="col-span-2 text-center">
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  TYPE
+                </span>
+              </div>
+              <div className="col-span-2 text-center">
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  STATUS
+                </span>
+              </div>
+              <div className="col-span-1 text-right">
+                <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  ACTION
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Table Body */}
+          <div className="divide-y divide-border">
+            {list.map((report) => (
+              <div key={report.id} className="hover:bg-muted/20 transition-colors">
+                {/* Desktop Layout */}
+                <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-4">
+                  {/* Checkbox */}
+                  <div className="col-span-1 flex items-center">
+                    <input 
+                      type="checkbox" 
+                      className="h-4 w-4 text-primary border-border rounded focus:ring-primary/20"
+                    />
                   </div>
-                  <Badge variant="outline" className="capitalize">{report.status.toLowerCase()}</Badge>
+                  
+                  {/* ID */}
+                  <div className="col-span-2 flex items-center">
+                    <span className="text-sm font-medium text-foreground">
+                      #{report.id}
+                    </span>
+                  </div>
+                  
+                  {/* Question */}
+                  <div className="col-span-4 flex items-center">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-foreground truncate">
+                        {report.question?.questionText || 'Question not available'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Type */}
+                  <div className="col-span-2 flex items-center justify-center">
+                    <Badge variant="outline" className="capitalize text-xs">
+                      {(report.reportType || report.type || '').toString().toLowerCase().replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  
+                  {/* Status */}
+                  <div className="col-span-2 flex items-center justify-center">
+                    <Badge 
+                      variant={report.status === 'RESOLVED' ? 'default' : 
+                              report.status === 'PENDING' ? 'secondary' : 
+                              report.status === 'REJECTED' ? 'destructive' : 'outline'}
+                      className="capitalize text-xs"
+                    >
+                      {report.status.toLowerCase()}
+                    </Badge>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="col-span-1 flex items-center justify-end">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewReport(report.id)}
+                      className="h-8 w-8 p-0 hover:bg-primary/10 hover:border-primary/30"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                {/* Mobile Layout */}
+                <div className="sm:hidden p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        className="h-4 w-4 text-primary border-border rounded focus:ring-primary/20"
+                      />
+                      <div>
+                        <h3 className="text-sm font-medium text-foreground">Report #{report.id}</h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {report.question?.questionText || 'Question not available'}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {report.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {(report.reportType || report.type || '').toString().toLowerCase().replace('_', ' ')}
+                      </Badge>
+                      <Badge 
+                        variant={report.status === 'RESOLVED' ? 'default' : 
+                                report.status === 'PENDING' ? 'secondary' : 
+                                report.status === 'REJECTED' ? 'destructive' : 'outline'}
+                        className="capitalize text-xs"
+                      >
+                        {report.status.toLowerCase()}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{formatDate(report.createdAt)}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Mobile Actions */}
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleViewReport(report.id)}
+                      className="h-8 w-8 p-0 hover:bg-primary/10 hover:border-primary/30"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </div>
         </div>
       )}
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={!pagination.hasPrev} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled={!pagination.hasNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
+        <Card className="mt-8 border-border shadow-sm">
+          <CardContent className="py-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground font-medium">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} reports
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasPrev}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="min-h-[36px]"
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPage(pageNum)}
+                        className="min-h-[36px] min-w-[36px]"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!pagination.hasNext}
+                  onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                  className="min-h-[36px]"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
       </div>
     </div>

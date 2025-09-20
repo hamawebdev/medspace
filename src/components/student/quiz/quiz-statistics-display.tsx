@@ -97,12 +97,14 @@ export function QuizStatisticsDisplay({
         const answerId = Number(question.id);
         const answer = localAnswers[answerId];
         if (answer && (answer.selectedOptions?.length || answer.selectedAnswerId || answer.selectedAnswerIds?.length || answer.textAnswer)) {
-          // This is a simplified check - in real implementation, you'd check against correct answers
-          if (answer.isCorrect) {
+          // Only count as correct/incorrect if the isCorrect field is explicitly set
+          if (answer.isCorrect === true) {
             correct++;
-          } else {
+          } else if (answer.isCorrect === false) {
             incorrect++;
           }
+          // If isCorrect is undefined, don't count it as either correct or incorrect
+          // This handles cases where answers are submitted but not yet validated
         }
       });
 

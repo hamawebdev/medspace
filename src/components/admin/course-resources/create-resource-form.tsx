@@ -74,7 +74,20 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // File upload handlers
+  // Update form fields visibility based on resource type (from test file pattern)
+  const updateFormFields = () => {
+    // Clear YouTube video ID if not VIDEO type
+    if (formData.type !== 'VIDEO' && formData.youtubeVideoId) {
+      setFormData(prev => ({ ...prev, youtubeVideoId: '' }));
+    }
+
+    // Clear external URL validation errors when type changes
+    if (errors.externalUrl && formData.type !== 'BOOK') {
+      setErrors(prev => ({ ...prev, externalUrl: '' }));
+    }
+  };
+
+  // File upload handlers (improved from test file pattern)
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -89,10 +102,16 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       uploading: false
     }));
 
-    // Validate file type and size
+    // Validate file type and size (expanded from test file)
     const maxSize = 20 * 1024 * 1024; // 20MB
     const allowedTypes = [
       'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'application/zip',
       'image/jpeg',
       'image/jpg',
       'image/png',
@@ -103,14 +122,14 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       'image/svg+xml'
     ];
 
-    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg'];
+    const allowedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.zip', '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg'];
     const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
 
     // Check file extension
     if (!allowedExtensions.includes(fileExtension)) {
       setFileUpload(prev => ({
         ...prev,
-        error: `Invalid file extension "${fileExtension}". Allowed: ${allowedExtensions.join(', ')}`,
+        error: `Invalid file extension "${fileExtension}". Supported formats: PDF, DOC, DOCX, PPT, PPTX, TXT, ZIP, JPG, PNG, GIF, BMP, TIFF, WebP, SVG`,
         file: null
       }));
       return;
@@ -120,7 +139,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
     if (!allowedTypes.includes(file.type)) {
       setFileUpload(prev => ({
         ...prev,
-        error: `Invalid file type "${file.type}". Please upload PDF or image files only.`,
+        error: `Invalid file type "${file.type}". Please upload supported file formats only.`,
         file: null
       }));
       return;
@@ -147,53 +166,21 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       return;
     }
 
-    // Additional validation for PDF files
-    if (file.type === 'application/pdf') {
-      // Basic PDF header check
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const uint8Array = new Uint8Array(arrayBuffer.slice(0, 4));
-        const header = Array.from(uint8Array).map(b => String.fromCharCode(b)).join('');
+    // Simplified file validation (from test file pattern)
+    // Accept file immediately after basic validation - let server handle detailed validation
+    setFileUpload(prev => ({
+      ...prev,
+      file,
+      error: null,
+      success: false,
+      progress: 0
+    }));
 
-        if (header !== '%PDF') {
-          setFileUpload(prev => ({
-            ...prev,
-            error: 'Invalid PDF file. The file appears to be corrupted or not a valid PDF.',
-            file: null
-          }));
-          return;
-        }
-
-        // PDF is valid
-        setFileUpload(prev => ({
-          ...prev,
-          file,
-          error: null,
-          success: false,
-          progress: 0
-        }));
-      };
-
-      reader.onerror = () => {
-        setFileUpload(prev => ({
-          ...prev,
-          error: 'Failed to read the file. Please try again.',
-          file: null
-        }));
-      };
-
-      reader.readAsArrayBuffer(file.slice(0, 1024)); // Read first 1KB for header check
-    } else {
-      // For non-PDF files, accept immediately after basic validation
-      setFileUpload(prev => ({
-        ...prev,
-        file,
-        error: null,
-        success: false,
-        progress: 0
-      }));
-    }
+    console.log('✅ File selected successfully:', {
+      name: file.name,
+      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+      type: file.type
+    });
   };
 
   const removeFile = () => {
@@ -207,12 +194,20 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    // Clear file-related errors
+    if (errors.file) {
+      setErrors(prev => ({ ...prev, file: '' }));
+    }
+    // Clear content validation error if it exists
+    if (errors.content) {
+      setErrors(prev => ({ ...prev, content: '' }));
+    }
   };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Title validation
+    // Title validation (enhanced from test file)
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
     } else if (formData.title.trim().length < 3) {
@@ -221,12 +216,17 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       newErrors.title = 'Title must be less than 200 characters';
     }
 
+    // Course ID validation (from test file)
+    if (!formData.courseId || formData.courseId < 1) {
+      newErrors.courseId = 'Valid course ID is required';
+    }
+
     // Description validation
     if (formData.description && formData.description.length > 1000) {
       newErrors.description = 'Description must be less than 1000 characters';
     }
 
-    // Type-specific validations
+    // Type-specific validations (enhanced from test file)
     if (formData.type === 'BOOK' && !formData.externalUrl?.trim()) {
       newErrors.externalUrl = 'External URL is required for book resources';
     }
@@ -239,10 +239,13 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       }
     }
 
-    // YouTube video ID validation
-    if (formData.youtubeVideoId && formData.youtubeVideoId.trim()) {
-      if (formData.youtubeVideoId.length !== 11) {
+    // YouTube video ID validation (enhanced from test file)
+    if (formData.type === 'VIDEO' && formData.youtubeVideoId && formData.youtubeVideoId.trim()) {
+      const videoId = formData.youtubeVideoId.trim();
+      if (videoId.length !== 11) {
         newErrors.youtubeVideoId = 'YouTube video ID must be exactly 11 characters';
+      } else if (!/^[a-zA-Z0-9_-]+$/.test(videoId)) {
+        newErrors.youtubeVideoId = 'YouTube video ID contains invalid characters';
       }
     }
 
@@ -253,6 +256,15 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
 
     if (fileUpload.error) {
       newErrors.file = fileUpload.error;
+    }
+
+    // Ensure at least one content source is provided (from test file logic)
+    const hasFile = !!fileUpload.file;
+    const hasExternalUrl = !!formData.externalUrl?.trim();
+    const hasYouTubeId = formData.type === 'VIDEO' && !!formData.youtubeVideoId?.trim();
+
+    if (!hasFile && !hasExternalUrl && !hasYouTubeId) {
+      newErrors.content = 'Please provide either a file upload, external URL, or YouTube video ID';
     }
 
     setErrors(newErrors);
@@ -323,6 +335,81 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+    // Clear content validation error when any content field is updated
+    if (['externalUrl', 'youtubeVideoId'].includes(field) && errors.content) {
+      setErrors(prev => ({ ...prev, content: '' }));
+    }
+    // Update form fields when type changes (from test file pattern)
+    if (field === 'type') {
+      updateFormFields();
+    }
+  };
+
+  // Clear form function (from test file)
+  const clearForm = () => {
+    setFormData({
+      courseId: course.id,
+      type: 'SLIDE',
+      title: '',
+      description: '',
+      filePath: '',
+      externalUrl: '',
+      youtubeVideoId: '',
+      isPaid: false,
+      price: 0
+    });
+    setErrors({});
+    removeFile();
+  };
+
+  // Load sample data function (from test file)
+  const loadSampleData = () => {
+    const resourceType = formData.type;
+
+    switch(resourceType) {
+      case 'SLIDE':
+        setFormData(prev => ({
+          ...prev,
+          title: 'Anatomy Slides - Cardiovascular System',
+          description: 'Comprehensive slides covering cardiovascular anatomy and physiology',
+          externalUrl: 'https://example.com/anatomy-slides.pdf'
+        }));
+        break;
+      case 'VIDEO':
+        setFormData(prev => ({
+          ...prev,
+          title: 'Cardiology Lecture Series',
+          description: 'In-depth video lectures on cardiology fundamentals',
+          youtubeVideoId: 'dQw4w9WgXcQ'
+        }));
+        break;
+      case 'BOOK':
+        setFormData(prev => ({
+          ...prev,
+          title: 'Medical Physiology Textbook',
+          description: 'Comprehensive textbook on human physiology',
+          externalUrl: 'https://example.com/physiology-textbook.pdf'
+        }));
+        break;
+      case 'SUMMARY':
+        setFormData(prev => ({
+          ...prev,
+          title: 'Pharmacology Quick Reference',
+          description: 'Quick reference guide for common medications',
+          externalUrl: 'https://example.com/pharmacology-summary.pdf'
+        }));
+        break;
+      case 'OTHER':
+        setFormData(prev => ({
+          ...prev,
+          title: 'Clinical Practice Guidelines',
+          description: 'Official guidelines for clinical practice',
+          externalUrl: 'https://example.com/clinical-guidelines.pdf'
+        }));
+        break;
+    }
+
+    updateFormFields();
   };
 
   const selectedResourceType = RESOURCE_TYPES.find(type => type.value === formData.type);
@@ -407,7 +494,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
           <div className="space-y-2">
             <Label>File Upload</Label>
             <div className="text-sm text-muted-foreground mb-3">
-              Upload PDF or image files (max 20MB). Supported formats: PDF, JPG, PNG, GIF, BMP, TIFF, WebP, SVG
+              Upload files (max 20MB). Supported formats: PDF, DOC, DOCX, PPT, PPTX, TXT, ZIP, JPG, PNG, GIF, BMP, TIFF, WebP, SVG
             </div>
 
             <div className="space-y-3">
@@ -428,7 +515,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.svg"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.svg"
                     onChange={handleFileSelect}
                     className="hidden"
                   />
@@ -525,27 +612,61 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
 
 
           {/* Form Actions */}
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="submit"
-              disabled={loading || fileUpload.uploading || !!fileUpload.error}
-              className="flex-1"
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Resource
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={loading || fileUpload.uploading}
-            >
-              Cancel
-            </Button>
+          <div className="space-y-3 pt-4">
+            <div className="flex gap-3">
+              <Button
+                type="submit"
+                disabled={loading || fileUpload.uploading || !!fileUpload.error}
+                className="flex-1"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Resource
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={loading || fileUpload.uploading}
+              >
+                Cancel
+              </Button>
+            </div>
+
+            {/* Development helpers (from test file) */}
+            <div className="flex gap-2 justify-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearForm}
+                disabled={loading || fileUpload.uploading}
+              >
+                🗑️ Clear Form
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={loadSampleData}
+                disabled={loading || fileUpload.uploading}
+              >
+                📝 Load Sample Data
+              </Button>
+            </div>
           </div>
 
+          {/* Content validation error */}
+          {errors.content && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {errors.content}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Form validation summary */}
-          {Object.keys(errors).length > 0 && (
+          {Object.keys(errors).filter(key => key !== 'content').length > 0 && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>

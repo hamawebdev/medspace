@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Database, Users, CreditCard, FileQuestion, BarChart3, Settings, HelpCircle, Key, FolderOpen } from 'lucide-react'
+import { Database, Users, CreditCard, FileQuestion, BarChart3, Settings, HelpCircle, Key, FolderOpen, Tags } from 'lucide-react'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -53,6 +53,11 @@ export const sidebarData: SidebarData = {
           title: 'Questions',
           url: '/admin/questions',
           icon: HelpCircle,
+        },
+        {
+          title: 'Question Sources',
+          url: '/admin/question-sources',
+          icon: Tags,
         },
         {
           title: 'Question Import',

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { AuthenticatedImage } from '@/components/ui/authenticated-image';
 
 interface LogoDisplayProps {
   logoUrl?: string;
@@ -26,6 +27,8 @@ const variantClasses = {
   circle: 'rounded-full'
 };
 
+
+
 export function LogoDisplay({
   logoUrl,
   fallbackIcon: FallbackIcon,
@@ -36,7 +39,18 @@ export function LogoDisplay({
   variant = 'rounded'
 }: LogoDisplayProps) {
   const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(!!logoUrl);
+
+  // Reset states when logoUrl changes
+  useEffect(() => {
+    if (logoUrl) {
+      setImageError(false);
+      setImageLoading(true);
+    } else {
+      setImageError(false);
+      setImageLoading(false);
+    }
+  }, [logoUrl]);
 
   const handleImageError = () => {
     setImageError(true);
@@ -51,7 +65,7 @@ export function LogoDisplay({
   if (!logoUrl || imageError) {
     return (
       <div className={cn(
-        "flex items-center justify-center bg-primary/5",
+        "flex items-center justify-center bg-transparent",
         sizeClasses[size],
         variantClasses[variant],
         className
@@ -67,13 +81,13 @@ export function LogoDisplay({
 
   return (
     <div className={cn(
-      "relative overflow-hidden bg-gray-100 dark:bg-gray-800",
+      "relative overflow-hidden bg-transparent",
       sizeClasses[size],
       variantClasses[variant],
       className
     )}>
       {imageLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
+        <div className="absolute inset-0 flex items-center justify-center bg-transparent">
           <FallbackIcon className={cn(
             "text-primary animate-pulse",
             size === 'sm' ? 'h-4 w-4' : size === 'md' ? 'h-5 w-5' : 'h-6 w-6',
@@ -81,11 +95,11 @@ export function LogoDisplay({
           )} />
         </div>
       )}
-      <img
+      <AuthenticatedImage
         src={logoUrl}
         alt={alt}
         className={cn(
-          "h-full w-full object-cover transition-opacity duration-200",
+          "h-full w-full object-contain transition-opacity duration-200",
           imageLoading ? 'opacity-0' : 'opacity-100'
         )}
         onError={handleImageError}
