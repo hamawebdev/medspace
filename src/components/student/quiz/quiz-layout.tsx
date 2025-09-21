@@ -55,6 +55,8 @@ import { useApiQuiz } from './quiz-api-context';
 import { EnhancedQuizFooter } from './enhanced-quiz-footer';
 import { QuizStatisticsDisplay } from './quiz-statistics-display';
 import { EnhancedExitDialog } from './enhanced-exit-dialog';
+import { SoundToggle } from './sound-toggle';
+
 import { SessionStatusManager } from '@/lib/session-status-manager';
 import { QuizService } from '@/lib/api-services';
 import { toast } from 'sonner';
@@ -592,6 +594,9 @@ export function QuizLayout() {
                   </Button>
                 )}
 
+                {/* Sound Toggle */}
+                <SoundToggle />
+
                 {/* Exit Quiz */}
                 <Button
                   variant="outline"
@@ -1081,6 +1086,8 @@ export function QuizLayout() {
         onShowStats={handleShowStatsOverlay}
         statsError={statsError}
       />
+
+ 
     </div>
   );
 }

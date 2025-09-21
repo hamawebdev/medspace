@@ -214,7 +214,7 @@ export default function Home() {
     },
     {
       question: "Is there a free trial available?",
-      answer: "Yes, we offer a 14-day free trial for all new users. This gives you full access to explore our platform, try different features, and see how MedCortex can enhance your medical education."
+      answer: "Yes, we offer a 30-day free trial for all new users. This gives you full access to explore our platform, try different features, and see how MedCortex can enhance your medical education."
     },
     {
       question: "How often is the content updated?",
@@ -517,7 +517,7 @@ export default function Home() {
                   <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
                 </div>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
-                  Quizy vous donne la possibilité de sauvegarder toutes vos sessions et vos progressions pour continuer quand bon vous semble à l'endroit exact où vous vous êtes arrêtés. Vous avez la possibilité de créer des playlists de questions personnalisées.
+                  MedCortex vous donne la possibilité de sauvegarder toutes vos sessions et vos progressions pour continuer quand bon vous semble à l'endroit exact où vous vous êtes arrêtés. Vous avez la possibilité de créer des playlists de questions personnalisées.
                 </p>
               </div>
             </div>
@@ -560,7 +560,7 @@ export default function Home() {
                           <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                           <div className="flex-1">
                             <div className="text-sm font-medium text-foreground mb-1">Insuffisance cardiaque</div>
-                            <div className="text-xs text-muted-foreground">Rappel: BNP > 400 pg/mL...</div>
+                            <div className="text-xs text-muted-foreground">Rappel: BNP &gt; 400 pg/mL...</div>
                           </div>
                         </div>
                       </div>
@@ -655,7 +655,7 @@ export default function Home() {
                   <div className="w-16 h-1 bg-primary rounded-full mb-6 mx-auto lg:mx-0 transition-all duration-300 group-hover:w-20 group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-chart-1"></div>
                 </div>
                 <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0 transition-colors duration-300 group-hover:text-foreground/90">
-                  Quizy dispose d'un timer qui vous permet de monitorer le temps que vous passez sur la question et sur la session dans son ensemble. La plateforme propose aussi un outil statistique avancé pour suivre vos progressions par module, par session et par examen.
+                  MedCortex dispose d'un timer qui vous permet de monitorer le temps que vous passez sur la question et sur la session dans son ensemble. La plateforme propose aussi un outil statistique avancé pour suivre vos progressions par module, par session et par examen.
                 </p>
               </div>
             </div>

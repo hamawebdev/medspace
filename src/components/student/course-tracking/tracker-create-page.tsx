@@ -206,6 +206,35 @@ export function TrackerCreatePage({ onSuccess }: TrackerCreatePageProps) {
     updateURL('courses', selectedUnit?.id, selectedModule?.id);
   };
 
+  const handleSelectAllCourses = () => {
+    if (!selectedModule) return;
+
+    const coursesToShow = selectedModule.courses || [];
+    const availableCourses = coursesToShow.filter(course => {
+      const isTrackedElsewhere = suiviCoursStorage.isCourseTracked(course.id);
+      const isAlreadySelected = selectedCourses.some(c => c.id === course.id);
+      return !isTrackedElsewhere && !isAlreadySelected;
+    });
+
+    if (availableCourses.length === 0) {
+      toast.error('Aucun cours disponible à sélectionner');
+      return;
+    }
+
+    const newCourses: SelectedCourse[] = availableCourses.map(course => ({
+      id: course.id,
+      name: course.name,
+      description: course.description,
+      moduleName: selectedModule.name,
+      uniteName: selectedUnit?.name
+    }));
+
+    setSelectedCourses(prev => [...prev, ...newCourses]);
+    setStep('details');
+    updateURL('details', selectedUnit?.id, selectedModule?.id);
+    toast.success(`${availableCourses.length} cours sélectionné${availableCourses.length > 1 ? 's' : ''}`);
+  };
+
   const handleBackToUnits = () => {
     setSelectedUnit(null);
     setSelectedModule(null);
@@ -515,10 +544,22 @@ export function TrackerCreatePage({ onSuccess }: TrackerCreatePageProps) {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold flex items-center gap-3">
-            <BookOpen className="h-6 w-6 text-primary" />
-            Cours
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold flex items-center gap-3">
+              <BookOpen className="h-6 w-6 text-primary" />
+              Cours
+            </h2>
+            {coursesToShow.length > 0 && (
+              <Button
+                onClick={handleSelectAllCourses}
+                variant="outline"
+                className="gap-2"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Sélectionner tout
+              </Button>
+            )}
+          </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {coursesToShow.length > 0 ? (
               coursesToShow.map((course) => {
@@ -786,7 +827,7 @@ export function TrackerCreatePage({ onSuccess }: TrackerCreatePageProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

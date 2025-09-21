@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,7 +17,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AuthenticatedImage } from '@/components/ui/authenticated-image';
+
 import {
   Select,
   SelectContent,
@@ -65,6 +66,7 @@ export function FullScreenImageViewer({
 }: FullScreenImageViewerProps) {
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const [imageError, setImageError] = useState(false);
+  const [nextImageError, setNextImageError] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
@@ -87,6 +89,7 @@ export function FullScreenImageViewer({
     setZoom('fit');
     setImagePosition({ x: 0, y: 0 });
     setImageError(false);
+    setNextImageError(false);
     setIsImageLoading(true);
   }, [image.id]);
 
@@ -239,6 +242,12 @@ export function FullScreenImageViewer({
     setIsImageLoading(false);
   }, []);
 
+  const handleNextImageError = useCallback(() => {
+    console.warn(`Next.js Image failed to load (likely CORP issue) - Path: ${image.imagePath}`);
+    setNextImageError(true);
+    setIsImageLoading(false);
+  }, [image.imagePath]);
+
   if (!isOpen || !isMounted) return null;
 
   const zoomValue = zoom === 'fit' ? 'fit' : zoom.toString();
@@ -268,16 +277,6 @@ export function FullScreenImageViewer({
       {/* Header Controls */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-black/50 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center justify-between p-3 md:p-4">
-          <div className="flex items-center gap-2 md:gap-3">
-            <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-              {currentIndex + 1} of {images.length}
-            </Badge>
-            {image.altText && (
-              <span className="text-xs md:text-sm text-white/80 truncate max-w-[200px] md:max-w-md">
-                {image.altText}
-              </span>
-            )}
-          </div>
           
           <div className="flex items-center gap-1 md:gap-2">
             {/* Zoom Controls */}
@@ -379,22 +378,50 @@ export function FullScreenImageViewer({
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/30 border-t-white"></div>
                 </div>
               )}
-              <AuthenticatedImage
-                src={image.imagePath}
-                alt={image.altText || `Image ${currentIndex + 1}`}
-                className={cn(
-                  "object-contain transition-opacity duration-300",
-                  zoom === 'fit' ? "max-w-[100vw] max-h-[calc(100vh-4rem)]" : "w-auto h-auto",
-                  isImageLoading ? "opacity-0" : "opacity-100"
-                )}
-                onError={handleImageError}
-                onLoad={handleImageLoad}
-                loading="eager"
-                style={{
-                  maxWidth: zoom === 'fit' ? '100vw' : 'none',
-                  maxHeight: zoom === 'fit' ? 'calc(100vh - 4rem)' : 'none',
-                }}
-              />
+              {nextImageError ? (
+                // Fallback to regular img tag with CORS handling for CORP issues
+                <img
+                  src={image.imagePath}
+                  alt={image.altText || `Image ${currentIndex + 1}`}
+                  className={cn(
+                    "object-contain transition-opacity duration-300",
+                    zoom === 'fit' ? "max-w-[100vw] max-h-[calc(100vh-4rem)]" : "w-auto h-auto",
+                    isImageLoading ? "opacity-0" : "opacity-100"
+                  )}
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                  loading="eager"
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
+                  style={{
+                    maxWidth: zoom === 'fit' ? '100vw' : 'none',
+                    maxHeight: zoom === 'fit' ? 'calc(100vh - 4rem)' : 'none',
+                  }}
+                />
+              ) : (
+                // Try Next.js Image first for optimization
+                <div className="relative w-full h-full">
+                  <Image
+                    src={image.imagePath}
+                    alt={image.altText || `Image ${currentIndex + 1}`}
+                    fill
+                    className={cn(
+                      "object-contain transition-opacity duration-300",
+                      isImageLoading ? "opacity-0" : "opacity-100"
+                    )}
+                    onError={handleNextImageError}
+                    onLoad={handleImageLoad}
+                    unoptimized
+                    priority
+                    sizes="100vw"
+                    style={{
+                      objectFit: 'contain',
+                      maxWidth: zoom === 'fit' ? '100vw' : 'none',
+                      maxHeight: zoom === 'fit' ? 'calc(100vh - 4rem)' : 'none',
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

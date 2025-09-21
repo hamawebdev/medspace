@@ -4,7 +4,7 @@
 import { useEffect } from 'react'
 import { IconCheck, IconMoon, IconSun } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
-import { useTheme } from '@/context/theme-context'
+import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

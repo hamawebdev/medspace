@@ -82,10 +82,10 @@ class Logger {
     }
 
     const logKey = this.createLogKey(message, context);
-    
+
     if (this.shouldLog(logKey)) {
       this.addToRecentLogs(level, message, data);
-      
+
       switch (level) {
         case 'error':
           console.error(message, data);
@@ -105,10 +105,19 @@ class Logger {
 
   /**
    * Always log errors regardless of throttling
+   * In production, this could be sent to an error monitoring service
    */
   error(message: string, data?: any) {
     this.addToRecentLogs('error', message, data);
-    console.error(message, data);
+
+    // Always log errors, even in production
+    console.error(`[${new Date().toISOString()}] ERROR:`, message, data);
+
+    // In production, send to error monitoring service
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_ENABLE_ERROR_REPORTING === 'true') {
+      // TODO: Integrate with error monitoring service (e.g., Sentry)
+      // errorMonitoringService.captureException(new Error(message), { extra: data });
+    }
   }
 
   /**
@@ -116,7 +125,11 @@ class Logger {
    */
   warn(message: string, data?: any) {
     this.addToRecentLogs('warn', message, data);
-    console.warn(message, data);
+
+    // Log warnings in development and production
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
+      console.warn(`[${new Date().toISOString()}] WARN:`, message, data);
+    }
   }
 
   /**
@@ -131,6 +144,18 @@ class Logger {
    */
   debug(message: string, data?: any, context?: string) {
     this.throttledLog('debug', message, data, context);
+  }
+
+  /**
+   * Production-safe logging for important events
+   */
+  production(message: string, data?: any) {
+    this.addToRecentLogs('info', message, data);
+
+    // Always log important production events
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`[${new Date().toISOString()}] PRODUCTION:`, message, data);
+    }
   }
 
   /**

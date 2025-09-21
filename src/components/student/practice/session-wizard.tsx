@@ -1060,8 +1060,7 @@ export function SessionWizard({
       )}
 
       {/* Footer actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-border/50">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+      <div className="flex items-center justify-end pt-4 border-t border-border/50">
         <div className="flex items-center gap-2">
           {step > 1 && (
             <Button variant="secondary" onClick={prev}>

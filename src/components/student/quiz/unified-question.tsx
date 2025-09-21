@@ -340,7 +340,7 @@ export function UnifiedQuestion({ question, type }: Props) {
       case 'correct-selected':
         return 'border-green-500 bg-green-500';
       case 'correct-unselected':
-        return 'border-chart-1/50 bg-chart-1/5';
+        return 'border-green-500 bg-green-500';
       case 'incorrect-selected':
         return 'border-[#ff0000] bg-[#ff0000]';
       default:
@@ -353,6 +353,7 @@ export function UnifiedQuestion({ question, type }: Props) {
     if (isAnswerRevealed) {
       switch (status) {
         case 'correct-selected':
+        case 'correct-unselected':
         case 'incorrect-selected':
           return 'text-white';
         default:
@@ -369,6 +370,7 @@ export function UnifiedQuestion({ question, type }: Props) {
     if (isAnswerRevealed) {
       switch (status) {
         case 'correct-selected':
+        case 'correct-unselected':
         case 'incorrect-selected':
           return 'border-white text-white';
         default:

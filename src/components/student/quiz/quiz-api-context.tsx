@@ -8,6 +8,7 @@ import { quizStorage, QuizSessionState, QuizAnswer } from '@/lib/quiz-storage';
 import { SessionStatusManager } from '@/lib/session-status-manager';
 import { toast } from 'sonner';
 import { debounce } from 'lodash';
+import { useSoundManager } from '@/hooks/use-sound-manager';
 
 // Re-export types from the original context for compatibility
 export type {
@@ -471,6 +472,7 @@ export function ApiQuizProvider({
 
   const [state, dispatch] = useReducer(apiQuizReducer, initialState);
   const { submitAnswer: apiSubmitAnswer, submitting } = useQuizAnswerSubmission();
+  const { playSound } = useSoundManager();
 
   // Derive a stable client storage session ID even when apiSessionId is absent (e.g., practice mode)
   const computeLocalSessionId = (id: any) => {
@@ -727,8 +729,18 @@ export function ApiQuizProvider({
       // Do NOT submit per-answer anymore. Answers are stored locally and submitted in bulk on final submit.
     }
 
+    // Play sound feedback based on answer correctness
+    if (answer.isCorrect !== undefined) {
+      try {
+        await playSound(answer.isCorrect ? 'correct' : 'incorrect');
+      } catch (error) {
+        // Silently fail - don't block answer submission
+        console.warn('Failed to play answer feedback sound:', error);
+      }
+    }
+
     dispatch({ type: 'ANSWER_SUBMITTED', success: true });
-  }, [state.clientStorageEnabled, state.currentQuestion?.id, state.timer.questionTime, storageSessionId, apiSessionId, enableApiSubmission]);
+  }, [state.clientStorageEnabled, state.currentQuestion?.id, state.timer.questionTime, storageSessionId, apiSessionId, enableApiSubmission, playSound]);
 
   const clearAnswer = useCallback((questionId: string | number) => {
     dispatch({ type: 'CLEAR_ANSWER', questionId });

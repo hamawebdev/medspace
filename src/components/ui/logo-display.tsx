@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
-import { AuthenticatedImage } from '@/components/ui/authenticated-image';
+
 
 interface LogoDisplayProps {
   logoUrl?: string;
@@ -25,6 +26,12 @@ const variantClasses = {
   square: 'rounded-none',
   rounded: 'rounded-lg',
   circle: 'rounded-full'
+};
+
+const sizesMap = {
+  sm: '32px',
+  md: '40px',
+  lg: '48px'
 };
 
 
@@ -95,11 +102,13 @@ export function LogoDisplay({
           )} />
         </div>
       )}
-      <AuthenticatedImage
+      <Image
         src={logoUrl}
         alt={alt}
+        fill
+        sizes={sizesMap[size]}
         className={cn(
-          "h-full w-full object-contain transition-opacity duration-200",
+          "object-contain transition-opacity duration-200",
           imageLoading ? 'opacity-0' : 'opacity-100'
         )}
         onError={handleImageError}

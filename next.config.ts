@@ -1,16 +1,42 @@
 import type { NextConfig } from "next";
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const nextConfig: NextConfig = {
   output: "standalone",
+
+  // Production-ready TypeScript configuration
   typescript: {
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    ignoreBuildErrors: true,
+    // Only ignore build errors in development
+    ignoreBuildErrors: !isProduction,
   },
+
+  // Production-ready ESLint configuration
   eslint: {
-    // Dangerously allow production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
+    // Only ignore ESLint errors in development
+    ignoreDuringBuilds: !isProduction,
+  },
+
+  // Performance optimizations
+  swcMinify: true,
+
+  // Compression
+  compress: true,
+
+  // Image optimization
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'med-cortex.com',
+        port: '',
+        pathname: '/api/v1/media/**',
+      },
+    ],
   },
 
 
@@ -32,25 +58,43 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Optional: Add security headers
+  // Enhanced security headers for production
   async headers() {
+    const securityHeaders = [
+      {
+        key: 'X-Content-Type-Options',
+        value: 'nosniff',
+      },
+      {
+        key: 'X-Frame-Options',
+        value: 'DENY',
+      },
+      {
+        key: 'X-XSS-Protection',
+        value: '1; mode=block',
+      },
+      {
+        key: 'Referrer-Policy',
+        value: 'strict-origin-when-cross-origin',
+      },
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=()',
+      },
+    ];
+
+    // Add HSTS header only in production
+    if (isProduction) {
+      securityHeaders.push({
+        key: 'Strict-Transport-Security',
+        value: 'max-age=31536000; includeSubDomains; preload',
+      });
+    }
+
     return [
       {
         source: '/:path*',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-        ],
+        headers: securityHeaders,
       },
     ];
   },

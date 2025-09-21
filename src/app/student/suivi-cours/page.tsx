@@ -27,15 +27,6 @@ import { StudyCard, UnitModuleSelection } from '@/types/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// Handle unit/module selection using UnitModuleGrid
-const handleUnitModuleSelection = (item: UnitModuleItem) => {
-  if (item.type === 'unite') {
-    handleUnitClick({ id: item.id, name: item.name, logoUrl: item.logoUrl });
-  } else if (item.type === 'module') {
-    handleModuleClick({ id: item.id, name: item.name, logoUrl: item.logoUrl });
-  }
-};
-
 export default function SuiviCoursPage() {
   const router = useRouter();
   const { filters, loading: filtersLoading, error: filtersError } = useContentFilters();
@@ -58,6 +49,15 @@ export default function SuiviCoursPage() {
     }
 
     router.push(`/student/suivi-cours/trackers?${params.toString()}`);
+  };
+
+  // Handle unit/module selection using UnitModuleGrid
+  const handleUnitModuleSelection = (item: UnitModuleItem) => {
+    if (item.type === 'unite') {
+      handleUnitClick({ id: item.id, name: item.name, logoUrl: item.logoUrl });
+    } else if (item.type === 'module') {
+      handleModuleClick({ id: item.id, name: item.name, logoUrl: item.logoUrl });
+    }
   };
 
   const handleCreateTracker = () => {
@@ -105,15 +105,17 @@ export default function SuiviCoursPage() {
     <ErrorBoundary>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              La liste de suivi de cours
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Sélectionnez une unité ou un module pour gérer vos suivis de cours
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">
+            La liste de suivi de cours
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Sélectionnez une unité ou un module pour gérer vos suivis de cours
+          </p>
+        </div>
+
+        {/* Create Button */}
+        <div className="flex justify-start">
           <Button 
             onClick={handleCreateTracker}
             className="bg-primary hover:bg-primary/90"

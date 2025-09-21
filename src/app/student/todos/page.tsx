@@ -23,7 +23,6 @@ import {
   GraduationCap,
   ChevronDown,
   ChevronUp,
-  Columns3,
   List,
   CalendarDays
 } from 'lucide-react'
@@ -90,6 +89,37 @@ const TYPE_ICONS: Record<string, any> = {
   OTHER: Circle,
 }
 
+// Local storage helpers for Reading Todo course selection persistence
+const readingTodoKey = (todoId: number) => `readingTodo:${todoId}:courseIds`
+
+function getReadingTodoCourseIds(todoId: number): number[] {
+  try {
+    const raw = localStorage.getItem(readingTodoKey(todoId))
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((x: any) => Number.isInteger(x)) : []
+  } catch (err) {
+    console.error('Failed to read Reading Todo courseIds from localStorage', { todoId, err })
+    return []
+  }
+}
+
+function setReadingTodoCourseIds(todoId: number, courseIds: number[]) {
+  try {
+    localStorage.setItem(readingTodoKey(todoId), JSON.stringify(courseIds))
+  } catch (err) {
+    console.error('Failed to persist Reading Todo courseIds to localStorage', { todoId, err })
+  }
+}
+
+function removeReadingTodoCourseIds(todoId: number) {
+  try {
+    localStorage.removeItem(readingTodoKey(todoId))
+  } catch (err) {
+    console.error('Failed to remove Reading Todo courseIds from localStorage', { todoId, err })
+  }
+}
+
 export default function TodosPage() {
   const router = useRouter()
   const { isAuthenticated, loading: authLoading } = useStudentAuth()
@@ -105,7 +135,7 @@ export default function TodosPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL')
   const [showCompleted, setShowCompleted] = useState(false)
   const [showTodayOnly, setShowTodayOnly] = useState(false)
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
+  const [viewMode, setViewMode] = useState<'list'>('list')
   const [sortBy, setSortBy] = useState<'dueDate' | 'priority' | 'created'>('created')
   const [page, setPage] = useState(1)
   const [limit] = useState(12)
@@ -171,6 +201,9 @@ export default function TodosPage() {
   })
 
   const [pagination, setPagination] = useState<any>(null)
+
+  const [todoErrors, setTodoErrors] = useState<Record<number, string>>({})
+
 
   // Normalize a Todo from various API response shapes to avoid transient invalid objects
   const normalizeTodoFromResponse = (resp: any): ApiTodo | null => {
@@ -267,8 +300,52 @@ export default function TodosPage() {
                   ? (response.data as any[])
                   : []
 
-          const todoList = Array.isArray(list) ? (list as ApiTodo[]) : []
-          setTodos(todoList)
+          console.log('📋 Raw todos list from API:', list)
+
+          // Normalize todos and ensure courses have proper structure
+          const todoList = Array.isArray(list) ? (list as ApiTodo[]).map(todo => {
+            console.log('🔍 Processing todo:', todo.id, todo.title, 'courses:', todo.courses)
+
+            // Ensure courses have the expected structure for display
+            const normalizedCourses = (todo.courses || []).map((course: any) => {
+              console.log('🔍 Processing course:', course)
+              return {
+                id: course.id,
+                name: course.name,
+                description: course.description || '',
+                moduleName: course.moduleName || course.module?.name || '',
+                uniteName: course.uniteName || '',
+                completed: course.completed || false
+              }
+            })
+
+            console.log('✅ Normalized courses for todo', todo.id, ':', normalizedCourses)
+
+            return {
+              ...todo,
+              courses: normalizedCourses
+            }
+          }) : []
+
+          console.log('📋 Final normalized todo list:', todoList)
+          // Apply localStorage overrides for Reading Todo course selections
+          const todosWithLocal = (todoList || []).map((todo: any) => {
+            try {
+              if (todo && todo.type === 'READING' && Array.isArray(todo.courses) && todo.id != null) {
+                const saved = getReadingTodoCourseIds(todo.id)
+                if (saved && saved.length > 0) {
+                  return {
+                    ...todo,
+                    courses: todo.courses.map((c: any) => ({ ...c, completed: saved.includes(c.id) }))
+                  }
+                }
+              }
+            } catch (e) {
+              // If localStorage read fails, silently fallback to backend state
+            }
+            return todo
+          })
+          setTodos(todosWithLocal)
 
           // Normalize pagination info for consistent student UI
           const p: any = response.data?.data?.pagination
@@ -367,26 +444,6 @@ export default function TodosPage() {
       }
     })
 
-  // Kanban view organization
-  const kanbanColumns = {
-    overdue: filteredTodos.filter(todo => {
-      if (!todo.dueDate || todo.status === 'COMPLETED') return false
-      return new Date(todo.dueDate) < new Date()
-    }),
-    today: filteredTodos.filter(todo => {
-      if (!todo.dueDate) return false
-      const today = new Date()
-      const dueDate = new Date(todo.dueDate)
-      return dueDate.toDateString() === today.toDateString() && todo.status !== 'COMPLETED'
-    }),
-    upcoming: filteredTodos.filter(todo => {
-      if (!todo.dueDate || todo.status === 'COMPLETED') return false
-      const today = new Date()
-      const dueDate = new Date(todo.dueDate)
-      return dueDate > today && dueDate.toDateString() !== today.toDateString()
-    }),
-    completed: filteredTodos.filter(todo => todo.status === 'COMPLETED')
-  }
 
   const handleSubmitTodo = async () => {
     if (!newTodo.title.trim()) {
@@ -476,31 +533,47 @@ export default function TodosPage() {
   }
 
   const handleToggleTodo = async (todoId: number) => {
-    try {
-      const current = todos.find(t => t.id === todoId)
-      if (!current) return
+    const current = todos.find(t => t.id === todoId)
+    if (!current) return
 
+    // Special completion flow for READING todos (optimistic removal + localStorage cleanup)
+    if (current.type === 'READING' && current.status !== 'COMPLETED') {
+      const prevList = [...todos]
+      // Optimistically remove from UI
+      setTodos(prev => prev.filter(t => t.id !== todoId))
+      try {
+        const response = await StudentService.updateTodo(todoId, { status: 'COMPLETED' })
+        if (response.success) {
+          try { removeReadingTodoCourseIds(todoId) } catch (e) { /* ignore */ }
+          toast.success('Todo updated')
+        } else {
+          throw new Error(typeof response.error === 'string' ? response.error : 'Failed to update todo')
+        }
+      } catch (error) {
+        // Rollback UI and show inline error message
+        setTodos(prevList)
+        setTodoErrors(prev => ({ ...prev, [todoId]: 'Impossible de terminer ce todo. Réessayez.' }))
+        setTimeout(() => setTodoErrors(prev => { const n = { ...prev }; delete n[todoId]; return n }), 4000)
+      }
+      return
+    }
+
+    // Default behavior (non-reading or reopening)
+    try {
       let response
       if (current.status !== 'COMPLETED') {
-        // Mark as completed - use updateTodo for consistency
         response = await StudentService.updateTodo(todoId, { status: 'COMPLETED' })
       } else {
-        // Reopen task as IN_PROGRESS
         response = await StudentService.updateTodo(todoId, { status: 'IN_PROGRESS' })
       }
 
       if (response.success && response.data) {
         const normalizedTodo = normalizeTodoFromResponse(response)
-
         if (normalizedTodo) {
-          setTodos(prev => prev.map(todo =>
-            todo.id === todoId ? normalizedTodo : todo
-          ))
+          setTodos(prev => prev.map(todo => (todo.id === todoId ? normalizedTodo : todo)))
           toast.success('Todo updated')
         } else {
           toast.error('Failed to parse updated todo data')
-
-          // Fallback: optimistically update the status
           setTodos(prev => prev.map(todo =>
             todo.id === todoId
               ? { ...todo, status: current.status !== 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS' }
@@ -553,38 +626,66 @@ export default function TodosPage() {
   }
 
   const handleToggleCourse = async (todoId: number, courseId: number) => {
-    // Client-side only course completion tracking
+    // Snapshot previous state for rollback
+    const prevTodos = [...todos]
+    const target = todos.find(t => t.id === todoId)
+    if (!target || !Array.isArray(target.courses)) return
+
+    const prevCompletedIds = target.courses.filter(c => c.completed).map(c => c.id)
+    const wasCompleted = !!target.courses.find(c => c.id === courseId)?.completed
+    const nextCompletedIds = wasCompleted
+      ? prevCompletedIds.filter(id => id !== courseId)
+      : Array.from(new Set([...prevCompletedIds, courseId]))
+
+    // Optimistically update localStorage
+    try { setReadingTodoCourseIds(todoId, nextCompletedIds) } catch (e) { /* ignore */ }
+
+    // Optimistically update UI
     setTodos(prev => prev.map(todo => {
-      if (todo.id === todoId && todo.courses) {
+      if (todo.id === todoId && Array.isArray(todo.courses)) {
         const updatedCourses = todo.courses.map(course =>
           course.id === courseId
             ? { ...course, completed: !course.completed }
             : course
         )
 
-        // Check if all courses are completed to update todo status
         const allCoursesCompleted = updatedCourses.every(course => course.completed)
         const anyCoursesCompleted = updatedCourses.some(course => course.completed)
 
         let newStatus = todo.status
-        if (allCoursesCompleted && todo.status !== 'COMPLETED') {
-          newStatus = 'COMPLETED'
-        } else if (!anyCoursesCompleted && todo.status === 'COMPLETED') {
-          newStatus = 'IN_PROGRESS'
-        } else if (anyCoursesCompleted && todo.status === 'PENDING') {
-          newStatus = 'IN_PROGRESS'
-        }
+        if (allCoursesCompleted && todo.status !== 'COMPLETED') newStatus = 'COMPLETED'
+        else if (!anyCoursesCompleted && todo.status === 'COMPLETED') newStatus = 'IN_PROGRESS'
+        else if (anyCoursesCompleted && todo.status === 'PENDING') newStatus = 'IN_PROGRESS'
 
-        return {
-          ...todo,
-          courses: updatedCourses,
-          status: newStatus
-        }
+        return { ...todo, courses: updatedCourses, status: newStatus }
       }
       return todo
     }))
 
-    toast.success('Course progress updated')
+    // If all courses are now completed for a READING todo, attempt backend completion
+    const allNowCompleted = target.courses.length > 0 && nextCompletedIds.length === target.courses.length
+    if (target.type === 'READING' && allNowCompleted && target.status !== 'COMPLETED') {
+      const prevList = [...prevTodos]
+      // Optimistically remove from UI
+      setTodos(prev => prev.filter(t => t.id !== todoId))
+      try {
+        const response = await StudentService.updateTodo(todoId, { status: 'COMPLETED' })
+        if (response.success) {
+          try { removeReadingTodoCourseIds(todoId) } catch (e) { /* ignore */ }
+          toast.success('Todo updated')
+        } else {
+          throw new Error(typeof response.error === 'string' ? response.error : 'Failed to update todo')
+        }
+      } catch (err) {
+        // Roll back UI and localStorage
+        setTodos(prevList)
+        try { setReadingTodoCourseIds(todoId, prevCompletedIds) } catch (e) { /* ignore */ }
+        setTodoErrors(prev => ({ ...prev, [todoId]: 'Impossible de terminer ce todo. Réessayez.' }))
+        setTimeout(() => setTodoErrors(prev => { const n = { ...prev }; delete n[todoId]; return n }), 4000)
+      }
+    } else {
+      toast.success('Course progress updated')
+    }
   }
 
   const handleReadingTodoCreated = () => {
@@ -743,15 +844,6 @@ export default function TodosPage() {
               >
                 <List className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
                 <span className="hidden sm:inline">List</span>
-              </Button>
-              <Button
-                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('kanban')}
-                className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
-              >
-                <Columns3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Kanban</span>
               </Button>
             </div>
 
@@ -1025,16 +1117,6 @@ export default function TodosPage() {
 
             {/* Filter Checkboxes - Responsive layout */}
             <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 pt-2 border-t border-border/50">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="show-today"
-                  checked={showTodayOnly}
-                  onCheckedChange={setShowTodayOnly}
-                />
-                <Label htmlFor="show-today" className="text-sm font-medium cursor-pointer">
-                  Today's tasks
-                </Label>
-              </div>
 
               {selectedStatus === 'ALL' && (
                 <div className="flex items-center gap-2">
@@ -1162,41 +1244,6 @@ export default function TodosPage() {
             )}
           </div>
         </div>
-      ) : viewMode === 'kanban' ? (
-        /* Kanban View */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {Object.entries(kanbanColumns).map(([columnKey, columnTodos]) => (
-            <div key={columnKey} className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b">
-                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                  {columnKey === 'overdue' && 'Overdue'}
-                  {columnKey === 'today' && 'Today'}
-                  {columnKey === 'upcoming' && 'Upcoming'}
-                  {columnKey === 'completed' && 'Completed'}
-                </h3>
-                <Badge variant="secondary" className="text-xs">
-                  {columnTodos.length}
-                </Badge>
-              </div>
-
-              <div className="space-y-3">
-                {columnTodos.map((todo, idx) => (
-                  <TodoCard
-                    key={`kanban-${todo.id ?? idx}`}
-                    todo={todo}
-                    expandedDescriptions={expandedDescriptions}
-                    toggleDescription={toggleDescription}
-                    truncateDescription={truncateDescription}
-                    handleEditTodo={handleEditTodo}
-                    handleToggleTodo={handleToggleTodo}
-                    handleDeleteTodo={handleDeleteTodo}
-                    handleToggleCourse={handleToggleCourse}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
       ) : (
         /* List View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1211,6 +1258,7 @@ export default function TodosPage() {
               handleToggleTodo={handleToggleTodo}
               handleDeleteTodo={handleDeleteTodo}
               handleToggleCourse={handleToggleCourse}
+              errorMessage={todoErrors[todo.id]}
             />
           ))}
         </div>
@@ -1247,9 +1295,10 @@ export default function TodosPage() {
       )}
     </div>
   )
+}
 
 // TodoCard Component Definition
-function TodoCard({ todo, expandedDescriptions, toggleDescription, truncateDescription, handleEditTodo, handleToggleTodo, handleDeleteTodo, handleToggleCourse }: {
+function TodoCard({ todo, expandedDescriptions, toggleDescription, truncateDescription, handleEditTodo, handleToggleTodo, handleDeleteTodo, handleToggleCourse, errorMessage }: {
   todo: ApiTodo
   expandedDescriptions: Set<number>
   toggleDescription: (id: number) => void
@@ -1258,6 +1307,7 @@ function TodoCard({ todo, expandedDescriptions, toggleDescription, truncateDescr
   handleToggleTodo: (id: number) => void
   handleDeleteTodo: (id: number) => void
   handleToggleCourse: (todoId: number, courseId: number) => void
+  errorMessage?: string
 }) {
   const TypeIcon = TYPE_ICONS[todo.type] || Circle
   const isCompleted = todo.status === 'COMPLETED'
@@ -1265,227 +1315,196 @@ function TodoCard({ todo, expandedDescriptions, toggleDescription, truncateDescr
   const isExpanded = expandedDescriptions.has(todo.id)
   const hasLongDescription = todo.description && todo.description.length > 120
 
-  // Enhanced chip components using design system colors
-  const PriorityChip = ({ priority }: { priority: string }) => (
-    <Badge
-      variant="outline"
-      className={cn("text-xs font-medium", PRIORITY_CHIP_COLORS[priority])}
-    >
-      <Flag className="h-3 w-3 mr-1" />
-      {priority}
-    </Badge>
-  )
+  console.log('🎯 TodoCard render - todo:', todo.id, todo.title, 'type:', todo.type, 'courses:', todo.courses)
 
-  const StatusChip = ({ status }: { status: string }) => (
-    <Badge
-      variant="outline"
-      className={cn("text-xs font-medium", STATUS_CHIP_COLORS[status])}
-    >
-      {status === 'COMPLETED' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-      {status === 'IN_PROGRESS' && <Clock className="h-3 w-3 mr-1" />}
-      {status === 'OVERDUE' && <AlertCircle className="h-3 w-3 mr-1" />}
-      {status === 'PENDING' && <Circle className="h-3 w-3 mr-1" />}
-      {status.replace('_', ' ')}
-    </Badge>
-  )
+  // Helper function to format dates
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
-  const DueDateChip = ({ dueDate }: { dueDate: string }) => {
-    const date = new Date(dueDate)
+  // Helper function to get relative time
+  const getRelativeTime = (dateString?: string) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
     const now = new Date()
     const diffTime = date.getTime() - now.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-    let colorClass = 'bg-muted text-muted-foreground border-border'
-    if (diffDays < 0) colorClass = 'bg-destructive/10 text-destructive border-destructive/20'
-    else if (diffDays === 0) colorClass = 'bg-chart-4/10 text-chart-4 border-chart-4/20'
-
-    const formatDueDate = (dateString: string) => {
-      const date = new Date(dateString)
-      const now = new Date()
-      const diffTime = date.getTime() - now.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-      if (diffDays < 0) return 'Overdue'
-      if (diffDays === 0) return 'Due today'
-      if (diffDays === 1) return 'Due tomorrow'
-      if (diffDays <= 7) return `Due in ${diffDays} days`
-
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })
-    }
-
-    return (
-      <Badge variant="outline" className={cn("text-xs font-medium", colorClass)}>
-        <CalendarDays className="h-3 w-3 mr-1" />
-        {formatDueDate(dueDate)}
-      </Badge>
-    )
+    if (diffDays < 0) return `${Math.abs(diffDays)} days overdue`
+    if (diffDays === 0) return 'Due today'
+    if (diffDays === 1) return 'Due tomorrow'
+    return `Due in ${diffDays} days`
   }
 
   return (
-    <Card
-      className={cn(
-        "group relative transition-all duration-200 hover:shadow-md border rounded-xl overflow-hidden",
-        "hover:border-primary/30 hover:bg-gradient-to-r hover:from-background hover:to-primary/5",
-        isCompleted && "opacity-75 bg-muted/20",
-        isOverdue && "border-destructive/30 bg-destructive/5"
-      )}
-    >
-      <CardContent className="p-5">
-        {/* Hover Actions */}
-        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <div className="flex items-center gap-1 bg-background/95 backdrop-blur-sm rounded-lg border shadow-sm p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
-              onClick={() => handleEditTodo(todo)}
-            >
-              <Edit3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-chart-1/10 hover:text-chart-1"
-              onClick={() => handleToggleTodo(todo.id)}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => handleDeleteTodo(todo.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+    <Card className={cn(
+      "border rounded-lg p-3 mb-3 transition-all duration-200 hover:shadow-md",
+      isCompleted && "opacity-75 bg-muted/30",
+      isOverdue && !isCompleted && "border-destructive/30 bg-destructive/5"
+    )}>
+      {/* Header Row */}
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          <Checkbox
+            checked={isCompleted}
+            onCheckedChange={() => handleToggleTodo(todo.id)}
+            className="mt-0.5 flex-shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <h3 className={cn(
+              "font-semibold text-sm leading-tight mb-1",
+              isCompleted && "line-through text-muted-foreground"
+            )}>
+              {todo.title}
+            </h3>
+            {todo.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                {todo.description}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <Checkbox
-              checked={isCompleted}
-              onCheckedChange={() => handleToggleTodo(todo.id)}
-              className="mt-1 transition-all duration-200"
-            />
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-primary/10"
+            onClick={() => handleEditTodo(todo)}
+          >
+            <Edit3 className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => handleDeleteTodo(todo.id)}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <TypeIcon className={cn(
-                  "h-4 w-4 flex-shrink-0",
-                  isCompleted ? "text-muted-foreground" : "text-primary"
-                )} />
-                <h3 className={cn(
-                  "font-semibold text-lg leading-tight transition-colors",
-                  isCompleted && "line-through text-muted-foreground",
-                  !isCompleted && "text-foreground group-hover:text-primary"
-                )}>
-                  {todo.title}
-                </h3>
-                {todo.tags?.includes('STARRED') && (
-                  <Star className="h-4 w-4 text-chart-4 fill-current flex-shrink-0" />
-                )}
-              </div>
+      {/* Metadata Row */}
+      <div className="flex flex-wrap items-center gap-1 mb-2">
+        <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5">
+          <TypeIcon className="h-3 w-3 mr-1" />
+          {todo.type}
+        </Badge>
 
-              {/* Description with Show More/Less */}
-              {todo.description && (
-                <div className="mb-3">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {hasLongDescription && !isExpanded
-                      ? truncateDescription(todo.description)
-                      : todo.description
-                    }
-                  </p>
-                  {hasLongDescription && (
-                    <button
-                      onClick={() => toggleDescription(todo.id)}
-                      className="text-xs text-primary hover:text-primary/80 font-medium mt-1 transition-colors"
-                    >
-                      {isExpanded ? (
-                        <span className="flex items-center gap-1">
-                          Show less <ChevronUp className="h-3 w-3" />
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          Show more <ChevronDown className="h-3 w-3" />
-                        </span>
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
+        <Badge variant="outline" className={cn(
+          "text-xs px-1.5 py-0.5 h-5",
+          PRIORITY_CHIP_COLORS[todo.priority]
+        )}>
+          <Flag className="h-3 w-3 mr-1" />
+          {todo.priority}
+        </Badge>
 
-              {/* Metadata Chips */}
-              <div className="flex flex-wrap items-center gap-2">
-                <PriorityChip priority={todo.priority} />
-                <StatusChip status={todo.status} />
-                {todo.dueDate && <DueDateChip dueDate={todo.dueDate} />}
+        <Badge variant="outline" className={cn(
+          "text-xs px-1.5 py-0.5 h-5",
+          STATUS_CHIP_COLORS[todo.status]
+        )}>
+          {todo.status === 'COMPLETED' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+          {todo.status === 'IN_PROGRESS' && <Clock className="h-3 w-3 mr-1" />}
+          {todo.status === 'PENDING' && <Circle className="h-3 w-3 mr-1" />}
+          {todo.status.replace('_', ' ')}
+        </Badge>
 
-                <Badge variant="outline" className="text-xs font-medium bg-muted/50 text-muted-foreground border-border">
-                  <TypeIcon className="h-3 w-3 mr-1" />
-                  {todo.type}
-                </Badge>
+        {todo.dueDate && (
+          <Badge variant="outline" className={cn(
+            "text-xs px-1.5 py-0.5 h-5",
+            isOverdue && !isCompleted ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-muted/50"
+          )}>
+            <CalendarDays className="h-3 w-3 mr-1" />
+            {getRelativeTime(todo.dueDate)}
+          </Badge>
+        )}
 
-                {(todo.tags ?? []).filter(tag => tag !== 'STARRED').map(tag => (
-                  <Badge key={`${todo.id}-${tag}`} variant="outline" className="text-xs font-medium bg-accent/50 text-accent-foreground border-accent">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+        {todo.estimatedTime && (
+          <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5 bg-muted/50">
+            <Clock className="h-3 w-3 mr-1" />
+            {todo.estimatedTime}m
+          </Badge>
+        )}
+
+        {todo.tags && todo.tags.length > 0 && (
+          todo.tags.map(tag => (
+            <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0.5 h-5 bg-accent/50">
+              {tag}
+            </Badge>
+          ))
+        )}
+      </div>
+
+      {/* Course Information for Reading Todos */}
+      {todo.type === 'READING' && todo.courses && todo.courses.length > 0 && (
+        <div className="border-t pt-2 mt-2">
+          <div className="text-xs font-medium text-muted-foreground mb-1">
+            Courses ({todo.courses.length}):
           </div>
+          <div className="flex flex-col gap-1">
+            {todo.courses.map((course, index) => (
+              <div
+                key={course.id || index}
+                className="text-xs bg-primary/5 border border-primary/20 p-1.5 rounded flex items-center gap-1"
+              >
+                <Checkbox
+                  checked={course.completed || false}
+                  onCheckedChange={() => handleToggleCourse(todo.id, course.id)}
+                  className="h-3 w-3"
+                />
+                <span className={cn(
+                  "flex-1",
+                  course.completed && "line-through text-muted-foreground"
+                )}>
+                  {course.name || `Course ${course.id}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {/* Course Information for Reading Todos */}
-          {todo.type === 'READING' && todo.courses && todo.courses.length > 0 && (
-            <div className="border-t pt-3 space-y-3">
-              <div className="text-xs font-medium text-muted-foreground">
-                {todo.courses.length > 1 ? `Courses (${todo.courses.length}):` : 'Course:'}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {todo.courses.map((course, courseIndex) => (
-                  <div 
-                    key={course.id} 
-                    className={cn(
-                      "relative group cursor-pointer p-2 rounded-lg border transition-all duration-200 hover:shadow-sm",
-                      "bg-card hover:bg-accent/50 border-border hover:border-primary/30",
-                      course.completed && "opacity-60 bg-muted/30"
-                    )}
-                    onClick={() => handleToggleCourse(todo.id, course.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={course.completed || false}
-                        className="h-3 w-3 transition-all duration-200"
-                        readOnly
-                      />
-                      <span className={cn(
-                        "text-xs font-medium truncate leading-tight",
-                        course.completed && "line-through text-muted-foreground"
-                      )}>
-                        {course.name}
-                      </span>
-                    </div>
-                    {course.moduleName && (
-                      <div className="text-xs text-muted-foreground truncate mt-1">
-                        {course.moduleName}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+      )}
+
+      {errorMessage && (
+        <div className="mt-2 text-xs text-destructive">
+          {errorMessage}
+        </div>
+      )}
+
+
+      {/* Additional Information Row */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground mt-2 pt-2 border-t">
+        <div className="flex items-center gap-3">
+          {todo.createdAt && (
+            <span>Created: {formatDate(todo.createdAt)}</span>
+
+          )}
+          {todo.completedAt && (
+            <span>Completed: {formatDate(todo.completedAt)}</span>
           )}
         </div>
-      </CardContent>
+
+        <div className="flex items-center gap-2">
+          {todo.isOverdue && !isCompleted && (
+            <Badge variant="destructive" className="text-xs px-1.5 py-0.5 h-5">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Overdue
+            </Badge>
+          )}
+        </div>
+      </div>
+
     </Card>
   )
 }
 
-
-}
