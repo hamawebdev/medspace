@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
   import { Providers } from "@/components/providers";
-  import { FrontextInit } from "@/components/frontext-init";
   import Script from "next/script";
   import "./globals.css";
 
@@ -90,7 +89,6 @@ import { ThemeProvider } from "@/components/theme-provider";
               storageKey="theme"
             >
               {children}
-              <FrontextInit />
             </ThemeProvider>
           </Providers>
         </body>
