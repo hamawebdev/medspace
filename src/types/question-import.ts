@@ -28,6 +28,18 @@ export interface Unit {
   logoUrl?: string;
   createdAt: string;
   updatedAt: string;
+  modules?: Array<{
+    id: number;
+    name: string;
+    description: string;
+    createdAt?: string;
+    updatedAt?: string;
+    courses?: Array<{
+      id: number;
+      name: string;
+      description: string;
+    }>;
+  }>;
 }
 
 export interface Module {

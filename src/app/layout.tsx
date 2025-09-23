@@ -6,6 +6,7 @@ import { Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
   import { Providers } from "@/components/providers";
   import Script from "next/script";
+  import { FrontextInit } from "@/components/frontext-init";
   import "./globals.css";
 
   // Using Outfit font for all text
@@ -89,6 +90,7 @@ import { ThemeProvider } from "@/components/theme-provider";
               storageKey="theme"
             >
               {children}
+               <FrontextInit />
             </ThemeProvider>
           </Providers>
         </body>

@@ -241,7 +241,23 @@ export default function CourseResourcesPage() {
         return
       }
 
-      // Default path for unit-bound modules
+      // For child modules (modules within units), extract courses from content filters
+      // Find the module in the current unit's modules
+      let coursesFromFilters: any[] = []
+
+      if (navigation.selectedUnit) {
+        const unit = filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)
+        const module = unit?.modules?.find(m => m.id === moduleId)
+        coursesFromFilters = module?.courses || []
+      }
+
+      // If we found courses in the filters, use them
+      if (coursesFromFilters.length > 0) {
+        setCourses(coursesFromFilters)
+        return
+      }
+
+      // Fallback: try API call for unit-bound modules (in case courses are not in filters)
       const response = await NewApiService.getStudentCourses({ moduleId })
 
       if (response.success && response.data) {
@@ -490,18 +506,55 @@ export default function CourseResourcesPage() {
                 <h3 className="text-lg font-semibold">Modules in {navigation.selectedUnit.name}</h3>
               </div>
 
-              {/* Use UnitModuleGrid for consistent layout */}
-              <UnitModuleGrid
-                units={[]} // No units at module level
-                independentModules={filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)?.modules || []}
-                onItemClick={handleUnitModuleSelection}
-                variant="practice"
-                layout="compact"
-                loading={false}
-                error={null}
-                showSessionCounts={false}
-                selectedItem={null}
-              />
+              {/* Display child modules from the selected unit */}
+              {(() => {
+                const selectedUnit = filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)
+                const childModules = selectedUnit?.modules || []
+
+                if (childModules.length === 0) {
+                  return (
+                    <EmptyState
+                      icon={Layers}
+                      title="No Modules Available"
+                      description="No modules are available in this unit."
+                    />
+                  )
+                }
+
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {childModules.map((module) => (
+                      <Card
+                        key={module.id}
+                        className="cursor-pointer transition-all hover:shadow-md border-border/50 hover:border-primary/30"
+                        onClick={() => navigateToCoursesFromModule({
+                          id: module.id,
+                          name: module.name,
+                          isIndependent: false // Child modules are not independent
+                        })}
+                      >
+                        <CardHeader className="p-4">
+                          <CardTitle className="flex items-center gap-2 text-sm">
+                            <BookOpen className="h-4 w-4 text-primary" />
+                            {module.name}
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            {module.description || 'Module description'}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="secondary" className="text-xs">
+                              Module
+                            </Badge>
+                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           )}
 

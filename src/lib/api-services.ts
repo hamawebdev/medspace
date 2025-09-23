@@ -2488,6 +2488,9 @@ export class AdminService {
       courseId: number;
       universityId?: number;
       examYear?: number;
+      sourceId?: number;
+      rotation?: string;
+      yearLevel?: string;
     };
     questions: Array<{
       questionText: string;
@@ -4256,6 +4259,8 @@ export class UniversityService {
       universityId?: number;
       examYear?: number;
       yearLevel?: string;
+      sourceId?: number;
+      rotation?: string;
     };
     questions: Array<{
       questionText: string;

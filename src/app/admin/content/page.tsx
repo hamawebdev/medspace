@@ -269,26 +269,7 @@ export default function AdminContentPage() {
 
   // Handle import
   const handleImport = async () => {
-    if (!validation.isValid || parsedQuestions.length === 0 || !selectedExamYear || selectedExamYear === -1) {
-      toast.error('Please select an exam year and provide valid questions');
-      return;
-    }
-
-    if (!selectedSourceId) {
-      toast.error('Please select a question source');
-      return;
-    }
-
-    if (!selectedRotation) {
-      toast.error('Please select a rotation');
-      return;
-    }
-
-    if (!selection.course) {
-      toast.error('Please complete the hierarchy selection first');
-      return;
-    }
-
+    // Import button is always enabled - proceed with import
     setImporting(true);
     try {
       // Import using hook API to avoid client-side class method issues
@@ -616,32 +597,97 @@ export default function AdminContentPage() {
             )}
 
             {currentStep === 'module' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableOptions.modules.map((module) => (
-                  <EntityCard
-                    key={module.id}
-                    entity={module}
-                    entityType="module"
-                    onSelect={() => handleCardSelection('module', module)}
-                    onEdit={(entity) => handleEditEntity(entity, 'module')}
-                    onDelete={handleDeleteEntity}
-                  />
-                ))}
+              <div className="space-y-6">
+                {/* Debug Information */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="bg-gray-100 p-4 rounded-lg text-sm">
+                    <h4 className="font-semibold mb-2">Debug Info:</h4>
+                    <p>Selected Unit: {selection.unit?.name} (ID: {selection.unit?.id})</p>
+                    <p>Available Modules Count: {availableOptions.modules.length}</p>
+                    <p>All Modules in Hierarchy: {getAvailableOptions().modules.length}</p>
+                    {availableOptions.modules.length > 0 && (
+                      <p>Sample Module: {availableOptions.modules[0].name} (Unit ID: {availableOptions.modules[0].unite?.id})</p>
+                    )}
+                  </div>
+                )}
+
+                {availableOptions.modules.length > 0 ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Layers className="h-5 w-5" />
+                      <h3 className="text-lg font-semibold">
+                        Modules in {selection.unit?.name}
+                      </h3>
+                      <Badge variant="outline">{availableOptions.modules.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableOptions.modules.map((module) => (
+                        <EntityCard
+                          key={module.id}
+                          entity={module}
+                          entityType="module"
+                          onSelect={() => handleCardSelection('module', module)}
+                          onEdit={(entity) => handleEditEntity(entity, 'module')}
+                          onDelete={handleDeleteEntity}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Modules Available</h3>
+                    <p className="text-muted-foreground mb-4">
+                      No modules are available for the selected unit "{selection.unit?.name}".
+                    </p>
+                    <Alert>
+                      <AlertDescription>
+                        This could mean:
+                        <ul className="list-disc list-inside mt-2 text-left">
+                          <li>The unit has no modules assigned to it</li>
+                          <li>There's an issue with the data structure</li>
+                          <li>The filtering logic needs to be checked</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
               </div>
             )}
 
             {currentStep === 'course' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {availableOptions.courses.map((course) => (
-                  <EntityCard
-                    key={course.id}
-                    entity={course}
-                    entityType="course"
-                    onSelect={() => handleCardSelection('course', course)}
-                    onEdit={(entity) => handleEditEntity(entity, 'course')}
-                    onDelete={handleDeleteEntity}
-                  />
-                ))}
+              <div className="space-y-6">
+                {/* Debug Information */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="bg-gray-100 p-4 rounded-lg text-sm">
+                    <h4 className="font-semibold mb-2">Debug Info - Course Step:</h4>
+                    <p>Selected Module: {selection.module?.name} (ID: {selection.module?.id})</p>
+                    <p>Selected Independent Module: {selection.independentModule?.name} (ID: {selection.independentModule?.id})</p>
+                    <p>Available Courses Count: {availableOptions.courses.length}</p>
+                    {availableOptions.courses.length > 0 && (
+                      <p>Sample Course: {availableOptions.courses[0].name} (ID: {availableOptions.courses[0].id})</p>
+                    )}
+                  </div>
+                )}
+
+                {availableOptions.courses.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No courses available for the selected module.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {availableOptions.courses.map((course) => (
+                      <EntityCard
+                        key={course.id}
+                        entity={course}
+                        entityType="course"
+                        onSelect={() => handleCardSelection('course', course)}
+                        onEdit={(entity) => handleEditEntity(entity, 'course')}
+                        onDelete={handleDeleteEntity}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -827,9 +873,9 @@ export default function AdminContentPage() {
                 {/* Rotation Selection */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Select Rotation</CardTitle>
+                    <CardTitle>Select Rotation (Optional)</CardTitle>
                     <CardDescription>
-                      Choose the rotation for your questions (required: R1, R2, R3, or R4)
+                      Choose the rotation for your questions (optional: R1, R2, R3, or R4)
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -921,32 +967,32 @@ export default function AdminContentPage() {
                       onValidationResult={handleValidationResult}
                     />
 
-                    {validation.isValid && (
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {validation.questionCount > 0 && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
                             {validation.questionCount} questions ready
                           </Badge>
-                        </div>
-                        <Button
-                          onClick={handleImport}
-                          disabled={importing || !validation.isValid || !selectedExamYear || selectedExamYear === -1 || !selectedSourceId || !selectedRotation}
-                          className="min-w-[120px]"
-                        >
-                          {importing ? (
-                            <>
-                              <Database className="mr-2 h-4 w-4 animate-spin" />
-                              Importing...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="mr-2 h-4 w-4" />
-                              Import Questions
-                            </>
-                          )}
-                        </Button>
+                        )}
                       </div>
-                    )}
+                      <Button
+                        onClick={handleImport}
+                        disabled={importing}
+                        className="min-w-[120px]"
+                      >
+                        {importing ? (
+                          <>
+                            <Database className="mr-2 h-4 w-4 animate-spin" />
+                            Importing...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Import Questions
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 

@@ -135,11 +135,6 @@ export function UnitModuleCard({
                   </Badge>
                 </div>
 
-                {item.description && (
-                  <p className="text-sm text-muted-foreground leading-relaxed break-words">
-                    {item.description}
-                  </p>
-                )}
               </div>
 
             </div>

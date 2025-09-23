@@ -221,8 +221,55 @@ export function useQuestionImport() {
     const unitsMap = new Map<number, Unit>();
     const modulesMap = new Map<number, Module>();
 
-    // Get units from study packs data
-    studyPacksData.forEach(studyPack => {
+    // First, process units directly from the API response (unites array)
+    if (unites && Array.isArray(unites)) {
+      console.log('🔍 [useQuestionImport] Processing unites array:', unites.length);
+      unites.forEach(unit => {
+        if (!unitsMap.has(unit.id)) {
+          // Add unit to map with proper structure
+          unitsMap.set(unit.id, {
+            id: unit.id,
+            studyPackId: unit.studyPackId,
+            name: unit.name,
+            description: unit.description,
+            logoUrl: unit.logoUrl,
+            createdAt: unit.createdAt || new Date().toISOString(),
+            updatedAt: unit.updatedAt || new Date().toISOString(),
+            modules: unit.modules // Keep the nested modules structure
+          });
+        }
+
+        // Also extract modules from units
+        if (unit.modules && Array.isArray(unit.modules)) {
+          console.log(`🔍 [useQuestionImport] Processing ${unit.modules.length} modules for unit ${unit.name}`);
+          unit.modules.forEach(module => {
+            if (!modulesMap.has(module.id)) {
+              modulesMap.set(module.id, {
+                id: module.id,
+                uniteId: unit.id,
+                name: module.name,
+                description: module.description,
+                createdAt: module.createdAt || new Date().toISOString(),
+                updatedAt: module.updatedAt || new Date().toISOString(),
+                unite: {
+                  id: unit.id,
+                  studyPackId: unit.studyPackId,
+                  name: unit.name,
+                  description: unit.description,
+                  logoUrl: unit.logoUrl,
+                  createdAt: unit.createdAt || new Date().toISOString(),
+                  updatedAt: unit.updatedAt || new Date().toISOString()
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Get units from study packs data (for backward compatibility)
+    if (studyPacksData && Array.isArray(studyPacksData)) {
+      studyPacksData.forEach(studyPack => {
       if (studyPack.unites && Array.isArray(studyPack.unites)) {
         studyPack.unites.forEach(unit => {
           if (!unitsMap.has(unit.id)) {
@@ -264,23 +311,28 @@ export function useQuestionImport() {
           }
         });
       }
-    });
+      });
+    }
 
     // Also extract modules from courses (for backward compatibility)
-    courses.forEach(course => {
-      const module = course.module;
-      const unit = module.unite;
+    if (courses && Array.isArray(courses)) {
+      courses.forEach(course => {
+        if (course && course.module && course.module.unite) {
+          const module = course.module;
+          const unit = module.unite;
 
-      if (!unitsMap.has(unit.id)) {
-        unitsMap.set(unit.id, unit);
-      }
+          if (!unitsMap.has(unit.id)) {
+            unitsMap.set(unit.id, unit);
+          }
 
-      if (!modulesMap.has(module.id)) {
-        modulesMap.set(module.id, module);
-      }
-    });
+          if (!modulesMap.has(module.id)) {
+            modulesMap.set(module.id, module);
+          }
+        }
+      });
+    }
 
-    return {
+    const result = {
       universities,
       studyPacks: studyPacksData,
       examYears,
@@ -289,6 +341,25 @@ export function useQuestionImport() {
       independentModules,
       courses
     };
+
+    console.log('🔍 [useQuestionImport] Final hierarchyData:', {
+      unitsCount: result.units.length,
+      modulesCount: result.modules.length,
+      independentModulesCount: result.independentModules.length,
+      coursesCount: result.courses.length,
+      sampleUnit: result.units[0] ? {
+        id: result.units[0].id,
+        name: result.units[0].name,
+        modulesCount: result.units[0].modules?.length || 0
+      } : null,
+      sampleModule: result.modules[0] ? {
+        id: result.modules[0].id,
+        name: result.modules[0].name,
+        uniteId: result.modules[0].uniteId
+      } : null
+    });
+
+    return result;
   }, [filtersData, studyPacksData]);
 
   // Get filtered options based on current selection
@@ -298,10 +369,10 @@ export function useQuestionImport() {
     const { courses } = filtersData.data.filters;
 
     // Filter based on current selection
-    let filteredCourses = courses;
-    let filteredStudyPacks = hierarchyData.studyPacks;
-    let filteredUnits = hierarchyData.units;
-    let filteredIndependentModules = hierarchyData.independentModules;
+    let filteredCourses = courses || [];
+    let filteredStudyPacks = hierarchyData.studyPacks || [];
+    let filteredUnits = hierarchyData.units || [];
+    let filteredIndependentModules = hierarchyData.independentModules || [];
 
     // Filter study packs by university (if there's a relationship)
     if (selection.university) {
@@ -326,9 +397,84 @@ export function useQuestionImport() {
     }
 
     if (selection.module) {
-      filteredCourses = filteredCourses.filter(course =>
-        course.module.id === selection.module!.id
-      );
+      console.log('🔍 [getAvailableOptions] Module selected:', {
+        moduleId: selection.module.id,
+        moduleName: selection.module.name,
+        totalModulesInHierarchy: hierarchyData.modules.length,
+        totalUnitsInHierarchy: hierarchyData.units.length
+      });
+
+      // Get courses directly from the selected module
+      // First, try to find the module in the hierarchyData
+      const selectedModule = hierarchyData.modules.find(module => module.id === selection.module!.id);
+
+      console.log('🔍 [getAvailableOptions] Found selected module in hierarchy:', {
+        found: !!selectedModule,
+        selectedModule: selectedModule ? {
+          id: selectedModule.id,
+          name: selectedModule.name,
+          uniteId: selectedModule.unite?.id
+        } : null
+      });
+
+      if (selectedModule && selectedModule.unite) {
+        // Find the unit that contains this module
+        const parentUnit = hierarchyData.units.find(unit => unit.id === selectedModule.unite.id);
+
+        console.log('🔍 [getAvailableOptions] Found parent unit:', {
+          found: !!parentUnit,
+          parentUnit: parentUnit ? {
+            id: parentUnit.id,
+            name: parentUnit.name,
+            modulesCount: parentUnit.modules?.length || 0
+          } : null
+        });
+
+        if (parentUnit && parentUnit.modules) {
+          // Find the module within the unit's modules array (which contains courses)
+          const moduleWithCourses = parentUnit.modules.find(module => module.id === selection.module!.id);
+
+          console.log('🔍 [getAvailableOptions] Found module with courses:', {
+            found: !!moduleWithCourses,
+            moduleWithCourses: moduleWithCourses ? {
+              id: moduleWithCourses.id,
+              name: moduleWithCourses.name,
+              coursesCount: moduleWithCourses.courses?.length || 0,
+              sampleCourse: moduleWithCourses.courses?.[0]
+            } : null
+          });
+
+          if (moduleWithCourses && moduleWithCourses.courses) {
+            // Convert the nested course structure to match the expected Course interface
+            filteredCourses = moduleWithCourses.courses.map(course => ({
+              id: course.id,
+              moduleId: selection.module!.id,
+              name: course.name,
+              description: course.description,
+              createdAt: new Date().toISOString(), // Fallback
+              updatedAt: new Date().toISOString(), // Fallback
+              module: selectedModule
+            }));
+
+            console.log('🔍 [getAvailableOptions] Mapped courses from module:', {
+              coursesCount: filteredCourses.length,
+              sampleMappedCourse: filteredCourses[0]
+            });
+          } else {
+            console.log('🔍 [getAvailableOptions] No courses in module, using fallback filter');
+            // Fallback: filter from the original courses array
+            filteredCourses = filteredCourses.filter(course =>
+              course.module && course.module.id === selection.module!.id
+            );
+          }
+        }
+      } else {
+        console.log('🔍 [getAvailableOptions] Module not found in hierarchy, using fallback filter');
+        // Fallback: filter from the original courses array
+        filteredCourses = filteredCourses.filter(course =>
+          course.module && course.module.id === selection.module!.id
+        );
+      }
     }
 
     // Handle independent module selection for courses
@@ -353,9 +499,35 @@ export function useQuestionImport() {
     }
 
     // Extract available modules from filtered courses
-    const availableModules = selection.unit
-      ? hierarchyData.modules.filter(module => module.unite.id === selection.unit!.id)
-      : hierarchyData.modules;
+    let availableModules = hierarchyData.modules;
+
+    if (selection.unit) {
+      // Filter modules that belong to the selected unit
+      availableModules = hierarchyData.modules.filter(module =>
+        module.unite && module.unite.id === selection.unit!.id
+      );
+
+      // If no modules found in hierarchyData, try to get them from the unit's modules directly
+      if (availableModules.length === 0 && selection.unit.modules) {
+        availableModules = selection.unit.modules.map(module => ({
+          id: module.id,
+          uniteId: selection.unit!.id,
+          name: module.name,
+          description: module.description,
+          createdAt: module.createdAt || new Date().toISOString(),
+          updatedAt: module.updatedAt || new Date().toISOString(),
+          unite: {
+            id: selection.unit!.id,
+            studyPackId: selection.unit!.studyPackId,
+            name: selection.unit!.name,
+            description: selection.unit!.description,
+            logoUrl: selection.unit!.logoUrl,
+            createdAt: selection.unit!.createdAt,
+            updatedAt: selection.unit!.updatedAt
+          }
+        }));
+      }
+    }
 
     const result = {
       universities: hierarchyData.universities,
@@ -371,14 +543,30 @@ export function useQuestionImport() {
     console.log('🔍 [useQuestionImport] Available Options:', {
       currentStep: selection.studyPack ? 'after-studypack' : 'before-studypack',
       selectedStudyPackId: selection.studyPack?.id,
+      selectedUnitId: selection.unit?.id,
+      selectedUnitName: selection.unit?.name,
       unitesCount: result.units.length,
+      modulesCount: result.modules.length,
+      totalHierarchyModules: hierarchyData.modules.length,
       independentModulesCount: result.independentModules.length,
       totalHierarchyIndependentModules: hierarchyData.independentModules.length,
+      sampleModule: result.modules[0] ? {
+        id: result.modules[0].id,
+        name: result.modules[0].name,
+        uniteId: result.modules[0].unite?.id,
+        uniteName: result.modules[0].unite?.name
+      } : null,
       sampleIndependentModule: result.independentModules[0] ? {
         id: result.independentModules[0].id,
         name: result.independentModules[0].name,
         studyPackId: result.independentModules[0].studyPackId
-      } : null
+      } : null,
+      allModulesInHierarchy: hierarchyData.modules.map(m => ({
+        id: m.id,
+        name: m.name,
+        uniteId: m.unite?.id,
+        uniteName: m.unite?.name
+      }))
     });
 
     return result;
@@ -507,32 +695,25 @@ export function useQuestionImport() {
     questions: any[],
     additionalMetadata?: { examYear?: number; sourceId?: number; rotation?: string }
   ): Promise<BulkQuestionImportResponse | null> => {
-    if (!selection.course) {
-      toast.error('Please complete hierarchy selection first');
-      return null;
-    }
+    // Import is always allowed - proceed with whatever data is provided
 
-    if (!questions || questions.length === 0) {
-      toast.error('No valid questions to import');
-      return null;
-    }
-
+    const questionCount = questions?.length || 0;
     setProgress({
       step: 'importing',
-      message: `Importing ${questions.length} questions...`,
+      message: `Importing ${questionCount} questions...`,
       progress: 85
     });
 
     try {
       const payload: BulkQuestionImportPayload = {
         metadata: {
-          courseId: selection.course.id,
+          courseId: selection.course?.id || 1, // Default to course ID 1 if not selected
           universityId: selection.university?.id,
           examYear: additionalMetadata?.examYear || selection.examYear,
           sourceId: additionalMetadata?.sourceId,
           rotation: additionalMetadata?.rotation
         },
-        questions
+        questions: questions || []
       };
 
       // Add a small delay to show progress

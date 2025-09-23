@@ -132,10 +132,7 @@ export function CourseSpecificQuestionDialog({
       return;
     }
 
-    if (!formData.rotation) {
-      setError('Please select a rotation');
-      return;
-    }
+    // Rotation is now optional - no validation needed
 
     if (!formData.examYear) {
       setError('Please enter an exam year');
@@ -180,7 +177,7 @@ export function CourseSpecificQuestionDialog({
         courseId: courseId, // Auto-populated from props
         universityId: universityId || formData.universityId || 1, // Use passed universityId, fallback to form or default
         yearLevel: formData.yearLevel as 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN',
-        rotation: formData.rotation as 'R1' | 'R2' | 'R3' | 'R4',
+        rotation: formData.rotation || undefined,
         examYear: formData.examYear,
         sourceId: formData.sourceId,
         additionalInfo: formData.additionalInfo || undefined,
@@ -305,18 +302,19 @@ export function CourseSpecificQuestionDialog({
 
             {/* Rotation */}
             <div className="space-y-2">
-              <Label>Rotation *</Label>
+              <Label>Rotation</Label>
               <Select
                 value={formData.rotation}
-                onValueChange={(value: 'R1' | 'R2' | 'R3' | 'R4') =>
+                onValueChange={(value: 'R1' | 'R2' | 'R3' | 'R4' | '') =>
                   setFormData(prev => ({ ...prev, rotation: value }))
                 }
                 disabled={loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select rotation" />
+                  <SelectValue placeholder="Select rotation (optional)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">None</SelectItem>
                   <SelectItem value="R1">R1</SelectItem>
                   <SelectItem value="R2">R2</SelectItem>
                   <SelectItem value="R3">R3</SelectItem>

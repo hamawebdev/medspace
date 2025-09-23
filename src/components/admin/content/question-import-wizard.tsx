@@ -90,10 +90,7 @@ export function QuestionImportWizard({
 
   // Handle import
   const handleImport = useCallback(async () => {
-    if (!validation.isValid || parsedQuestions.length === 0) {
-      return;
-    }
-
+    // Import button is always enabled - proceed with import
     setImporting(true);
     try {
       const result = await importQuestions(parsedQuestions);
@@ -103,7 +100,7 @@ export function QuestionImportWizard({
     } finally {
       setImporting(false);
     }
-  }, [validation.isValid, parsedQuestions, importQuestions, onImportComplete]);
+  }, [parsedQuestions, importQuestions, onImportComplete]);
 
   // Handle reset
   const handleReset = useCallback(() => {
@@ -412,9 +409,9 @@ export function QuestionImportWizard({
               Back to Selection
             </Button>
             
-            <Button 
+            <Button
               onClick={handleImport}
-              disabled={!validation.isValid || importing || parsedQuestions.length === 0}
+              disabled={importing}
               size="lg"
             >
               {importing ? (
@@ -425,7 +422,7 @@ export function QuestionImportWizard({
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Import {validation.questionCount} Questions
+                  Import {validation.questionCount > 0 ? `${validation.questionCount} Questions` : 'Questions'}
                 </>
               )}
             </Button>

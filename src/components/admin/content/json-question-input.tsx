@@ -35,7 +35,7 @@ export function JsonQuestionInput({
   const [isValidating, setIsValidating] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Validate JSON and questions format
+  // Validate JSON format only
   const validateQuestions = useCallback((jsonString: string): ValidationResult => {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
@@ -43,14 +43,14 @@ export function JsonQuestionInput({
     let questionCount = 0;
 
     try {
-      // Parse JSON
+      // Parse JSON - this is the only validation we do
       const parsed = JSON.parse(jsonString);
-      
+
       // Check if it's an array
       if (!Array.isArray(parsed)) {
         errors.push({
           field: 'root',
-          message: 'JSON must be an array of questions'
+          message: 'JSON must be an array'
         });
         return { isValid: false, errors, warnings, questionCount: 0 };
       }
@@ -58,97 +58,8 @@ export function JsonQuestionInput({
       questions = parsed;
       questionCount = questions.length;
 
-      if (questionCount === 0) {
-        errors.push({
-          field: 'root',
-          message: 'At least one question is required'
-        });
-        return { isValid: false, errors, warnings, questionCount: 0 };
-      }
-
-      // Validate each question
-      questions.forEach((question, questionIndex) => {
-        // Required fields
-        if (!question.questionText || typeof question.questionText !== 'string') {
-          errors.push({
-            field: 'questionText',
-            message: 'Question text is required and must be a string',
-            questionIndex
-          });
-        }
-
-        if (!question.questionType || !['SINGLE_CHOICE', 'MULTIPLE_CHOICE'].includes(question.questionType)) {
-          errors.push({
-            field: 'questionType',
-            message: 'Question type must be either SINGLE_CHOICE or MULTIPLE_CHOICE',
-            questionIndex
-          });
-        }
-
-        if (!question.answers || !Array.isArray(question.answers)) {
-          errors.push({
-            field: 'answers',
-            message: 'Answers must be an array',
-            questionIndex
-          });
-        } else {
-          // Validate answers
-          if (question.answers.length < 2) {
-            errors.push({
-              field: 'answers',
-              message: 'At least 2 answers are required',
-              questionIndex
-            });
-          }
-
-          let correctAnswerCount = 0;
-          question.answers.forEach((answer, answerIndex) => {
-            if (!answer.answerText || typeof answer.answerText !== 'string') {
-              errors.push({
-                field: 'answerText',
-                message: 'Answer text is required and must be a string',
-                questionIndex,
-                answerIndex
-              });
-            }
-
-            if (typeof answer.isCorrect !== 'boolean') {
-              errors.push({
-                field: 'isCorrect',
-                message: 'isCorrect must be a boolean',
-                questionIndex,
-                answerIndex
-              });
-            } else if (answer.isCorrect) {
-              correctAnswerCount++;
-            }
-          });
-
-          // Validate correct answer count based on question type
-          if (question.questionType === 'SINGLE_CHOICE' && correctAnswerCount !== 1) {
-            errors.push({
-              field: 'answers',
-              message: 'SINGLE_CHOICE questions must have exactly one correct answer',
-              questionIndex
-            });
-          } else if (question.questionType === 'MULTIPLE_CHOICE' && correctAnswerCount < 1) {
-            errors.push({
-              field: 'answers',
-              message: 'MULTIPLE_CHOICE questions must have at least one correct answer',
-              questionIndex
-            });
-          }
-        }
-
-        // Optional field warnings
-        if (!question.explanation) {
-          warnings.push({
-            field: 'explanation',
-            message: 'Consider adding an explanation for better learning experience',
-            questionIndex
-          });
-        }
-      });
+      // No content validation - accept any structure
+      // Explanation is optional and can be empty string
 
     } catch (parseError) {
       errors.push({
@@ -241,18 +152,16 @@ export function JsonQuestionInput({
   const sampleJson = `[
   {
     "questionText": "What is the primary function of the heart?",
-    "explanation": "The heart pumps blood throughout the body",
+    "explanation": "",
     "questionType": "SINGLE_CHOICE",
     "answers": [
       {
         "answerText": "Pumping blood",
-        "isCorrect": true,
-        "explanation": "Correct - the heart's main function is circulation"
+        "isCorrect": true
       },
       {
         "answerText": "Filtering toxins",
-        "isCorrect": false,
-        "explanation": "This is the function of kidneys"
+        "isCorrect": false
       }
     ]
   }
