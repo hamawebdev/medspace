@@ -3757,7 +3757,7 @@ export class AdminCourseResourcesService {
 
       // Use XMLHttpRequest for progress tracking with correct API base URL
       const token = localStorage.getItem('auth_token'); // Use correct token key from api-client
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://med-cortex.com/api/v1';
+      const API_BASE_URL = 'https://med-cortex.com/api/v1';
 
       console.log('🔐 [API] Token retrieval for file upload:', {
         hasToken: !!token,

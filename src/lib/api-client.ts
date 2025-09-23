@@ -5,7 +5,7 @@ import { logger, logApiRequest } from './logger';
 
 // API Configuration
 const API_CONFIG = {
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1',
+  baseURL: 'https://med-cortex.com/api/v1',
   timeout: 30000, // 30 seconds
 };
 

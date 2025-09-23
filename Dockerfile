@@ -57,4 +57,5 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
 # Correct entrypoint for Next.js standalone build
-CMD ["node", "server.js"]
+CMD ["node", ".next/standalone/server.js"]
+

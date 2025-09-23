@@ -238,7 +238,7 @@ export class NewApiService {
       // Log the API request details
       console.log('🏗️ [API Request] getContentFilters:', {
         endpoint: url,
-        fullUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'}${url}`,
+        fullUrl: `https://med-cortex.com/api/v1${url}`,
         timestamp: new Date().toISOString()
       });
 
@@ -376,7 +376,7 @@ export class NewApiService {
       // Log the API request details
       console.log('🎯 [API Request] getPracticeSessions:', {
         endpoint: url,
-        fullUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'}${url}`,
+        fullUrl: `https://med-cortex.com/api/v1${url}`,
         params: {
           sessionType: params.sessionType,
           moduleId: params.moduleId,
@@ -439,7 +439,7 @@ export class NewApiService {
     // Log the API request details
     console.log('📝 [API Request] getStudentNotes:', {
       endpoint: url,
-      fullUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1'}${url}`,
+      fullUrl: `https://med-cortex.com/api/v1${url}`,
       params: {
         moduleId: params.moduleId,
         uniteId: params.uniteId
