@@ -14,7 +14,8 @@ import {
   User,
   Calendar,
   MapPin,
-  Send
+  Send,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,6 +72,27 @@ export function UnifiedQuestion({ question, type }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [eliminatedOptions, setEliminatedOptions] = useState<Set<string>>(new Set());
+
+  // Load elimination state from sessionStorage on component mount
+  useEffect(() => {
+    const storageKey = `eliminated_options_${question.id}`;
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setEliminatedOptions(new Set(parsed));
+      } catch (error) {
+        console.warn('Failed to parse eliminated options from storage:', error);
+      }
+    }
+  }, [question.id]);
+
+  // Save elimination state to sessionStorage whenever it changes
+  useEffect(() => {
+    const storageKey = `eliminated_options_${question.id}`;
+    sessionStorage.setItem(storageKey, JSON.stringify(Array.from(eliminatedOptions)));
+  }, [eliminatedOptions, question.id]);
 
   const userAnswer = (state.localAnswers?.[Number(question.id)]) || session.userAnswers[String(question.id)];
 
@@ -255,6 +277,21 @@ export function UnifiedQuestion({ question, type }: Props) {
     // Clear the answer from the global state as well
     clearAnswer(question.id);
   }, [isTextQuestion, question.id, clearAnswer]);
+
+  const handleOptionElimination = useCallback((optionId: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    setEliminatedOptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(optionId)) {
+        newSet.delete(optionId);
+      } else {
+        newSet.add(optionId);
+      }
+      return newSet;
+    });
+  }, []);
 
   // Add keyboard event listener for answer selection
   useEffect(() => {
@@ -625,7 +662,8 @@ export function UnifiedQuestion({ question, type }: Props) {
                       getOptionStyles(status),
                       isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary",
                       !isSelected && !isAnswerRevealed && "hover:border-primary/30 hover:bg-primary/5",
-                      isDisabled && "cursor-not-allowed opacity-75"
+                      isDisabled && "cursor-not-allowed opacity-75",
+                      eliminatedOptions.has(option.id) && "bg-gray-200 dark:bg-gray-700"
                     )}
                     onClick={() => !isDisabled && handleOptionToggle(option.id)}
                   >
@@ -658,18 +696,35 @@ export function UnifiedQuestion({ question, type }: Props) {
                               : isCompactMode
                                 ? "text-sm sm:text-base lg:text-lg leading-snug"
                                 : "text-base sm:text-lg lg:text-xl leading-relaxed",
-                            getOptionTextColors(status, isSelected, isAnswerRevealed)
+                            getOptionTextColors(status, isSelected, isAnswerRevealed),
+                            eliminatedOptions.has(option.id) && "line-through opacity-60"
                           )}>
                             {option.text}
                           </p>
                         </div>
 
-                        {/* Checkbox for accessibility */}
-                        <Checkbox
-                          checked={isSelected}
-                          disabled={isDisabled}
-                          className="pointer-events-none opacity-0"
-                        />
+                        {/* Trash Icon Button */}
+                        <div className="flex-shrink-0 mt-0.5">
+                          <button
+                            onClick={(e) => handleOptionElimination(option.id, e)}
+                            className={cn(
+                              "p-1 rounded-md transition-all duration-200 hover:bg-muted/50 flex items-center justify-center",
+                              eliminatedOptions.has(option.id) 
+                                ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                            title={eliminatedOptions.has(option.id) ? "Restore option" : "Eliminate option"}
+                          >
+                            <Trash2 className={cn(
+                              "transition-all duration-200",
+                              isUltraCompactMode
+                                ? "w-3 h-3 sm:w-4 sm:h-4"
+                                : isCompactMode
+                                  ? "w-4 h-4 sm:w-5 sm:h-5"
+                                  : "w-5 h-5 sm:w-6 sm:h-6"
+                            )} />
+                          </button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -701,7 +756,8 @@ export function UnifiedQuestion({ question, type }: Props) {
                         getOptionStyles(status),
                         isSelected && !isAnswerRevealed && "ring-2 ring-primary/50 shadow-lg border-primary/40 bg-primary",
                         !isSelected && !isAnswerRevealed && "hover:border-primary/30 hover:bg-primary/5",
-                        isDisabled && "cursor-not-allowed opacity-75"
+                        isDisabled && "cursor-not-allowed opacity-75",
+                        eliminatedOptions.has(option.id) && "bg-gray-200 dark:bg-gray-700"
                       )}
                       onClick={() => !isDisabled && handleOptionToggle(option.id)}
                     >
@@ -734,19 +790,35 @@ export function UnifiedQuestion({ question, type }: Props) {
                                 : isCompactMode
                                   ? "text-sm sm:text-base lg:text-lg leading-snug"
                                   : "text-base sm:text-lg lg:text-xl leading-relaxed",
-                              getOptionTextColors(status, isSelected, isAnswerRevealed)
+                              getOptionTextColors(status, isSelected, isAnswerRevealed),
+                              eliminatedOptions.has(option.id) && "line-through opacity-60"
                             )}>
                               {option.text}
                             </p>
                           </div>
 
-                          {/* Radio button for accessibility */}
-                          <RadioGroupItem
-                            value={option.id}
-                            id={option.id}
-                            disabled={isDisabled}
-                            className="pointer-events-none opacity-0"
-                          />
+                          {/* Trash Icon Button */}
+                          <div className="flex-shrink-0 mt-0.5">
+                            <button
+                              onClick={(e) => handleOptionElimination(option.id, e)}
+                              className={cn(
+                                "p-1 rounded-md transition-all duration-200 hover:bg-muted/50 flex items-center justify-center",
+                                eliminatedOptions.has(option.id) 
+                                  ? "text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                                  : "text-muted-foreground hover:text-foreground"
+                              )}
+                              title={eliminatedOptions.has(option.id) ? "Restore option" : "Eliminate option"}
+                            >
+                              <Trash2 className={cn(
+                                "transition-all duration-200",
+                                isUltraCompactMode
+                                  ? "w-3 h-3 sm:w-4 sm:h-4"
+                                  : isCompactMode
+                                    ? "w-4 h-4 sm:w-5 sm:h-5"
+                                    : "w-5 h-5 sm:w-6 sm:h-6"
+                              )} />
+                            </button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

@@ -203,16 +203,6 @@ export function MedicalModulesGrid({
                         </h3>
                       </div>
                     </div>
-                    <div className="mt-2 w-full">
-                      <p
-                        className="text-sm font-medium transition-all duration-300 group-hover:scale-105 text-gray-900 dark:text-white"
-                        style={{
-                          color: 'var(--foreground, #111827)'
-                        } as React.CSSProperties}
-                      >
-                        0 sessions
-                      </p>
-                    </div>
                   </CardContent>
                 </Card>
               );
@@ -272,16 +262,6 @@ export function MedicalModulesGrid({
                           {module.name}
                         </h3>
                       </div>
-                    </div>
-                    <div className="mt-2 w-full">
-                      <p
-                        className="text-sm font-medium transition-all duration-300 group-hover:scale-105 text-gray-900 dark:text-white"
-                        style={{
-                          color: 'var(--foreground, #111827)'
-                        } as React.CSSProperties}
-                      >
-                        0 sessions
-                      </p>
                     </div>
                   </CardContent>
                 </Card>

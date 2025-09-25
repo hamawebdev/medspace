@@ -131,17 +131,6 @@ export function UnitModuleCompactCard({
           </div>
         </div>
 
-        {/* Session Count Section */}
-        {showSessionCount && (
-          <div className="mt-1 w-full">
-            <p className={cn(
-              "text-xs font-medium",
-              styles.sessionCountColor
-            )}>
-              {item.sessionCount || 0} session{(item.sessionCount || 0) !== 1 ? 's' : ''}
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

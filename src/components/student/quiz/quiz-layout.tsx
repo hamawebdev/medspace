@@ -17,7 +17,6 @@ import {
   BookOpen,
   Trophy,
   Send,
-  Info,
   Check,
   X as XIcon
 } from 'lucide-react';
@@ -397,7 +396,7 @@ export function QuizLayout() {
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm supports-[backdrop-filter]:bg-card/50 shadow-sm flex-shrink-0">
+      <header className="border-b bg-card lg:bg-card/50 backdrop-blur-sm supports-[backdrop-filter]:bg-card lg:supports-[backdrop-filter]:bg-card/50 shadow-sm flex-shrink-0">
         <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
           {/* Left Section */}
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
@@ -480,86 +479,6 @@ export function QuizLayout() {
               })()
             )}
 
-            {/* Info Dropdown */}
-            {currentQuestion && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs gap-1 btn-modern focus-ring hover:bg-accent/50 px-2 sm:px-3"
-                  >
-                    <Info className="h-3 w-3" />
-                    <span className="hidden sm:inline">Info</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-96 p-0" align="end">
-                  <Card className="border-0 shadow-none">
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-foreground">Question Type</h4>
-                          <p className="text-muted-foreground leading-relaxed">{getQuestionTypeInfo(getQuestionType(currentQuestion)).description}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-foreground">Source</h4>
-                          <p className="text-muted-foreground leading-relaxed">{transformQuestion(currentQuestion).source}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-foreground">Tags</h4>
-                          <div className="flex flex-wrap gap-1.5">
-                            {(transformQuestion(currentQuestion).tags && Array.isArray(transformQuestion(currentQuestion).tags) && transformQuestion(currentQuestion).tags.length > 0) ? (
-                              transformQuestion(currentQuestion).tags.map((tag: string, index: number) => (
-                                <Badge key={index} variant="outline" className="text-xs font-medium">
-                                  {tag}
-                                </Badge>
-                              ))
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">No tags available</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Storage Status Section */}
-                      <div className="mt-6 pt-4 border-t border-border/50">
-                        <h4 className="font-semibold text-foreground mb-4">Session Status</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Answers Saved:</span>
-                              <span className="font-medium">{Object.keys(apiState.localAnswers || {}).length}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Total Questions:</span>
-                              <span className="font-medium">{session.totalQuestions || session.questions?.length || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Session Type:</span>
-                              <span className="font-medium">{session.type || 'PRACTICE'}</span>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Storage:</span>
-                              <span className="font-medium text-green-600">Local Device</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Auto-save:</span>
-                              <span className="font-medium">{apiState.autoSave ? 'Enabled' : 'Disabled'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">API Session:</span>
-                              <span className="font-medium">{apiState.apiSessionId ? 'Active' : 'Local Mode'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
 
             {/* Pause/Resume */}
             {/* Review-mode actions */}
@@ -619,7 +538,9 @@ export function QuizLayout() {
       <div className="flex-1 flex overflow-hidden min-h-0 relative">
         {/* Quiz Questions Sidebar */}
         <div className={cn(
-          "bg-card/50 border-r border-border/50 flex-shrink-0 overflow-y-auto transition-all duration-300 ease-in-out",
+          "border-r border-border/50 flex-shrink-0 overflow-y-auto transition-all duration-300 ease-in-out",
+          // Background: solid on mobile/tablet, semi-transparent on desktop
+          "bg-card lg:bg-card/50",
           // Desktop behavior
           "hidden lg:block",
           state.sidebarOpen ? "lg:w-64" : "lg:w-0 lg:border-r-0",
@@ -969,7 +890,7 @@ export function QuizLayout() {
 
       {/* Pause Overlay (disabled in review mode) */}
       {timer.isPaused && !(session.status === 'COMPLETED' || session.status === 'completed') && (
-        <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-background lg:bg-background/90 backdrop-blur-md z-50 overflow-y-auto">
           <div className="min-h-screen flex items-center justify-center p-4">
             <div className="w-full max-w-4xl space-y-8 animate-fade-in-up">
               {/* Header */}
@@ -1016,7 +937,7 @@ export function QuizLayout() {
 
       {/* Stats Overlay (similar to pause overlay) */}
       {showStatsOverlay && !(session.status === 'COMPLETED' || session.status === 'completed') && (
-        <div className="fixed inset-0 bg-background/90 backdrop-blur-md z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-background lg:bg-background/90 backdrop-blur-md z-50 overflow-y-auto">
           <div className="min-h-screen flex items-center justify-center p-4">
             <div className="w-full max-w-4xl space-y-8 animate-fade-in-up">
               {/* Header */}

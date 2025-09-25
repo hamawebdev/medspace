@@ -197,20 +197,8 @@ export function EnhancedQuizFooter({
                 </span>
               </div>
 
-              {/* Current Question Indicator */}
-              <Badge variant="outline" className="gap-1">
-                <BookOpen className="h-3 w-3" />
-                Question {currentQuestionIndex + 1}
-              </Badge>
             </div>
 
-            {/* Status Messages */}
-            {isAllAnswered && (
-              <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-                <CheckCircle2 className="h-4 w-4" />
-                Ready to submit
-              </div>
-            )}
           </div>
 
           {/* Right: Action Buttons */}

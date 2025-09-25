@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useContext } from 'react';
+import { SoundContext } from '@/components/student/quiz/sound-provider';
 
 export type SoundType = 'correct' | 'incorrect';
 
@@ -32,6 +33,10 @@ const SOUND_FILES = {
  * - Default unmuted state
  */
 export function useSoundManager(): SoundManagerReturn {
+  // Prefer shared context if available (prevents stale state across components)
+  const ctx = useContext(SoundContext);
+  if (ctx) return ctx;
+
   const [state, setState] = useState<SoundManagerState>({
     isMuted: false, // Default to unmuted
     isPlaying: false,
@@ -44,14 +49,14 @@ export function useSoundManager(): SoundManagerReturn {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      console.log('🔊 Loading sound settings from localStorage:', stored);
       if (stored) {
         const settings = JSON.parse(stored);
-        console.log('🔊 Parsed settings:', settings);
+        const isMuted = Boolean(settings.isMuted);
         setState(prev => ({
           ...prev,
-          isMuted: Boolean(settings.isMuted),
+          isMuted: isMuted,
         }));
+      } else {
       }
     } catch (error) {
       console.warn('Failed to load sound settings from localStorage:', error);
@@ -96,19 +101,20 @@ export function useSoundManager(): SoundManagerReturn {
   const saveMuteState = useCallback((isMuted: boolean) => {
     try {
       const settings = { isMuted };
-      console.log('🔊 Saving sound settings to localStorage:', settings);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch (error) {
       console.warn('Failed to save sound settings to localStorage:', error);
+      // Continue without localStorage - the state will still work in memory
     }
   }, []);
 
   // Toggle mute state
   const toggleMute = useCallback(() => {
-    console.log('🔊 Sound toggle clicked');
+    
     setState(prev => {
       const newMuted = !prev.isMuted;
-      console.log(`🔊 Toggling sound: ${prev.isMuted} -> ${newMuted}`);
+      
+      // Save to localStorage immediately
       saveMuteState(newMuted);
 
       // Stop any currently playing sound when muting
@@ -118,11 +124,15 @@ export function useSoundManager(): SoundManagerReturn {
         currentAudioRef.current = null;
       }
 
-      return {
+      const newState = {
         ...prev,
         isMuted: newMuted,
         isPlaying: newMuted ? false : prev.isPlaying,
       };
+      
+      
+      // Force a re-render by using a new object reference
+      return { ...newState };
     });
   }, [saveMuteState]);
 
@@ -140,11 +150,14 @@ export function useSoundManager(): SoundManagerReturn {
         currentAudioRef.current = null;
       }
       
-      return {
+      const newState = {
         ...prev,
         isMuted: muted,
         isPlaying: muted ? false : prev.isPlaying,
       };
+      
+      // Force a re-render by using a new object reference
+      return { ...newState };
     });
   }, [saveMuteState]);
 
@@ -208,6 +221,7 @@ export function useSoundManager(): SoundManagerReturn {
       // Silently fail - don't block answer submission
     }
   }, [state.isMuted]);
+
 
   return {
     isMuted: state.isMuted,

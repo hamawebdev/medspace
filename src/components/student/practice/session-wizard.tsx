@@ -84,6 +84,27 @@ export function SessionWizard({
 
   const next = () => setStep((s) => Math.min(3, s + 1));
   const prev = () => setStep((s) => Math.max(1, s - 1));
+  
+  const clearAllSelections = () => {
+    setUnitId("");
+    setModuleIds([]);
+    setCourseIds([]);
+    setTitle("");
+    setTypes([]);
+    setQuizYears([]);
+    setQuizSourceIds([]);
+    setQuestionCount(0);
+    setTimeLimit(undefined);
+  };
+
+  // Handle course selection with 50 course limit
+  const handleCourseSelection = (selectedCourseIds: string[]) => {
+    if (selectedCourseIds.length > 50) {
+      // Don't update the state if more than 50 courses are selected
+      return;
+    }
+    setCourseIds(selectedCourseIds);
+  };
 
   // Build options from content filters
   const unitOptions = useMemo(() => {
@@ -230,12 +251,21 @@ export function SessionWizard({
       return [];
     }
 
-    // If a unit is selected, all courses from that unit are available
+    // If a unit is selected AND specific modules are also selected,
+    // filter courses by those modules only
+    if (unitId && unitId !== "" && moduleIds.length > 0) {
+      const selectedModules = new Set(moduleIds);
+      return courseOptions.filter((c: any) =>
+        c.moduleId && selectedModules.has(c.moduleId)
+      );
+    }
+
+    // If only a unit is selected (no modules), show all courses from that unit
     if (unitId && unitId !== "") {
       return courseOptions;
     }
 
-    // If modules are selected, filter courses by those modules
+    // If modules are selected (without a unit), filter courses by those modules
     if (moduleIds.length > 0) {
       const selectedModules = new Set(moduleIds);
       return courseOptions.filter((c: any) =>
@@ -255,7 +285,9 @@ export function SessionWizard({
   // Handle selecting/deselecting all courses
   const selectAllCourses = () => {
     const allCourseIds = availableCourses.map((c: any) => c.value);
-    setCourseIds(allCourseIds);
+    // Limit to 50 courses maximum
+    const limitedCourseIds = allCourseIds.slice(0, 50);
+    setCourseIds(limitedCourseIds);
   };
 
   const deselectAllCourses = () => {
@@ -493,10 +525,10 @@ export function SessionWizard({
   const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= totalAvailable && !questionCountError;
 
   const canNext = useMemo(() => {
-    if (step === 1) return step1Valid && !contentLoading && !contentError && !sessionFiltersLoading && !sessionFiltersError;
-    if (step === 2) return step2Valid && !questionCountLoading && !sessionFiltersLoading && !sessionFiltersError;
-    return true;
-  }, [step, step1Valid, step2Valid, contentLoading, contentError, questionCountLoading, questionCountError, sessionFiltersLoading, sessionFiltersError]);
+    if (step === 1) return step1Valid && !contentLoading && !contentError && !sessionFiltersLoading && !sessionFiltersError && courseIds.length <= 50;
+    if (step === 2) return step2Valid && !questionCountLoading && !sessionFiltersLoading && !sessionFiltersError && courseIds.length <= 50;
+    return courseIds.length <= 50;
+  }, [step, step1Valid, step2Valid, contentLoading, contentError, questionCountLoading, questionCountError, sessionFiltersLoading, sessionFiltersError, courseIds.length]);
 
   const handleCreate = () => {
     const finalTitle = (title.trim() || suggestedTitle || 'Practice Session').slice(0, 200);
@@ -609,90 +641,71 @@ export function SessionWizard({
           <Separator />
 
           <div className="space-y-5">
-              {/* Unit and Modules Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Unit</Label>
-                  <div className="relative">
-                    <Select value={unitId || ""} onValueChange={(v) => {
-                      if (v) {
-                        setUnitId(v);
-                        setModuleIds([]);
-                        setCourseIds([]);
-                      }
-                    }}>
-                      <SelectTrigger className="pr-16 overflow-hidden">
-                        <SelectValue placeholder={contentLoading ? "Loading units..." : "Select unit"} className="truncate block w-full" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableUnits.map((u: any) => (
-                          <SelectItem key={u.value} value={u.value} className="truncate">
-                            <span className="truncate" title={u.label}>{u.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {unitId && unitId !== "" && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-10 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground z-20 rounded-full"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setUnitId("");
-                          setModuleIds([]);
-                          setCourseIds([]);
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>
-                      Modules
-                      {availableModules.length > 0 && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({moduleIds.length}/{availableModules.length})
-                        </span>
-                      )}
-                    </Label>
-                    {unitId && unitId !== "" && availableModules.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={areAllModulesSelected ? deselectAllModules : selectAllModules}
-                        className="text-xs h-7 gap-1"
-                      >
-                        {areAllModulesSelected ? (
-                          <>
-                            <Square className="h-3 w-3" />
-                            Deselect All
-                          </>
-                        ) : (
-                          <>
-                            <CheckSquare className="h-3 w-3" />
-                            Select All
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                  <MultiSelect
-                    options={availableModules}
-                    value={moduleIds}
-                    onChange={(vals) => { setModuleIds(vals); setCourseIds([]); }}
-                    placeholder={!unitId || unitId === "" ? "Select unit first" : (contentLoading ? "Loading modules..." : "Select modules")}
-                  />
-                </div>
+              {/* Unit Selection */}
+              <div className="space-y-2">
+                <Label>Unit</Label>
+                <Select value={unitId || ""} onValueChange={(v) => {
+                  if (v) {
+                    setUnitId(v);
+                    setModuleIds([]);
+                    setCourseIds([]);
+                  }
+                }}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={contentLoading ? "Loading units..." : "Select unit"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableUnits.map((u: any) => (
+                      <SelectItem key={u.value} value={u.value} className="truncate">
+                        <span className="truncate" title={u.label}>{u.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Courses Row */}
+              {/* Modules Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>
+                    Modules
+                    {availableModules.length > 0 && (
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({moduleIds.length}/{availableModules.length})
+                      </span>
+                    )}
+                  </Label>
+                  {unitId && unitId !== "" && availableModules.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={areAllModulesSelected ? deselectAllModules : selectAllModules}
+                      className="text-xs h-7 gap-1"
+                    >
+                      {areAllModulesSelected ? (
+                        <>
+                          <Square className="h-3 w-3" />
+                          Deselect All
+                        </>
+                      ) : (
+                        <>
+                          <CheckSquare className="h-3 w-3" />
+                          Select All
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <MultiSelect
+                  options={availableModules}
+                  value={moduleIds}
+                  onChange={(vals) => { setModuleIds(vals); setCourseIds([]); }}
+                  placeholder={!unitId || unitId === "" ? "Select unit first" : (contentLoading ? "Loading modules..." : "Select modules")}
+                />
+              </div>
+
+              {/* Courses Selection */}
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -729,7 +742,7 @@ export function SessionWizard({
                   <MultiSelect
                     options={availableCourses}
                     value={courseIds}
-                    onChange={setCourseIds}
+                    onChange={handleCourseSelection}
                     placeholder={
                       !unitId && !moduleIds.length
                         ? "Select unit or modules first"
@@ -747,6 +760,18 @@ export function SessionWizard({
                   {contentError && (
                     <div className="text-sm text-red-600 mt-1">
                       Error loading courses: {contentError}
+                    </div>
+                  )}
+
+                  {/* Course Limit Error */}
+                  {courseIds.length >= 50 && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                      <p className="text-sm text-destructive font-medium">
+                        Cannot select more than 50 courses
+                      </p>
+                      <p className="text-xs text-destructive/80 mt-1">
+                        You have reached the maximum limit of 50 courses. Please deselect some courses to continue.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -969,38 +994,6 @@ export function SessionWizard({
               </p>
             </div>
 
-            {/* Question Count Error Handling */}
-            {questionCountError && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-destructive font-medium">
-                      {questionCountError === 'Question count unavailable. Please try again.'
-                        ? 'Question count unavailable. Please try again.'
-                        : 'Failed to load question count'
-                      }
-                    </p>
-                    {questionCountError !== 'Question count unavailable. Please try again.' && (
-                      <p className="text-xs text-destructive/80 mt-1">{questionCountError}</p>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => {
-                      if (areRequiredFiltersComplete) {
-                        refetchQuestionCount(debouncedFilters);
-                      }
-                    }}
-                    variant="outline"
-                    size="sm"
-                    disabled={questionCountLoading}
-                    className="text-destructive border-destructive/20 hover:bg-destructive/10"
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${questionCountLoading ? 'animate-spin' : ''}`} />
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            )}
 
         </div>
       )}
@@ -1060,7 +1053,11 @@ export function SessionWizard({
       )}
 
       {/* Footer actions */}
-      <div className="flex items-center justify-end pt-4 border-t border-border/50">
+      <div className="flex items-center justify-between pt-4 border-t border-border/50">
+        <Button variant="outline" onClick={clearAllSelections} className="text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4 mr-2" />
+          Clear All
+        </Button>
         <div className="flex items-center gap-2">
           {step > 1 && (
             <Button variant="secondary" onClick={prev}>

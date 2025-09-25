@@ -739,7 +739,7 @@ export function useQuestionImport() {
           progress: 100
         });
 
-        toast.success(`🎉 Successfully imported ${response.data.totalCreated} questions!`);
+        toast.success("Questions imported successfully.");
         return result;
       } else {
         throw new Error(response.error || 'Failed to import questions');

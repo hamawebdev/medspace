@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -119,6 +119,7 @@ export default function CourseResourcesPage() {
 
   // UI states
   const [searchQuery, setSearchQuery] = useState('')
+  const [courseSearchQuery, setCourseSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState<'title' | 'type' | 'created'>('title')
@@ -174,10 +175,16 @@ export default function CourseResourcesPage() {
         setNavigation({ level: 'units' })
         break
       case 'courses':
-        setNavigation(prev => ({
-          level: 'modules',
-          selectedUnit: prev.selectedUnit
-        }))
+        // If the current module is independent, go directly back to units
+        // Otherwise, go back to modules level
+        if (navigation.selectedModule?.isIndependent) {
+          setNavigation({ level: 'units' })
+        } else {
+          setNavigation(prev => ({
+            level: 'modules',
+            selectedUnit: prev.selectedUnit
+          }))
+        }
         setCourses([])
         break
       case 'resources':
@@ -192,34 +199,8 @@ export default function CourseResourcesPage() {
     setError(null)
   }
 
-  const navigateToLevel = (level: NavigationLevel) => {
-    if (level === 'units') {
-      setNavigation({ level: 'units' })
-      setCourses([])
-      setCourseResources([])
-    } else if (level === 'modules' && navigation.selectedUnit) {
-      setNavigation({
-        level: 'modules',
-        selectedUnit: navigation.selectedUnit
-      })
-      setCourses([])
-      setCourseResources([])
-    } else if (level === 'courses' && navigation.selectedModule) {
-      setNavigation(prev => ({
-        level: 'courses',
-        selectedUnit: prev.selectedUnit,
-        selectedModule: prev.selectedModule
-      }))
-      setCourseResources([])
-      if (navigation.selectedModule) {
-        fetchCourses(navigation.selectedModule.id, navigation.selectedModule.isIndependent)
-      }
-    }
-    setError(null)
-  }
-
   // Data fetching functions
-  const fetchCourses = async (moduleId: number, isIndependent?: boolean) => {
+  const fetchCourses = useCallback(async (moduleId: number, isIndependent?: boolean) => {
     try {
       setLoading(true)
       setError(null)
@@ -247,8 +228,8 @@ export default function CourseResourcesPage() {
 
       if (navigation.selectedUnit) {
         const unit = filters?.unites?.find(u => u.id === navigation.selectedUnit?.id)
-        const module = unit?.modules?.find(m => m.id === moduleId)
-        coursesFromFilters = module?.courses || []
+        const selectedModule = unit?.modules?.find(m => m.id === moduleId)
+        coursesFromFilters = selectedModule?.courses || []
       }
 
       // If we found courses in the filters, use them
@@ -273,7 +254,7 @@ export default function CourseResourcesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, navigation.selectedUnit])
 
   const fetchCourseResources = async (courseId: number) => {
     try {
@@ -291,7 +272,8 @@ export default function CourseResourcesPage() {
         const resources = Array.isArray(inner?.resources) ? inner.resources : Array.isArray(inner) ? inner : []
         setCourseResources(Array.isArray(resources) ? resources : [])
       } else {
-        throw new Error(response.error || 'Failed to fetch course resources')
+        const errorMessage = typeof response.error === 'string' ? response.error : 'Failed to fetch course resources'
+        throw new Error(errorMessage)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch course resources'
@@ -302,7 +284,37 @@ export default function CourseResourcesPage() {
     }
   }
 
-  // Generate breadcrumbs - moved before early returns
+  const navigateToLevel = useCallback((level: NavigationLevel) => {
+    if (level === 'units') {
+      setNavigation({ level: 'units' })
+      setCourses([])
+      setCourseResources([])
+    } else if (level === 'modules' && navigation.selectedUnit) {
+      setNavigation({
+        level: 'modules',
+        selectedUnit: navigation.selectedUnit
+      })
+      setCourses([])
+      setCourseResources([])
+    } else if (level === 'courses' && navigation.selectedModule) {
+      setNavigation(prev => ({
+        level: 'courses',
+        selectedUnit: prev.selectedUnit,
+        selectedModule: prev.selectedModule
+      }))
+      setCourseResources([])
+    }
+    setError(null)
+  }, [navigation.selectedUnit, navigation.selectedModule])
+
+  // Handle course fetching when navigating to courses level
+  useEffect(() => {
+    if (navigation.level === 'courses' && navigation.selectedModule) {
+      fetchCourses(navigation.selectedModule.id, navigation.selectedModule.isIndependent)
+    }
+  }, [navigation.level, navigation.selectedModule, fetchCourses])
+
+  // Generate breadcrumbs - moved after navigateToLevel definition
   const breadcrumbs: BreadcrumbItem[] = useMemo(() => {
     const items: BreadcrumbItem[] = [
       {
@@ -312,20 +324,30 @@ export default function CourseResourcesPage() {
       }
     ]
 
-    if (navigation.selectedUnit) {
-      items.push({
-        label: navigation.selectedUnit.name,
-        level: 'modules',
-        onClick: () => navigateToLevel('modules')
-      })
-    }
-
-    if (navigation.selectedModule) {
+    // For independent modules, skip the unit breadcrumb and go directly to module
+    if (navigation.selectedModule?.isIndependent) {
       items.push({
         label: navigation.selectedModule.name,
         level: 'courses',
         onClick: () => navigateToLevel('courses')
       })
+    } else {
+      // For regular modules, show unit first, then module
+      if (navigation.selectedUnit) {
+        items.push({
+          label: navigation.selectedUnit.name,
+          level: 'modules',
+          onClick: () => navigateToLevel('modules')
+        })
+      }
+
+      if (navigation.selectedModule) {
+        items.push({
+          label: navigation.selectedModule.name,
+          level: 'courses',
+          onClick: () => navigateToLevel('courses')
+        })
+      }
     }
 
     if (navigation.selectedCourse) {
@@ -337,7 +359,20 @@ export default function CourseResourcesPage() {
     }
 
     return items
-  }, [navigation])
+  }, [navigation, navigateToLevel])
+
+  // Filter and sort courses
+  const filteredCourses = useMemo(() => {
+    if (!courses) return []
+
+    return courses
+      .filter(course => {
+        if (courseSearchQuery && !course.name.toLowerCase().includes(courseSearchQuery.toLowerCase()) &&
+            !course.description?.toLowerCase().includes(courseSearchQuery.toLowerCase())) return false
+        return true
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [courses, courseSearchQuery])
 
   // Filter and sort resources
   const filteredResources = useMemo(() => {
@@ -566,6 +601,17 @@ export default function CourseResourcesPage() {
                 <h3 className="text-lg font-semibold">Courses in {navigation.selectedModule.name}</h3>
               </div>
 
+              {/* Course Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search courses..."
+                  value={courseSearchQuery}
+                  onChange={(e) => setCourseSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
               {loading ? (
                 <LoadingState message="Loading courses..." />
               ) : error ? (
@@ -573,9 +619,9 @@ export default function CourseResourcesPage() {
                   message={error}
                   onRetry={() => fetchCourses(navigation.selectedModule!.id, navigation.selectedModule!.isIndependent)}
                 />
-              ) : courses.length > 0 ? (
+              ) : filteredCourses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {courses.map((course) => (
+                  {filteredCourses.map((course) => (
                     <CourseCard
                       key={course.id}
                       course={course}
@@ -583,6 +629,12 @@ export default function CourseResourcesPage() {
                     />
                   ))}
                 </div>
+              ) : courseSearchQuery ? (
+                <EmptyState
+                  icon={Search}
+                  title="No Courses Found"
+                  description={`No courses match "${courseSearchQuery}". Try adjusting your search terms.`}
+                />
               ) : (
                 <EmptyState
                   icon={BookOpen}

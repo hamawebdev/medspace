@@ -146,21 +146,21 @@ export default function AdminContentPage() {
 
   // Handle successful question import
   const handleImportComplete = (result: BulkQuestionImportResponse) => {
-    toast.success(`Successfully imported ${result.data.totalCreated} questions!`);
-    // Reset to start
-    resetWizard();
-    setCurrentStep('university');
+    // Show success message without redirecting
+    toast.success("Questions imported successfully.");
+
+    // Clear the JSON input and reset validation state to allow for new imports
     setJsonInput('');
     setParsedQuestions([]);
-    setSelectedExamYear(undefined);
-    setSelectedSourceId(undefined);
-    setSelectedRotation(undefined);
     setValidation({
       isValid: false,
       errors: [],
       warnings: [],
       questionCount: 0
     });
+
+    // Keep the user on the current import step - do not reset wizard or change step
+    // This allows them to import more questions with the same metadata selection
   };
 
   // Handle validation results from JsonQuestionInput component

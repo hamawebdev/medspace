@@ -30,9 +30,15 @@ export function SoundToggle({
   showLabel = false,
 }: SoundToggleProps) {
   const { isMuted, toggleMute } = useSoundManager();
+  
+  
+  // Force re-render when state changes
+  const [renderKey, setRenderKey] = React.useState(0);
+  React.useEffect(() => {
+    setRenderKey(prev => prev + 1);
+  }, [isMuted]);
 
   const handleToggle = () => {
-    console.log('🔊 SoundToggle button clicked');
     toggleMute();
   };
 
@@ -44,6 +50,7 @@ export function SoundToggle({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          key={renderKey}
           variant={variant}
           size={size}
           onClick={handleToggle}
@@ -55,6 +62,9 @@ export function SoundToggle({
             className
           )}
           aria-label={label}
+          title={label}
+          disabled={false}
+          type="button"
         >
           <Icon className={cn(
             'h-3 w-3 sm:h-4 sm:w-4',
@@ -80,6 +90,13 @@ export function SoundToggle({
  */
 export function SoundToggleCompact({ className }: { className?: string }) {
   const { isMuted, toggleMute } = useSoundManager();
+  
+  
+  // Force re-render when state changes
+  const [renderKey, setRenderKey] = React.useState(0);
+  React.useEffect(() => {
+    setRenderKey(prev => prev + 1);
+  }, [isMuted]);
 
   const Icon = isMuted ? VolumeX : Volume2;
   const label = isMuted ? 'Unmute sounds' : 'Mute sounds';
@@ -88,6 +105,7 @@ export function SoundToggleCompact({ className }: { className?: string }) {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          key={renderKey}
           variant="ghost"
           size="sm"
           onClick={toggleMute}
@@ -96,6 +114,8 @@ export function SoundToggleCompact({ className }: { className?: string }) {
             className
           )}
           aria-label={label}
+          disabled={false}
+          type="button"
         >
           <Icon className={cn(
             'h-4 w-4',

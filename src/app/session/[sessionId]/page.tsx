@@ -12,6 +12,7 @@ import { useQuizSession } from '@/hooks/use-quiz-api';
 import { FullPageLoading } from '@/components/loading-states';
 import { ErrorBoundary, ApiError } from '@/components/error-boundary';
 import { Button } from '@/components/ui/button';
+import { SoundProvider } from '@/components/student/quiz/sound-provider';
 
 function StudentSessionRunnerContent() {
   const params = useParams();
@@ -213,15 +214,17 @@ function StudentSessionRunnerContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      {useApiIntegration ? (
-        <ApiQuizProvider initialSession={quizSession} apiSessionId={sessionId} enableApiSubmission={true}>
-          <QuizLayout />
-        </ApiQuizProvider>
-      ) : (
-        <QuizProvider initialSession={quizSession}>
-          <QuizLayout />
-        </QuizProvider>
-      )}
+      <SoundProvider>
+        {useApiIntegration ? (
+          <ApiQuizProvider initialSession={quizSession} apiSessionId={sessionId} enableApiSubmission={true}>
+            <QuizLayout />
+          </ApiQuizProvider>
+        ) : (
+          <QuizProvider initialSession={quizSession}>
+            <QuizLayout />
+          </QuizProvider>
+        )}
+      </SoundProvider>
     </div>
   );
 }

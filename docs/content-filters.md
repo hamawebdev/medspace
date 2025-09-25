@@ -1,5 +1,5 @@
 
-Endpoint:`GET https://med-cortex.com/api/v1/students/content/filters`
+Endpoint:`GET /students/content/filters`
 
 Response : 
 ```json
