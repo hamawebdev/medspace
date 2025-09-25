@@ -117,8 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     >
       <SidebarHeader
         className={cn(
-          'h-auto border-b border-sidebar-border/50 bg-gradient-to-r from-[var(--gradient-left)] via-[var(--gradient-center)] to-[var(--gradient-right)]',
-          'dark:!bg-sidebar dark:!from-transparent dark:!via-transparent dark:!to-transparent',
+          'h-auto border-b border-sidebar-border/50 bg-sidebar',
           'group-data-[collapsible=icon]:min-h-[5rem] group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center',
           'min-h-[4.5rem] p-0 relative overflow-hidden'
         )}

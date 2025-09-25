@@ -292,7 +292,7 @@ export function Header() {
               : 'max-h-0 opacity-0'
           } overflow-hidden`}
         >
-          <div className="border-t border-destructive-foreground/20 bg-gradient-to-r from-[var(--gradient-left)] via-[var(--gradient-center)] to-[var(--gradient-right)]/95 backdrop-blur-xl rounded-b-3xl">
+          <div className="border-t border-destructive-foreground/20 bg-card backdrop-blur-xl rounded-b-3xl">
             <div className="container px-4 sm:px-6 py-4 sm:py-6">
               <nav className="space-y-1">
                 {navItems.map((item, index) => (
