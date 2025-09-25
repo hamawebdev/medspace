@@ -94,7 +94,7 @@ function LoginFormFields({
             Mot de passe oublié ?
           </Link>
         </div>
-        <div className="relative group">
+        <div className="relative group password-input-container">
           <Input
             id={passwordId}
             type={showPassword ? "text" : "password"}

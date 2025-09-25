@@ -578,7 +578,7 @@ export function ModernRegisterForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <div className="relative">
+                  <div className="relative password-input-container">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                     <Input
                       id="password"
@@ -602,7 +602,7 @@ export function ModernRegisterForm() {
 
                 <div className="space-y-3">
                   <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-                  <div className="relative">
+                  <div className="relative password-input-container">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
                     <Input
                       id="confirmPassword"

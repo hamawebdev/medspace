@@ -7,7 +7,6 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/use-auth';
 import AuthAPI from '@/lib/auth-api';
-import { Logo } from '@/components/ui/logo';
 import { usePathname } from 'next/navigation';
 import {
   Menu,
@@ -141,11 +140,12 @@ export function Header() {
                 gap: `${0.5 - scrollProgress * 0.125}rem`
               }}
             >
-              <Logo
+              <img
+                src="/logo.png"
+                alt="MedCortex Logo"
                 className={`object-contain transition-all duration-300 ${
                   isScrolled ? 'h-8 w-8' : 'h-10 w-10'
                 }`}
-                alt="MedCortex Logo"
               />
               <span className={`font-bold text-destructive-foreground transition-all duration-300 ${
                 isScrolled ? 'text-lg' : 'text-xl'

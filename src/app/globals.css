@@ -1163,6 +1163,42 @@ html {
   }
 }
 
+/* Hide browser password visibility toggle */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+/* Hide WebKit password visibility toggle */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-credentials-auto-fill-button:hover,
+input[type="password"]::-webkit-credentials-auto-fill-button:active {
+  display: none !important;
+  -webkit-appearance: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Hide Firefox password visibility toggle */
+input[type="password"]::-moz-textfield-decoration-container {
+  display: none !important;
+}
+
+/* Additional WebKit password field styling */
+input[type="password"] {
+  -webkit-text-security: disc !important;
+}
+
+/* Ensure custom password toggle works properly */
+.password-input-container {
+  position: relative;
+}
+
+.password-input-container input[type="password"],
+.password-input-container input[type="text"] {
+  padding-right: 3rem !important; /* Make room for custom toggle */
+}
+
 /* Tablet-specific improvements */
 @media (min-width: 768px) and (max-width: 1023px) {
   /* Better tablet spacing */
