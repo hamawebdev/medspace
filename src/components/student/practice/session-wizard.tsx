@@ -985,9 +985,21 @@ export function SessionWizard({
                     aria-valuetext={`${questionCount} questions`}
                   />
                 </div>
-                <div className="w-14 text-right text-sm">
-                  {questionCountLoading ? '...' : questionCountError ? '—' : questionCount}
-                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={Math.max(1, totalAvailable)}
+                  value={questionCountLoading ? '' : questionCountError ? '' : questionCount}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1;
+                    const clampedValue = Math.min(Math.max(1, value), Math.max(1, totalAvailable));
+                    setQuestionCount(clampedValue);
+                  }}
+                  disabled={questionCountLoading || totalAvailable === 0 || !!questionCountError}
+                  placeholder={questionCountLoading ? '...' : questionCountError ? '—' : '1'}
+                  className="w-14 text-right text-sm border border-input bg-background px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed sm:w-16 md:w-18 lg:w-20"
+                  aria-label="Question count"
+                />
               </div>
               <p className="text-xs text-muted-foreground">
                 Max available: {questionCountLoading ? '...' : questionCountError ? 'Unavailable' : totalAvailable}
@@ -1053,26 +1065,26 @@ export function SessionWizard({
       )}
 
       {/* Footer actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-border/50">
-        <Button variant="outline" onClick={clearAllSelections} className="text-muted-foreground hover:text-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border/50">
+        <Button variant="outline" onClick={clearAllSelections} className="text-muted-foreground hover:text-foreground w-full sm:w-auto">
           <X className="w-4 h-4 mr-2" />
           Clear All
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {step > 1 && (
-            <Button variant="secondary" onClick={prev}>
+            <Button variant="secondary" onClick={prev} className="w-full sm:w-auto">
               <ChevronLeft className="w-4 h-4 mr-1" /> Previous
             </Button>
           )}
           {step < 3 ? (
-            <Button onClick={next} disabled={!canNext}>
+            <Button onClick={next} disabled={!canNext} className="w-full sm:w-auto">
               Next <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
             <Button
               onClick={handleCreate}
               disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
-              className="practice-button"
+              className="practice-button w-full sm:w-auto"
               aria-disabled={isCreating || !(step1Valid && step2Valid) || totalAvailable === 0 || questionCountLoading || !!questionCountError || sessionFiltersLoading || !!sessionFiltersError}
             >
               {isCreating ? (

@@ -21,7 +21,8 @@ import {
   Edit,
   Trash2,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react';
 import { useQuestionImport } from '@/hooks/admin/use-question-import';
 import { useQuestionManagement } from '@/hooks/admin/use-question-management';
@@ -31,11 +32,12 @@ import { AddEntityDialog } from '@/components/admin/content/add-entity-dialog';
 import { EntityCard } from '@/components/admin/content/entity-card';
 import { EditEntityDialog } from '@/components/admin/content/edit-entity-dialog';
 import { CourseSpecificQuestionDialog } from '@/components/admin/questions/course-specific-question-dialog';
-import { BulkQuestionImportResponse, SelectionState, ImportQuestion, ValidationResult } from '@/types/question-import';
+import { BulkImportWizard } from '@/components/admin/content/bulk-import-wizard';
+import { BulkQuestionImportResponse, SelectionState, ImportQuestion, ValidationResult, BulkImportResponse } from '@/types/question-import';
 
 import { toast } from 'sonner';
 
-type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'courseActions' | 'import';
+type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'courseActions' | 'import' | 'bulkImport';
 
 export default function AdminContentPage() {
   const [currentStep, setCurrentStep] = useState<Step>('university');
@@ -138,8 +140,10 @@ export default function AdminContentPage() {
         setCurrentStep(selection.unit ? 'module' : 'unit');
         break;
       case 'import':
-        updateSelection('course', undefined);
-        setCurrentStep('course');
+        setCurrentStep('courseActions');
+        break;
+      case 'bulkImport':
+        setCurrentStep('courseActions');
         break;
     }
   };
@@ -161,6 +165,21 @@ export default function AdminContentPage() {
 
     // Keep the user on the current import step - do not reset wizard or change step
     // This allows them to import more questions with the same metadata selection
+  };
+
+  // Handle successful bulk import
+  const handleBulkImportComplete = (results: BulkImportResponse[]) => {
+    const successCount = results.filter(r => r.success).length;
+    const errorCount = results.filter(r => !r.success).length;
+
+    if (successCount > 0) {
+      toast.success(`Successfully imported ${successCount} file(s)`);
+    }
+    if (errorCount > 0) {
+      toast.error(`Failed to import ${errorCount} file(s)`);
+    }
+
+    // Stay on the bulk import page to allow for more imports
   };
 
   // Handle validation results from JsonQuestionInput component
@@ -336,6 +355,12 @@ export default function AdminContentPage() {
           description: `Import questions for ${selection.course?.name}`,
           icon: Upload
         };
+      case 'bulkImport':
+        return {
+          title: 'Bulk Import Questions',
+          description: `Import multiple JSON files for ${selection.course?.name}`,
+          icon: Upload
+        };
     }
   };
 
@@ -415,14 +440,14 @@ export default function AdminContentPage() {
               </button>
             </>
           )}
-          {selection.course && (
+          {selection.course && (currentStep === 'import' || currentStep === 'bulkImport') && (
             <>
               <ChevronRight className="h-4 w-4" />
               <button
-                onClick={() => setCurrentStep('import')}
-                className={`hover:text-foreground transition-colors ${currentStep === 'import' ? 'text-foreground font-medium' : ''}`}
+                onClick={() => setCurrentStep(currentStep)}
+                className="text-foreground font-medium"
               >
-                Import
+                {currentStep === 'import' ? 'Import' : 'Bulk Import'}
               </button>
             </>
           )}
@@ -731,7 +756,7 @@ export default function AdminContentPage() {
                 </Card>
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50" onClick={() => handleAddQuestion()}>
                     <CardHeader className="text-center">
                       <CardTitle className="flex items-center justify-center gap-2">
@@ -748,10 +773,22 @@ export default function AdminContentPage() {
                     <CardHeader className="text-center">
                       <CardTitle className="flex items-center justify-center gap-2">
                         <Upload className="h-5 w-5" />
+                        Single Import
+                      </CardTitle>
+                      <CardDescription>
+                        Import questions from a single JSON file
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50" onClick={() => setCurrentStep('bulkImport')}>
+                    <CardHeader className="text-center">
+                      <CardTitle className="flex items-center justify-center gap-2">
+                        <FileText className="h-5 w-5" />
                         Bulk Import
                       </CardTitle>
                       <CardDescription>
-                        Import multiple questions from JSON
+                        Import multiple JSON files with auto exam year detection
                       </CardDescription>
                     </CardHeader>
                   </Card>
@@ -997,6 +1034,14 @@ export default function AdminContentPage() {
                 </Card>
 
               </div>
+            )}
+
+            {currentStep === 'bulkImport' && (
+              <BulkImportWizard
+                selection={selection}
+                onImportComplete={handleBulkImportComplete}
+                onCancel={() => setCurrentStep('courseActions')}
+              />
             )}
           </>
         )}

@@ -237,3 +237,56 @@ export interface ImportProgressTrackerProps {
   progress: ImportProgress;
   steps: ImportWizardStep[];
 }
+
+// Bulk import interfaces
+export interface BulkImportFile {
+  id: string; // Unique identifier for the file
+  file: File;
+  filename: string;
+  examYear?: number; // Auto-detected or manually set
+  isValid: boolean;
+  validationResult?: ValidationResult;
+  parsedQuestions?: ImportQuestion[];
+  status: 'pending' | 'validating' | 'valid' | 'invalid' | 'uploading' | 'success' | 'error';
+  error?: string;
+  uploadProgress?: number; // 0-100
+}
+
+export interface BulkImportMetadata {
+  rotation?: string;
+  sourceId?: number;
+  // Other shared metadata fields that apply to all files
+}
+
+export interface BulkImportState {
+  files: BulkImportFile[];
+  sharedMetadata: BulkImportMetadata;
+  isImporting: boolean;
+  completedFiles: number;
+  totalFiles: number;
+}
+
+export interface BulkImportRequest {
+  metadata: QuestionImportMetadata;
+  questions: ImportQuestion[];
+}
+
+export interface BulkImportResponse {
+  fileId: string;
+  success: boolean;
+  data?: {
+    questions: Array<{
+      id: number;
+      questionText: string;
+      questionType: string;
+    }>;
+    totalCreated: number;
+  };
+  error?: string;
+}
+
+export interface BulkImportComponentProps {
+  selection: SelectionState;
+  onImportComplete?: (results: BulkImportResponse[]) => void;
+  onCancel?: () => void;
+}
