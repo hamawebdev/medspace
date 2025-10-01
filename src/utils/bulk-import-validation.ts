@@ -77,6 +77,30 @@ export async function validateBulkImportFile(file: BulkImportFile): Promise<{
       });
     }
 
+    // Check if course is missing
+    if (!file.courseId) {
+      errors.push({
+        field: 'courseId',
+        message: `Course not detected for file "${file.filename}". Please select it manually.`
+      });
+    }
+
+    // Check if source is missing
+    if (!file.sourceId) {
+      errors.push({
+        field: 'sourceId',
+        message: `Source not detected for file "${file.filename}". Please select it manually.`
+      });
+    }
+
+    // Check if rotation is missing (optional but recommended)
+    if (!file.rotation) {
+      warnings.push({
+        field: 'rotation',
+        message: `Rotation not detected for file "${file.filename}". This is optional but recommended.`
+      });
+    }
+
     const isValid = errors.length === 0;
 
     return {
@@ -250,10 +274,12 @@ export async function validateAllFiles(files: BulkImportFile[]): Promise<BulkImp
  * Checks if all files are valid and ready for import
  */
 export function areAllFilesValid(files: BulkImportFile[]): boolean {
-  return files.length > 0 && files.every(file => 
-    file.isValid && 
-    file.examYear !== undefined && 
-    file.parsedQuestions && 
+  return files.length > 0 && files.every(file =>
+    file.isValid &&
+    file.examYear !== undefined &&
+    file.courseId !== undefined &&
+    file.sourceId !== undefined &&
+    file.parsedQuestions &&
     file.parsedQuestions.length > 0
   );
 }
@@ -267,19 +293,28 @@ export function getValidationSummary(files: BulkImportFile[]): {
   invalidFiles: number;
   totalQuestions: number;
   filesWithoutYear: number;
+  filesWithoutCourse: number;
+  filesWithoutSource: number;
+  filesWithoutRotation: number;
 } {
   const totalFiles = files.length;
   const validFiles = files.filter(f => f.isValid).length;
   const invalidFiles = files.filter(f => !f.isValid).length;
   const totalQuestions = files.reduce((sum, f) => sum + (f.validationResult?.questionCount || 0), 0);
   const filesWithoutYear = files.filter(f => !f.examYear).length;
+  const filesWithoutCourse = files.filter(f => !f.courseId).length;
+  const filesWithoutSource = files.filter(f => !f.sourceId).length;
+  const filesWithoutRotation = files.filter(f => !f.rotation).length;
 
   return {
     totalFiles,
     validFiles,
     invalidFiles,
     totalQuestions,
-    filesWithoutYear
+    filesWithoutYear,
+    filesWithoutCourse,
+    filesWithoutSource,
+    filesWithoutRotation
   };
 }
 

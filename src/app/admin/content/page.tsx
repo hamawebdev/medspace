@@ -33,11 +33,12 @@ import { EntityCard } from '@/components/admin/content/entity-card';
 import { EditEntityDialog } from '@/components/admin/content/edit-entity-dialog';
 import { CourseSpecificQuestionDialog } from '@/components/admin/questions/course-specific-question-dialog';
 import { BulkImportWizard } from '@/components/admin/content/bulk-import-wizard';
+import { EnhancedBulkImportWizard } from '@/components/admin/content/enhanced-bulk-import-wizard';
 import { BulkQuestionImportResponse, SelectionState, ImportQuestion, ValidationResult, BulkImportResponse } from '@/types/question-import';
 
 import { toast } from 'sonner';
 
-type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'courseActions' | 'import' | 'bulkImport';
+type Step = 'university' | 'studyPack' | 'unit' | 'module' | 'moduleActions' | 'course' | 'courseActions' | 'import' | 'bulkImport';
 
 export default function AdminContentPage() {
   const [currentStep, setCurrentStep] = useState<Step>('university');
@@ -105,10 +106,10 @@ export default function AdminContentPage() {
         setCurrentStep('module');
         break;
       case 'module':
-        setCurrentStep('course');
+        setCurrentStep('moduleActions');
         break;
       case 'independentModule':
-        setCurrentStep('course');
+        setCurrentStep('moduleActions');
         break;
       case 'course':
         setCurrentStep('courseActions');
@@ -131,7 +132,7 @@ export default function AdminContentPage() {
         updateSelection('unit', undefined);
         setCurrentStep('unit');
         break;
-      case 'course':
+      case 'moduleActions':
         if (selection.independentModule) {
           updateSelection('independentModule', undefined);
         } else {
@@ -139,11 +140,31 @@ export default function AdminContentPage() {
         }
         setCurrentStep(selection.unit ? 'module' : 'unit');
         break;
+      case 'course':
+        if (selection.independentModule) {
+          updateSelection('independentModule', undefined);
+        } else {
+          updateSelection('module', undefined);
+        }
+        setCurrentStep('moduleActions');
+        break;
+      case 'courseActions':
+        updateSelection('course', undefined);
+        setCurrentStep('course');
+        break;
       case 'import':
-        setCurrentStep('courseActions');
+        if (selection.course) {
+          setCurrentStep('courseActions');
+        } else {
+          setCurrentStep('moduleActions');
+        }
         break;
       case 'bulkImport':
-        setCurrentStep('courseActions');
+        if (selection.course) {
+          setCurrentStep('courseActions');
+        } else {
+          setCurrentStep('moduleActions');
+        }
         break;
     }
   };
@@ -337,6 +358,12 @@ export default function AdminContentPage() {
           description: `Choose the module from ${selection.unit?.name}`,
           icon: GraduationCap
         };
+      case 'moduleActions':
+        return {
+          title: 'Module Actions',
+          description: `Choose an action for ${selection.module?.name || selection.independentModule?.name}`,
+          icon: GraduationCap
+        };
       case 'course':
         return {
           title: 'Select Course',
@@ -429,18 +456,29 @@ export default function AdminContentPage() {
               </button>
             </>
           )}
-          {(selection.module || selection.independentModule) && (
+          {(selection.module || selection.independentModule) && currentStep !== 'module' && (
             <>
               <ChevronRight className="h-4 w-4" />
               <button
-                onClick={() => setCurrentStep('course')}
-                className={`hover:text-foreground transition-colors ${currentStep === 'course' ? 'text-foreground font-medium' : ''}`}
+                onClick={() => setCurrentStep('moduleActions')}
+                className={`hover:text-foreground transition-colors ${currentStep === 'moduleActions' ? 'text-foreground font-medium' : ''}`}
               >
-                Course
+                {selection.module?.name || selection.independentModule?.name}
               </button>
             </>
           )}
-          {selection.course && (currentStep === 'import' || currentStep === 'bulkImport') && (
+          {selection.course && (
+            <>
+              <ChevronRight className="h-4 w-4" />
+              <button
+                onClick={() => setCurrentStep('courseActions')}
+                className={`hover:text-foreground transition-colors ${currentStep === 'courseActions' || currentStep === 'course' ? 'text-foreground font-medium' : ''}`}
+              >
+                {selection.course.name}
+              </button>
+            </>
+          )}
+          {(currentStep === 'import' || currentStep === 'bulkImport') && (
             <>
               <ChevronRight className="h-4 w-4" />
               <button
@@ -465,7 +503,7 @@ export default function AdminContentPage() {
           <p className="text-muted-foreground">{stepInfo.description}</p>
 
           {/* Add Entity Button */}
-          {currentStep !== 'import' && (
+          {currentStep !== 'import' && currentStep !== 'bulkImport' && currentStep !== 'moduleActions' && currentStep !== 'courseActions' && (
             <div className="pt-2">
               <Button
                 variant="outline"
@@ -677,6 +715,50 @@ export default function AdminContentPage() {
                     </Alert>
                   </div>
                 )}
+              </div>
+            )}
+
+            {currentStep === 'moduleActions' && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                {/* Module Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5" />
+                      {selection.module?.name || selection.independentModule?.name}
+                    </CardTitle>
+                    <CardDescription>
+                      Choose an action for this module
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* Action Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50" onClick={() => setCurrentStep('course')}>
+                    <CardHeader className="text-center">
+                      <CardTitle className="flex items-center justify-center gap-2">
+                        <Database className="h-5 w-5" />
+                        Select Course
+                      </CardTitle>
+                      <CardDescription>
+                        Choose a specific course to import questions
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50" onClick={() => setCurrentStep('bulkImport')}>
+                    <CardHeader className="text-center">
+                      <CardTitle className="flex items-center justify-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Bulk Import
+                      </CardTitle>
+                      <CardDescription>
+                        Import multiple JSON files with auto-detection
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </div>
               </div>
             )}
 
@@ -1037,7 +1119,7 @@ export default function AdminContentPage() {
             )}
 
             {currentStep === 'bulkImport' && (
-              <BulkImportWizard
+              <EnhancedBulkImportWizard
                 selection={selection}
                 onImportComplete={handleBulkImportComplete}
                 onCancel={() => setCurrentStep('courseActions')}

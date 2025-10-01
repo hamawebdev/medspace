@@ -1,0 +1,143 @@
+[
+  {
+    "questionText": "Quelle est la fonction principale du cœur ?",
+    "questionType": "SINGLE_CHOICE",
+    "explanation": "Le cœur est une pompe musculaire qui propulse le sang dans tout le corps à travers le système circulatoire.",
+    "answers": [
+      {
+        "answerText": "Pomper le sang dans tout le corps",
+        "isCorrect": true,
+        "explanation": "C'est la fonction principale du cœur - il agit comme une pompe pour faire circuler le sang."
+      },
+      {
+        "answerText": "Filtrer les toxines du sang",
+        "isCorrect": false,
+        "explanation": "Cette fonction est assurée par les reins, pas par le cœur."
+      },
+      {
+        "answerText": "Produire des globules rouges",
+        "isCorrect": false,
+        "explanation": "Les globules rouges sont produits dans la moelle osseuse."
+      },
+      {
+        "answerText": "Réguler la température corporelle",
+        "isCorrect": false,
+        "explanation": "La régulation de la température est principalement assurée par l'hypothalamus."
+      }
+    ]
+  },
+  {
+    "questionText": "Quelles sont les valves cardiaques ? (Sélectionnez toutes les réponses correctes)",
+    "questionType": "MULTIPLE_CHOICE",
+    "explanation": "Le cœur possède quatre valves principales qui contrôlent le flux sanguin.",
+    "answers": [
+      {
+        "answerText": "Valve mitrale",
+        "isCorrect": true,
+        "explanation": "La valve mitrale se trouve entre l'oreillette gauche et le ventricule gauche."
+      },
+      {
+        "answerText": "Valve tricuspide",
+        "isCorrect": true,
+        "explanation": "La valve tricuspide se trouve entre l'oreillette droite et le ventricule droit."
+      },
+      {
+        "answerText": "Valve aortique",
+        "isCorrect": true,
+        "explanation": "La valve aortique contrôle le flux sanguin du ventricule gauche vers l'aorte."
+      },
+      {
+        "answerText": "Valve pulmonaire",
+        "isCorrect": true,
+        "explanation": "La valve pulmonaire contrôle le flux sanguin du ventricule droit vers l'artère pulmonaire."
+      },
+      {
+        "answerText": "Valve hépatique",
+        "isCorrect": false,
+        "explanation": "Il n'existe pas de valve hépatique dans le cœur."
+      }
+    ]
+  },
+  {
+    "questionText": "Quel est le rythme cardiaque normal au repos pour un adulte ?",
+    "questionType": "SINGLE_CHOICE",
+    "explanation": "Le rythme cardiaque normal au repos pour un adulte se situe généralement entre 60 et 100 battements par minute.",
+    "answers": [
+      {
+        "answerText": "30-50 battements par minute",
+        "isCorrect": false,
+        "explanation": "C'est trop bas pour un adulte normal au repos (bradycardie)."
+      },
+      {
+        "answerText": "60-100 battements par minute",
+        "isCorrect": true,
+        "explanation": "C'est la plage normale pour un adulte au repos."
+      },
+      {
+        "answerText": "120-150 battements par minute",
+        "isCorrect": false,
+        "explanation": "C'est trop élevé pour un adulte au repos (tachycardie)."
+      },
+      {
+        "answerText": "200-250 battements par minute",
+        "isCorrect": false,
+        "explanation": "C'est dangereusement élevé et nécessiterait une intervention médicale immédiate."
+      }
+    ]
+  },
+  {
+    "questionText": "Quelles sont les phases du cycle cardiaque ? (Sélectionnez toutes les réponses correctes)",
+    "questionType": "MULTIPLE_CHOICE",
+    "explanation": "Le cycle cardiaque comprend deux phases principales : la systole (contraction) et la diastole (relaxation).",
+    "answers": [
+      {
+        "answerText": "Systole auriculaire",
+        "isCorrect": true,
+        "explanation": "Phase de contraction des oreillettes."
+      },
+      {
+        "answerText": "Systole ventriculaire",
+        "isCorrect": true,
+        "explanation": "Phase de contraction des ventricules."
+      },
+      {
+        "answerText": "Diastole",
+        "isCorrect": true,
+        "explanation": "Phase de relaxation et de remplissage du cœur."
+      },
+      {
+        "answerText": "Métaphase",
+        "isCorrect": false,
+        "explanation": "La métaphase est une phase de la division cellulaire, pas du cycle cardiaque."
+      }
+    ]
+  },
+  {
+    "questionText": "Quel est le principal stimulateur cardiaque naturel ?",
+    "questionType": "SINGLE_CHOICE",
+    "explanation": "Le nœud sinusal (ou nœud sino-auriculaire) est le stimulateur cardiaque naturel qui initie les battements cardiaques.",
+    "answers": [
+      {
+        "answerText": "Nœud sinusal (SA)",
+        "isCorrect": true,
+        "explanation": "Le nœud SA est le stimulateur cardiaque naturel principal situé dans l'oreillette droite."
+      },
+      {
+        "answerText": "Nœud auriculo-ventriculaire (AV)",
+        "isCorrect": false,
+        "explanation": "Le nœud AV transmet l'impulsion électrique mais n'est pas le stimulateur principal."
+      },
+      {
+        "answerText": "Faisceau de His",
+        "isCorrect": false,
+        "explanation": "Le faisceau de His conduit l'impulsion électrique mais ne l'initie pas."
+      },
+      {
+        "answerText": "Fibres de Purkinje",
+        "isCorrect": false,
+        "explanation": "Les fibres de Purkinje distribuent l'impulsion aux ventricules mais ne l'initient pas."
+      }
+    ]
+  }
+]
+
