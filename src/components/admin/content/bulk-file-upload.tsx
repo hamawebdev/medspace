@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Upload,
   FileText,
@@ -14,17 +15,22 @@ import {
   AlertTriangle,
   XCircle,
   Edit2,
-  Calendar
+  Calendar,
+  RotateCw,
+  FileQuestion
 } from 'lucide-react';
 import { BulkImportFile } from '@/types/question-import';
+import { QuestionSource } from '@/types/api';
 
 interface BulkFileUploadProps {
   files: BulkImportFile[];
   onFilesChange: (files: BulkImportFile[]) => void;
   disabled?: boolean;
+  questionSources: QuestionSource[];
+  sourcesLoading?: boolean;
 }
 
-export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploadProps) {
+export function BulkFileUpload({ files, onFilesChange, disabled, questionSources, sourcesLoading }: BulkFileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [editingYear, setEditingYear] = useState<string | null>(null);
   const [yearInput, setYearInput] = useState('');
@@ -43,6 +49,24 @@ export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploa
     return undefined;
   }, []);
 
+  // Extract rotation from filename (R1, R2, R3, R4)
+  const extractRotation = useCallback((filename: string): 'R1' | 'R2' | 'R3' | 'R4' | undefined => {
+    const rotationMatch = filename.match(/[_\-\s](R[1-4])(?:[_\-\s\.]|$)/i);
+    if (rotationMatch) {
+      return rotationMatch[1].toUpperCase() as 'R1' | 'R2' | 'R3' | 'R4';
+    }
+    return undefined;
+  }, []);
+
+  // Extract source from filename (RATT = sourceId 4, otherwise Session normal = sourceId 6)
+  const extractSource = useCallback((filename: string): { sourceId: number; sourceName: string } => {
+    const hasRATT = /RATT/i.test(filename);
+    if (hasRATT) {
+      return { sourceId: 4, sourceName: 'RATT' };
+    }
+    return { sourceId: 6, sourceName: 'Session normal' };
+  }, []);
+
   // Generate unique ID for file
   const generateFileId = useCallback(() => {
     return Math.random().toString(36).substr(2, 9);
@@ -54,18 +78,24 @@ export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploa
       .filter(file => file.name.endsWith('.json'))
       .map(file => {
         const examYear = extractExamYear(file.name);
+        const rotation = extractRotation(file.name);
+        const source = extractSource(file.name);
+
         return {
           id: generateFileId(),
           file,
           filename: file.name,
           examYear,
+          rotation,
+          sourceId: source.sourceId,
+          sourceName: source.sourceName,
           isValid: false,
           status: 'pending' as const
         };
       });
 
     onFilesChange([...files, ...newFiles]);
-  }, [files, onFilesChange, extractExamYear, generateFileId]);
+  }, [files, onFilesChange, extractExamYear, extractRotation, extractSource, generateFileId]);
 
   // Handle drag events
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -106,10 +136,25 @@ export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploa
 
   // Update exam year
   const updateExamYear = useCallback((fileId: string, year: number) => {
-    onFilesChange(files.map(f => 
+    onFilesChange(files.map(f =>
       f.id === fileId ? { ...f, examYear: year } : f
     ));
   }, [files, onFilesChange]);
+
+  // Update rotation
+  const updateRotation = useCallback((fileId: string, rotation: 'R1' | 'R2' | 'R3' | 'R4' | undefined) => {
+    onFilesChange(files.map(f =>
+      f.id === fileId ? { ...f, rotation } : f
+    ));
+  }, [files, onFilesChange]);
+
+  // Update source
+  const updateSource = useCallback((fileId: string, sourceId: number) => {
+    const source = questionSources.find(s => s.id === sourceId);
+    onFilesChange(files.map(f =>
+      f.id === fileId ? { ...f, sourceId, sourceName: source?.name } : f
+    ));
+  }, [files, onFilesChange, questionSources]);
 
   // Handle year edit
   const handleYearEdit = useCallback((fileId: string, currentYear?: number) => {
@@ -239,7 +284,10 @@ export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploa
                       {getStatusIcon(file)}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{file.filename}</p>
-                        <div className="flex items-center space-x-2 mt-1">
+
+                        {/* Metadata display/edit */}
+                        <div className="flex flex-wrap items-center gap-3 mt-2">
+                          {/* Exam Year */}
                           {editingYear === file.id ? (
                             <div className="flex items-center space-x-2">
                               <Input
@@ -251,10 +299,10 @@ export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploa
                                 className="w-20 h-6 text-xs"
                                 placeholder="Year"
                               />
-                              <Button size="sm" variant="outline" onClick={saveYearEdit}>
+                              <Button size="sm" variant="outline" onClick={saveYearEdit} className="h-6 text-xs">
                                 Save
                               </Button>
-                              <Button size="sm" variant="ghost" onClick={cancelYearEdit}>
+                              <Button size="sm" variant="ghost" onClick={cancelYearEdit} className="h-6 text-xs">
                                 Cancel
                               </Button>
                             </div>
@@ -262,18 +310,70 @@ export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploa
                             <div className="flex items-center space-x-1">
                               <Calendar className="h-3 w-3 text-muted-foreground" />
                               <span className="text-xs text-muted-foreground">
-                                {file.examYear ? `Year: ${file.examYear}` : 'No year detected'}
+                                {file.examYear ? `Year: ${file.examYear}` : 'No year'}
                               </span>
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleYearEdit(file.id, file.examYear)}
                                 className="h-4 w-4 p-0"
+                                disabled={disabled}
                               >
                                 <Edit2 className="h-3 w-3" />
                               </Button>
                             </div>
                           )}
+
+                          {/* Rotation */}
+                          <div className="flex items-center space-x-1">
+                            <RotateCw className="h-3 w-3 text-muted-foreground" />
+                            <Select
+                              value={file.rotation || 'NONE'}
+                              onValueChange={(value) => updateRotation(file.id, value === 'NONE' ? undefined : value as 'R1' | 'R2' | 'R3' | 'R4')}
+                              disabled={disabled}
+                            >
+                              <SelectTrigger className="h-6 w-16 text-xs">
+                                <SelectValue placeholder="R?" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NONE">None</SelectItem>
+                                <SelectItem value="R1">R1</SelectItem>
+                                <SelectItem value="R2">R2</SelectItem>
+                                <SelectItem value="R3">R3</SelectItem>
+                                <SelectItem value="R4">R4</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Source */}
+                          <div className="flex items-center space-x-1">
+                            <FileQuestion className="h-3 w-3 text-muted-foreground" />
+                            <Select
+                              value={file.sourceId?.toString() || 'PLACEHOLDER'}
+                              onValueChange={(value) => {
+                                if (value !== 'PLACEHOLDER') {
+                                  updateSource(file.id, parseInt(value));
+                                }
+                              }}
+                              disabled={disabled || sourcesLoading}
+                            >
+                              <SelectTrigger className="h-6 w-32 text-xs">
+                                <SelectValue placeholder="Select source" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {!file.sourceId && (
+                                  <SelectItem value="PLACEHOLDER" disabled>
+                                    Select source...
+                                  </SelectItem>
+                                )}
+                                {questionSources.map((source) => (
+                                  <SelectItem key={source.id} value={source.id.toString()}>
+                                    {source.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -341,11 +441,19 @@ export function BulkFileUpload({ files, onFilesChange, disabled }: BulkFileUploa
               ))}
             </div>
             
-            {files.some(f => !f.examYear) && (
+            {/* Warnings for missing metadata */}
+            {files.some(f => !f.examYear || !f.sourceId) && (
               <Alert className="mt-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Some files don't have detected exam years. Please set them manually before proceeding.
+                  <div className="space-y-1">
+                    {files.some(f => !f.examYear) && (
+                      <p>• Some files don't have exam years. Please set them manually.</p>
+                    )}
+                    {files.some(f => !f.sourceId) && (
+                      <p>• Some files don't have question sources. Please set them manually.</p>
+                    )}
+                  </div>
                 </AlertDescription>
               </Alert>
             )}

@@ -37,7 +37,6 @@ import { toast } from 'sonner';
 
 export function BulkImportWizard({ selection, onImportComplete, onCancel }: BulkImportComponentProps) {
   const [files, setFiles] = useState<BulkImportFile[]>([]);
-  const [sharedMetadata, setSharedMetadata] = useState<BulkImportMetadata>({});
   const [isValidating, setIsValidating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -66,14 +65,6 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
     setFiles(newFiles);
   }, []);
 
-  // Handle metadata changes
-  const handleMetadataChange = useCallback((key: keyof BulkImportMetadata, value: any) => {
-    setSharedMetadata(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  }, []);
-
   // Handle import
   const handleImport = useCallback(async () => {
     if (!areAllFilesValid(files)) {
@@ -81,8 +72,17 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
       return;
     }
 
-    if (!sharedMetadata.sourceId) {
-      toast.error('Please select a question source');
+    // Check that all files have required metadata
+    const filesWithoutYear = files.filter(f => !f.examYear);
+    const filesWithoutSource = files.filter(f => !f.sourceId);
+
+    if (filesWithoutYear.length > 0) {
+      toast.error(`${filesWithoutYear.length} file(s) missing exam year. Please set them before importing.`);
+      return;
+    }
+
+    if (filesWithoutSource.length > 0) {
+      toast.error(`${filesWithoutSource.length} file(s) missing question source. Please set them before importing.`);
       return;
     }
 
@@ -97,21 +97,21 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
       // Import each file separately
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         // Update file status to uploading
-        setFiles(prev => prev.map(f => 
+        setFiles(prev => prev.map(f =>
           f.id === file.id ? { ...f, status: 'uploading' } : f
         ));
 
         try {
-          // Prepare request payload
+          // Prepare request payload with per-file metadata
           const payload = {
             metadata: {
               courseId: selection.course!.id,
               universityId: selection.university?.id,
               examYear: file.examYear!,
-              sourceId: sharedMetadata.sourceId!,
-              rotation: sharedMetadata.rotation
+              sourceId: file.sourceId!,
+              rotation: file.rotation
             },
             questions: file.parsedQuestions!
           };
@@ -195,11 +195,12 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
     } finally {
       setIsImporting(false);
     }
-  }, [files, sharedMetadata, selection, onImportComplete]);
+  }, [files, selection, onImportComplete]);
 
   // Get validation summary
   const validationSummary = getValidationSummary(files);
-  const canImport = areAllFilesValid(files) && sharedMetadata.sourceId && !isImporting && !isValidating;
+  const allFilesHaveMetadata = files.every(f => f.examYear && f.sourceId);
+  const canImport = areAllFilesValid(files) && allFilesHaveMetadata && !isImporting && !isValidating;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -208,7 +209,7 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
         <div>
           <h2 className="text-2xl font-bold">Bulk Import Questions</h2>
           <p className="text-muted-foreground">
-            Import multiple JSON files with automatic exam year detection
+            Import multiple JSON files with automatic detection of exam year, source, and rotation from filenames
           </p>
         </div>
         {onCancel && (
@@ -252,62 +253,33 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
         </CardContent>
       </Card>
 
-      {/* Shared Metadata Selection */}
+      {/* File Upload with Auto-Detection */}
       <Card>
         <CardHeader>
-          <CardTitle>Shared Metadata</CardTitle>
+          <CardTitle>Upload & Configure Files</CardTitle>
           <CardDescription>
-            These settings will apply to all imported files. Exam years are detected per file.
+            Upload JSON files. Exam year, rotation, and source will be auto-detected from filenames and can be edited per file.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Rotation Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Rotation (Optional)</label>
-              <select
-                value={sharedMetadata.rotation || ''}
-                onChange={(e) => handleMetadataChange('rotation', e.target.value || undefined)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="">Select rotation...</option>
-                <option value="R1">R1</option>
-                <option value="R2">R2</option>
-                <option value="R3">R3</option>
-                <option value="R4">R4</option>
-              </select>
-            </div>
+          <BulkFileUpload
+            files={files}
+            onFilesChange={handleFilesChange}
+            disabled={isImporting}
+            questionSources={questionSources}
+            sourcesLoading={sourcesLoading}
+          />
 
-            {/* Source Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Question Source *</label>
-              <select
-                value={sharedMetadata.sourceId || ''}
-                onChange={(e) => handleMetadataChange('sourceId', e.target.value ? parseInt(e.target.value) : undefined)}
-                disabled={sourcesLoading}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Select question source...</option>
-                {questionSources.map((source) => (
-                  <option key={source.id} value={source.id}>
-                    {source.name}
-                  </option>
-                ))}
-              </select>
-              {sourcesError && (
-                <p className="text-sm text-red-600">Error loading sources: {sourcesError}</p>
-              )}
-            </div>
-          </div>
+          {sourcesError && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Error loading question sources: {sourcesError}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
-
-      {/* File Upload */}
-      <BulkFileUpload
-        files={files}
-        onFilesChange={handleFilesChange}
-        disabled={isImporting}
-      />
 
       {/* Validation Summary */}
       {files.length > 0 && (
@@ -335,11 +307,19 @@ export function BulkImportWizard({ selection, onImportComplete, onCancel }: Bulk
               </div>
             </div>
 
-            {validationSummary.filesWithoutYear > 0 && (
+            {/* Warnings for missing metadata */}
+            {(validationSummary.filesWithoutYear > 0 || files.some(f => !f.sourceId)) && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  {validationSummary.filesWithoutYear} file(s) don't have exam years set. Please set them manually.
+                  <div className="space-y-1">
+                    {validationSummary.filesWithoutYear > 0 && (
+                      <p>• {validationSummary.filesWithoutYear} file(s) missing exam year</p>
+                    )}
+                    {files.filter(f => !f.sourceId).length > 0 && (
+                      <p>• {files.filter(f => !f.sourceId).length} file(s) missing question source</p>
+                    )}
+                  </div>
                 </AlertDescription>
               </Alert>
             )}

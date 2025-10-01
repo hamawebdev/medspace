@@ -40,7 +40,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
   return (
     <TooltipProvider>
       <SidebarProvider defaultOpen={true}>
-        <div className='flex h-screen w-full' style={{ background: 'var(--background)' }}>
+        <div className='student-dashboard flex h-screen w-full' style={{ background: 'var(--background)' }}>
           <AppSidebar />
           <div className='flex flex-1 flex-col min-w-0'>
             <Header />

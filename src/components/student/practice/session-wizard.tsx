@@ -97,12 +97,8 @@ export function SessionWizard({
     setTimeLimit(undefined);
   };
 
-  // Handle course selection with 50 course limit
+  // Handle course selection without limits
   const handleCourseSelection = (selectedCourseIds: string[]) => {
-    if (selectedCourseIds.length > 50) {
-      // Don't update the state if more than 50 courses are selected
-      return;
-    }
     setCourseIds(selectedCourseIds);
   };
 
@@ -285,9 +281,7 @@ export function SessionWizard({
   // Handle selecting/deselecting all courses
   const selectAllCourses = () => {
     const allCourseIds = availableCourses.map((c: any) => c.value);
-    // Limit to 50 courses maximum
-    const limitedCourseIds = allCourseIds.slice(0, 50);
-    setCourseIds(limitedCourseIds);
+    setCourseIds(allCourseIds);
   };
 
   const deselectAllCourses = () => {
@@ -525,9 +519,9 @@ export function SessionWizard({
   const step2Valid = totalAvailable > 0 && questionCount > 0 && questionCount <= totalAvailable && !questionCountError;
 
   const canNext = useMemo(() => {
-    if (step === 1) return step1Valid && !contentLoading && !contentError && !sessionFiltersLoading && !sessionFiltersError && courseIds.length <= 50;
-    if (step === 2) return step2Valid && !questionCountLoading && !sessionFiltersLoading && !sessionFiltersError && courseIds.length <= 50;
-    return courseIds.length <= 50;
+    if (step === 1) return step1Valid && !contentLoading && !contentError && !sessionFiltersLoading && !sessionFiltersError;
+    if (step === 2) return step2Valid && !questionCountLoading && !sessionFiltersLoading && !sessionFiltersError;
+    return true;
   }, [step, step1Valid, step2Valid, contentLoading, contentError, questionCountLoading, questionCountError, sessionFiltersLoading, sessionFiltersError, courseIds.length]);
 
   const handleCreate = () => {
@@ -763,17 +757,6 @@ export function SessionWizard({
                     </div>
                   )}
 
-                  {/* Course Limit Error */}
-                  {courseIds.length >= 50 && (
-                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                      <p className="text-sm text-destructive font-medium">
-                        Cannot select more than 50 courses
-                      </p>
-                      <p className="text-xs text-destructive/80 mt-1">
-                        You have reached the maximum limit of 50 courses. Please deselect some courses to continue.
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Selected Courses Display */}

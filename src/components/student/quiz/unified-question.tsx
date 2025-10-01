@@ -553,7 +553,7 @@ export function UnifiedQuestion({ question, type }: Props) {
             <div className="flex items-center gap-0.5 mb-0">
               <div className="w-0.5 h-0.5 rounded-full bg-primary"></div>
               <h3 className="text-sm font-semibold text-question-gradient uppercase tracking-wide">Question {questionNumber}</h3>
-              {questionType === 'QCS' && <div className="ml-auto"><QuestionActions /></div>}
+              <div className="ml-auto"><QuestionActions /></div>
             </div>
 
             {/* Question Metadata */}

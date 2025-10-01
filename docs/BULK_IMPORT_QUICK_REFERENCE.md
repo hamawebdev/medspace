@@ -1,243 +1,302 @@
-# Bulk Import Quick Reference Guide
+# Bulk Import - Quick Reference Card
 
-## Filename Format
+## 🚀 Quick Start (3 Steps)
 
+1. **Navigate**: Admin → Content → Select Course → "Import Multiple Files"
+2. **Upload**: Drag & drop `.json` files (metadata auto-detected)
+3. **Import**: Review, edit if needed, click "Start Import"
+
+---
+
+## 📝 Filename Format
+
+### Recommended Pattern
 ```
-{CourseName}_questions_{Year}[_RATT][_R1-R4].json
+{course}_{year}_{source}_{rotation}.json
 ```
 
 ### Examples
-
-✅ **Good Filenames:**
 ```
-Cytokines, Chimiokines et leurs récepteurs_questions_2012.json
-Les lymphocytes B et les Immunoglobulines_questions_2021_RATT.json
-Les_molécules_d'adhésion_cellulaire_et_la_réaction_inflammatoire_questions_2019_RATT_R2.json
-Immunology_questions_2020.json
-Cardiology_questions_2021_RATT_R1.json
+✓ pit_questions_2018_RATT_R1.json
+✓ cardio_2019_R2.json
+✓ neuro_2020_RATT.json
+✓ anatomy_2021.json
 ```
 
-❌ **Poor Filenames:**
-```
-questions.json                    # No course name or year
-data_2021.json                    # No "questions" keyword
-Immunology.json                   # No year
-2021_questions.json               # No course name
-```
+---
 
-## Auto-Detection Rules
+## 🔍 Auto-Detection Rules
 
-| Field | Detection Rule | Example |
-|-------|---------------|---------|
-| **Course Name** | Everything before `_questions_` | `Immunology_questions_2020.json` → "Immunology" |
-| **Exam Year** | 4-digit year (2000-2099) | `..._2021_...` → 2021 |
-| **Source** | Contains "RATT" → sourceId = 4 | `..._RATT_...` → RATT source |
-| **Rotation** | R1, R2, R3, or R4 | `..._R2.json` → R2 |
+| Field | Pattern | Example | Result |
+|-------|---------|---------|--------|
+| **Year** | 4 digits (1900-now) | `2018` | `2018` |
+| **Rotation** | R1, R2, R3, R4 | `R1` | `R1` |
+| **Source** | Contains "RATT" | `RATT` | RATT (ID: 4) |
+| **Source** | No "RATT" | - | Session normal (ID: 6) |
 
-## Metadata Priority
+---
 
-```
-File-level > Group-level > Global-level > Auto-detected
-```
+## ✏️ Editable Fields (Per File)
 
-### When to Use Each Level
+- 📅 **Exam Year**: Click edit icon to change
+- 🔄 **Rotation**: Dropdown (R1, R2, R3, R4, None)
+- 📋 **Source**: Dropdown (from database)
 
-| Level | Use When | Example |
-|-------|----------|---------|
-| **Global** | All files share same source/rotation | All files are RATT R2 |
-| **Group** | All files in a course share metadata | All "Immunology" files are from same source |
-| **File** | Individual file needs special handling | One file has different year than auto-detected |
+---
 
-## Quick Workflow
+## ✅ Validation Checklist
 
-### 1. Upload Files
-- Drag & drop or click to select
-- Multiple files supported
-- Only `.json` files accepted
-
-### 2. Review Groups
-- Files automatically grouped by course name
-- Expand/collapse groups to review
-
-### 3. Set Metadata (Priority Order)
-
-**Option A: Set Global First (Recommended for uniform data)**
-1. Set global source and rotation
-2. Override at group level if needed
-3. Override at file level for exceptions
-
-**Option B: Set Group First (Recommended for varied data)**
-1. Set course for each group
-2. Set source/rotation per group
-3. Override at file level for exceptions
-
-**Option C: Set File-by-File (For complex scenarios)**
-1. Edit each file individually
-2. Most control, but most time-consuming
-
-### 4. Validate
-- Check validation summary
-- Ensure all files are valid
-- Fix any errors
-
-### 5. Import
-- Click "Start Import"
-- Monitor progress
-- Review results
-
-## Validation Checklist
-
-Before importing, ensure:
-
-- [ ] All files have valid JSON format
-- [ ] All files contain questions array
+Before import, ensure:
+- [ ] All files are `.json` format
 - [ ] All files have exam year set
-- [ ] All files have course selected
 - [ ] All files have source selected
-- [ ] No validation errors shown
+- [ ] All files show "Valid" status
+- [ ] JSON structure is correct
 
-## Common Issues & Solutions
+---
 
-### Issue: Course not auto-detected
+## 📋 JSON Structure
 
-**Solution:**
-- Check filename format (should have `_questions_` separator)
-- Manually select course at group or file level
+### Minimal Example
+```json
+[
+  {
+    "questionText": "What is the primary function of the heart?",
+    "questionType": "SINGLE_CHOICE",
+    "answers": [
+      {
+        "answerText": "Pumping blood",
+        "isCorrect": true
+      },
+      {
+        "answerText": "Filtering toxins",
+        "isCorrect": false
+      }
+    ]
+  }
+]
+```
 
-### Issue: Year not detected
+### Required Fields
+- `questionText` (string)
+- `questionType` ("SINGLE_CHOICE" or "MULTIPLE_CHOICE")
+- `answers` (array, min 2 items)
+  - `answerText` (string)
+  - `isCorrect` (boolean)
 
-**Solution:**
-- Ensure year is 4 digits (e.g., 2021, not 21)
-- Manually edit year for the file
+### Optional Fields
+- `explanation` (string)
+- `answers[].explanation` (string)
 
-### Issue: Source not detected
+---
 
-**Solution:**
-- Only RATT is auto-detected
-- Set source at global or group level for non-RATT files
+## ⚠️ Common Issues & Solutions
 
-### Issue: Files not grouping correctly
+### Issue: "File missing exam year"
+**Solution**: Click ✏️ icon and enter year manually
 
-**Solution:**
-- Check course name consistency in filenames
-- Use underscores or spaces consistently
-- Manually override course at file level if needed
+### Issue: "File missing source"
+**Solution**: Select source from dropdown
 
-### Issue: Cannot import (button disabled)
+### Issue: "Invalid JSON"
+**Solution**: Validate JSON structure at jsonlint.com
 
-**Solution:**
-- Check validation summary for errors
-- Ensure all required metadata is set
-- Fix any invalid files
+### Issue: "Wrong year detected"
+**Solution**: Click ✏️ icon and correct the year
 
-## Keyboard Shortcuts
+### Issue: "Wrong source detected"
+**Solution**: Use source dropdown to select correct source
 
-| Action | Shortcut |
-|--------|----------|
-| Upload files | Click upload area |
-| Expand/collapse group | Click group header |
-| Edit year | Click edit icon next to year |
-| Save year edit | Enter key |
-| Cancel year edit | Escape key |
+---
 
-## Tips & Best Practices
+## 🎯 Best Practices
 
-### Filename Tips
+1. ✅ Use consistent naming: `{course}_{year}_{source}_{rotation}.json`
+2. ✅ Include all metadata in filename when possible
+3. ✅ Test with one file before bulk upload
+4. ✅ Keep backup of original files
+5. ✅ Review auto-detected values before importing
 
-1. **Use consistent naming**: Stick to one format for all files
-2. **Include year**: Always include 4-digit year in filename
-3. **Use `_questions_` separator**: Helps auto-detection
-4. **Be specific**: Include course name exactly as it appears in system
+---
 
-### Metadata Tips
+## 📊 Import Process
 
-1. **Start with global**: Set common metadata globally first
-2. **Group similar files**: Upload files with similar metadata together
-3. **Review auto-detection**: Always verify auto-detected values
-4. **Use groups**: Leverage group settings for efficiency
+```
+Upload Files → Auto-Detect → Review/Edit → Validate → Import → Results
+```
 
-### Import Tips
+**Progress shown for each file:**
+- ⏳ Pending
+- 🔄 Validating
+- ✅ Valid
+- ❌ Invalid
+- 📤 Uploading
+- ✓ Success
+- ✗ Error
 
-1. **Test with small batch**: Try 2-3 files first
-2. **Validate before import**: Fix all errors before clicking import
-3. **Monitor progress**: Watch for any failures during import
-4. **Review results**: Check success/failure counts after import
+---
 
-## Example Workflows
+## 🔢 Source Mapping
 
-### Workflow 1: Same Source, Different Courses
+| Source Name | Source ID | Detection |
+|-------------|-----------|-----------|
+| RATT | 4 | Filename contains "RATT" |
+| Session normal | 6 | Default (no "RATT") |
 
-**Scenario:** 10 files, all RATT R2, different courses and years
+---
 
-**Steps:**
-1. Upload all 10 files
-2. Set global: Source = RATT, Rotation = R2
-3. Review auto-detected courses and years
-4. Fix any incorrect auto-detections
-5. Import
+## 📞 Need Help?
 
-**Time saved:** ~5 minutes vs. setting each file individually
+1. Check filename follows pattern: `{course}_{year}_{source}_{rotation}.json`
+2. Verify JSON is valid
+3. Review validation errors in UI
+4. Contact system administrator
 
-### Workflow 2: Multiple Courses, Multiple Years
+---
 
-**Scenario:** 15 files, 3 courses, various years, mixed sources
+## 💡 Pro Tips
 
-**Steps:**
-1. Upload all 15 files
-2. Files auto-group into 3 course groups
-3. Set course for each group
-4. Set source per group (or globally if same)
-5. Review auto-detected years
-6. Import
+- **Batch similar files**: Upload files with similar metadata together
+- **Use separators**: Underscores (`_`) or hyphens (`-`) work best
+- **Case doesn't matter**: `RATT`, `ratt`, `R1`, `r1` all work
+- **Multiple years**: First year in filename is used
+- **Override anytime**: All auto-detected values can be edited
 
-**Time saved:** ~10 minutes vs. setting each file individually
+---
 
-### Workflow 3: Complex Mixed Metadata
+## 🎓 Example Workflow
 
-**Scenario:** 20 files, various courses, years, sources, rotations
+**Scenario**: Import 4 years of RATT exams for PIT course
 
-**Steps:**
-1. Upload all 20 files
-2. Set global rotation (if most files share it)
-3. Set course per group
-4. Set source per group or file as needed
-5. Review and fix auto-detected years
-6. Override any file-specific exceptions
-7. Import
+**Files**:
+```
+pit_questions_2018_RATT_R1.json
+pit_questions_2019_RATT_R1.json
+pit_questions_2020_RATT_R1.json
+pit_questions_2021_RATT_R1.json
+```
 
-**Time saved:** ~15 minutes vs. setting each file individually
+**Steps**:
+1. Navigate to PIT course
+2. Click "Import Multiple Files"
+3. Drag all 4 files
+4. Verify auto-detection (all should be correct)
+5. Click "Start Import (4 files)"
+6. Wait for completion
+7. See success message with total questions imported
 
-## Troubleshooting
+**Result**: All 4 files imported with correct metadata, no manual editing needed!
 
-### Files not uploading
+---
 
-- Check file format (must be `.json`)
-- Check file size (should be reasonable)
-- Check browser console for errors
+## 📈 Validation Summary
 
-### Auto-detection not working
+After upload, you'll see:
+- **Total Files**: Number of files uploaded
+- **Valid Files**: Files ready to import
+- **Invalid Files**: Files with errors
+- **Total Questions**: Sum of all questions
 
-- Verify filename format
-- Check for special characters
-- Ensure `_questions_` separator is present
+**Import is enabled only when:**
+- ✅ All files are valid
+- ✅ All files have exam year
+- ✅ All files have source
 
-### Validation failing
+---
 
-- Open file in text editor to check JSON format
-- Ensure questions array exists
-- Check for required fields in questions
+## 🔄 Rotation Values
 
-### Import failing
+Valid rotations:
+- `R1` - Rotation 1
+- `R2` - Rotation 2
+- `R3` - Rotation 3
+- `R4` - Rotation 4
+- `None` - No rotation (optional)
 
-- Check network connection
-- Verify all metadata is set
-- Check browser console for errors
-- Contact support if issue persists
+---
 
-## Support
+## 📦 API Request (Per File)
 
-For additional help:
-- Review full documentation: `docs/GROUPED_BULK_IMPORT_FEATURE.md`
-- Check implementation details: `docs/IMPLEMENTATION_SUMMARY.md`
-- Contact system administrator
+Each file generates one API request:
+
+```json
+POST /api/v1/admin/questions/bulk
+{
+  "metadata": {
+    "courseId": 123,
+    "universityId": 1,
+    "examYear": 2018,
+    "rotation": "R1",
+    "sourceId": 4
+  },
+  "questions": [...]
+}
+```
+
+---
+
+## ⏱️ Import Time
+
+Approximate time per file:
+- Small (1-10 questions): ~1-2 seconds
+- Medium (11-50 questions): ~2-5 seconds
+- Large (51-100 questions): ~5-10 seconds
+- Very large (100+ questions): ~10-20 seconds
+
+**Total time** = Sum of all files + network latency
+
+---
+
+## 🎨 UI Indicators
+
+**File Status Icons**:
+- 📄 Pending (gray)
+- 🔄 Validating (yellow, animated)
+- ✅ Valid (green)
+- ❌ Invalid (red)
+- 📤 Uploading (blue, animated)
+- ✓ Success (green)
+- ✗ Error (red)
+
+**Metadata Icons**:
+- 📅 Exam Year
+- 🔄 Rotation
+- 📋 Source
+
+---
+
+## 🚫 What NOT to Do
+
+❌ Don't upload non-JSON files
+❌ Don't skip validation errors
+❌ Don't import without reviewing auto-detection
+❌ Don't use invalid rotation values (R5, R6, etc.)
+❌ Don't use years before 1900 or after current year
+❌ Don't forget to backup original files
+
+---
+
+## ✨ Feature Highlights
+
+- ✅ **Auto-detection**: Year, rotation, source from filename
+- ✅ **Per-file metadata**: Each file can have different values
+- ✅ **Editable**: Override any auto-detected value
+- ✅ **Validation**: Real-time validation before import
+- ✅ **Progress tracking**: See status of each file
+- ✅ **Error handling**: Clear error messages
+- ✅ **Batch import**: Import multiple files at once
+
+---
+
+## 📚 Related Documentation
+
+- **Full Guide**: `BULK_IMPORT_AUTO_DETECTION.md`
+- **Examples**: `BULK_IMPORT_EXAMPLES.md`
+- **Workflow**: `BULK_IMPORT_WORKFLOW.md`
+- **Implementation**: `IMPLEMENTATION_SUMMARY.md`
+
+---
+
+**Last Updated**: 2025-10-01
+**Version**: 1.0
 

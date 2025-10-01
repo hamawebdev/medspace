@@ -243,52 +243,21 @@ export interface BulkImportFile {
   id: string; // Unique identifier for the file
   file: File;
   filename: string;
-  groupKey?: string; // Key for grouping files by course name
   examYear?: number; // Auto-detected or manually set
-  courseId?: number; // Auto-detected or manually set
-  courseName?: string; // For display purposes
+  rotation?: 'R1' | 'R2' | 'R3' | 'R4'; // Auto-detected or manually set
   sourceId?: number; // Auto-detected or manually set
-  rotation?: string; // Auto-detected from filename (R1, R2, R3, R4)
+  sourceName?: string; // Auto-detected source name for display
   isValid: boolean;
   validationResult?: ValidationResult;
   parsedQuestions?: ImportQuestion[];
   status: 'pending' | 'validating' | 'valid' | 'invalid' | 'uploading' | 'success' | 'error';
   error?: string;
   uploadProgress?: number; // 0-100
-  // Metadata detection status
-  needsCourseSelection?: boolean; // True if course couldn't be auto-detected
-  needsSourceSelection?: boolean; // True if source couldn't be auto-detected (non-RATT)
-  // Metadata source tracking (for priority: file > group > global)
-  metadataSource?: {
-    examYear?: 'auto' | 'file' | 'group' | 'global';
-    courseId?: 'auto' | 'file' | 'group' | 'global';
-    sourceId?: 'auto' | 'file' | 'group' | 'global';
-    rotation?: 'auto' | 'file' | 'group' | 'global';
-  };
-}
-
-// Group metadata (applies to all files in a group)
-export interface FileGroupMetadata {
-  groupKey: string;
-  displayName: string;
-  fileIds: string[]; // IDs of files in this group
-  courseId?: number; // Group-level course selection
-  sourceId?: number; // Group-level source selection
-  rotation?: string; // Group-level rotation selection
-  examYear?: number; // Group-level exam year (less common, usually per-file)
-}
-
-// Global metadata (applies to all files unless overridden)
-export interface GlobalMetadata {
-  sourceId?: number; // Global source selection
-  rotation?: string; // Global rotation selection
 }
 
 export interface BulkImportMetadata {
-  // Shared metadata is now per-file, but we keep this for backward compatibility
-  // and for any future shared fields
-  global?: GlobalMetadata;
-  groups?: Map<string, FileGroupMetadata>;
+  // Shared metadata fields that apply to all files (if needed in future)
+  // Currently, rotation and sourceId are per-file
 }
 
 export interface BulkImportState {

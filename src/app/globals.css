@@ -1076,6 +1076,15 @@ html {
   color: transparent;
 }
 
+/* Student dashboard Arial font override */
+.student-dashboard {
+  font-family: Arial, ui-sans-serif, sans-serif, system-ui !important;
+}
+
+.student-dashboard * {
+  font-family: Arial, ui-sans-serif, sans-serif, system-ui !important;
+}
+
 /* Enhanced sidebar logo styling */
 .sidebar-logo-container {
   position: relative;

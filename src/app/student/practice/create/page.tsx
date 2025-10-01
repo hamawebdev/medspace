@@ -28,13 +28,13 @@ export default function PracticeCreatePage() {
         return;
       }
 
-      if (!payload.questionCount || payload.questionCount < 1 || payload.questionCount > 100) {
-        toast.error('Question count must be between 1 and 100.');
+      if (!payload.questionCount || payload.questionCount < 1) {
+        toast.error('Question count must be at least 1.');
         return;
       }
 
-      if (!payload.courseIds || payload.courseIds.length === 0 || payload.courseIds.length > 50) {
-        toast.error('Please select between 1 and 50 courses.');
+      if (!payload.courseIds || payload.courseIds.length === 0) {
+        toast.error('Please select at least 1 course.');
         return;
       }
 
