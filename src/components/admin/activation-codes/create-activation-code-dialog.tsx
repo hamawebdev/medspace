@@ -44,6 +44,8 @@ export function CreateActivationCodeDialog({
   const [formData, setFormData] = useState<CreateActivationCodeRequest>({
     description: '',
     durationMonths: 1,
+    durationDays: undefined,
+    durationType: 'MONTHS',
     maxUses: 100,
     expiresAt: '',
     studyPackIds: [],
@@ -94,8 +96,15 @@ export function CreateActivationCodeDialog({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (formData.durationMonths < 1 || formData.durationMonths > 60) {
-      newErrors.durationMonths = 'Duration must be between 1 and 60 months';
+    // Validate duration based on type
+    if (formData.durationType === 'MONTHS') {
+      if (!formData.durationMonths || formData.durationMonths < 1 || formData.durationMonths > 60) {
+        newErrors.duration = 'Duration must be between 1 and 60 months';
+      }
+    } else if (formData.durationType === 'DAYS') {
+      if (!formData.durationDays || formData.durationDays < 1 || formData.durationDays > 1825) {
+        newErrors.duration = 'Duration must be between 1 and 1825 days';
+      }
     }
 
     if (formData.maxUses < 1 || formData.maxUses > 10000) {
@@ -113,8 +122,6 @@ export function CreateActivationCodeDialog({
 
     if (formData.studyPackIds.length === 0) {
       newErrors.studyPackIds = 'Au moins un Study Pack doit être sélectionné';
-    } else if (formData.studyPackIds.length > 50) {
-      newErrors.studyPackIds = 'Maximum 50 Study Packs peuvent être sélectionnés';
     }
 
     setErrors(newErrors);
@@ -135,9 +142,15 @@ export function CreateActivationCodeDialog({
       const expiryDateTime = new Date(formData.expiresAt + 'T23:59:59.999Z');
       
       const codeData: CreateActivationCodeRequest = {
-        ...formData,
         description: formData.description.trim() || undefined,
+        durationType: formData.durationType,
+        maxUses: formData.maxUses,
         expiresAt: expiryDateTime.toISOString(),
+        studyPackIds: formData.studyPackIds,
+        ...(formData.durationType === 'MONTHS' 
+          ? { durationMonths: formData.durationMonths } 
+          : { durationDays: formData.durationDays }
+        ),
       };
 
       await onCreateCode(codeData);
@@ -146,6 +159,8 @@ export function CreateActivationCodeDialog({
       setFormData({
         description: '',
         durationMonths: 1,
+        durationDays: undefined,
+        durationType: 'MONTHS',
         maxUses: 100,
         expiresAt: '',
         studyPackIds: [],
@@ -172,6 +187,8 @@ export function CreateActivationCodeDialog({
       setFormData({
         description: '',
         durationMonths: 1,
+        durationDays: undefined,
+        durationType: 'MONTHS',
         maxUses: 100,
         expiresAt: '',
         studyPackIds: [],
@@ -179,6 +196,15 @@ export function CreateActivationCodeDialog({
       setErrors({});
       onOpenChange(false);
     }
+  };
+
+  const handleDurationTypeChange = (newType: 'MONTHS' | 'DAYS') => {
+    setFormData(prev => ({
+      ...prev,
+      durationType: newType,
+      durationMonths: newType === 'MONTHS' ? (prev.durationMonths || 1) : undefined,
+      durationDays: newType === 'DAYS' ? (prev.durationDays || 30) : undefined,
+    }));
   };
 
   return (
@@ -204,30 +230,58 @@ export function CreateActivationCodeDialog({
             />
           </div>
 
-          {/* Duration and Max Uses */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Duration Type and Duration */}
+          <div className="space-y-4">
+            {/* Duration Type Toggle */}
             <div className="space-y-2">
-              <Label htmlFor="duration">
+              <Label>
                 <Clock className="inline h-4 w-4 mr-1" />
-                Duration (Months)
+                Duration Type
               </Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                max="60"
-                value={formData.durationMonths}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  durationMonths: parseInt(e.target.value) || 1 
-                }))}
-              />
-              {errors.durationMonths && (
-                <p className="text-sm text-red-600">{errors.durationMonths}</p>
-              )}
+              <Select value={formData.durationType} onValueChange={handleDurationTypeChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select duration type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MONTHS">Months</SelectItem>
+                  <SelectItem value="DAYS">Days</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="space-y-2">
+            {/* Duration Value and Max Uses */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="duration">
+                  Duration ({formData.durationType === 'MONTHS' ? 'Months' : 'Days'})
+                </Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  min="1"
+                  max={formData.durationType === 'MONTHS' ? "60" : "1825"}
+                  value={formData.durationType === 'MONTHS' ? formData.durationMonths : formData.durationDays}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      ...(formData.durationType === 'MONTHS' 
+                        ? { durationMonths: value } 
+                        : { durationDays: value }
+                      )
+                    }));
+                  }}
+                  placeholder={formData.durationType === 'MONTHS' ? '1-60 months' : '1-1825 days'}
+                />
+                {errors.duration && (
+                  <p className="text-sm text-red-600">{errors.duration}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {formData.durationType === 'MONTHS' ? 'Range: 1-60 months' : 'Range: 1-1825 days (5 years)'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
               <Label htmlFor="maxUses">
                 <Users className="inline h-4 w-4 mr-1" />
                 Max Uses
@@ -246,6 +300,7 @@ export function CreateActivationCodeDialog({
               {errors.maxUses && (
                 <p className="text-sm text-red-600">{errors.maxUses}</p>
               )}
+              </div>
             </div>
           </div>
 

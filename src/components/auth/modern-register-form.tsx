@@ -257,42 +257,16 @@ export function ModernRegisterForm() {
         currentYear: convertYearToApiFormat(data.currentYear),
       });
 
-      // Store authentication tokens if provided
-      if (result.tokens) {
-        apiClient.setTokens(result.tokens.accessToken, result.tokens.refreshToken);
+      // Do not auto-login after registration - user must log in manually
+      // This ensures proper authentication flow and security
 
-        // Fetch and store user profile for dashboard access
-        try {
-          const userProfile = await AuthAPI.getCurrentUser();
-          if (userProfile) {
-            // Store user in localStorage for immediate dashboard access
-            const legacyUser = {
-              id: userProfile.id,
-              email: userProfile.email,
-              fullName: userProfile.fullName,
-              role: userProfile.role.toLowerCase() as 'student' | 'admin' | 'employee',
-              universityId: userProfile.universityId,
-              specialtyId: userProfile.specialtyId,
-              currentYear: userProfile.currentYear,
-              isActive: userProfile.isActive,
-              createdAt: userProfile.createdAt,
-              updatedAt: userProfile.updatedAt,
-              lastLogin: new Date()
-            };
-            localStorage.setItem('auth_user', JSON.stringify(legacyUser));
-          }
-        } catch (profileError) {
-          console.warn('Failed to fetch user profile after registration:', profileError);
-        }
-      }
+      toast.success('Registration successful. Please log in to continue.');
 
-      toast.success('Inscription réussie ! Bienvenue sur MedCortex !');
-
-      // Redirect new users directly to subscription browse page
-      router.push('/student/subscriptions/browse');
+      // Redirect to login page for manual authentication
+      router.push('/login');
 
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Échec de l&apos;inscription';
+      const errorMessage = error instanceof Error ? error.message : 'Échec de l\'inscription';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

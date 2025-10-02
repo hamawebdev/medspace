@@ -197,7 +197,12 @@ export function ActivationCodesTable({
                 <TableCell>
                   <div className="flex items-center space-x-1">
                     <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm">{code.durationMonths}mo</span>
+                    <span className="text-sm">
+                      {code.durationType === 'DAYS' 
+                        ? `${code.durationDays} Days`
+                        : `${code.durationMonths} Months`
+                      }
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -206,7 +211,7 @@ export function ActivationCodesTable({
                       <div className="space-y-1">
                         {code.studyPacks.slice(0, 2).map((sp, index) => (
                           <div key={index} className="text-xs text-muted-foreground truncate">
-                            {sp.studyPack.name}
+                            {sp.name}
                           </div>
                         ))}
                         {code.studyPacks.length > 2 && (

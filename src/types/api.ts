@@ -1775,7 +1775,9 @@ export interface ActivationCode {
   id: number;
   code: string;
   description?: string;
-  durationMonths: number;
+  durationMonths?: number;
+  durationDays?: number;
+  durationType: 'MONTHS' | 'DAYS';
   maxUses: number;
   currentUses: number;
   isActive: boolean;
@@ -1787,7 +1789,9 @@ export interface ActivationCode {
 
 export interface CreateActivationCodeRequest {
   description?: string;
-  durationMonths: number;
+  durationMonths?: number;
+  durationDays?: number;
+  durationType: 'MONTHS' | 'DAYS';
   maxUses: number;
   expiresAt: string;
   studyPackIds: number[];
@@ -1796,6 +1800,8 @@ export interface CreateActivationCodeRequest {
 export interface UpdateActivationCodeRequest {
   description?: string;
   durationMonths?: number;
+  durationDays?: number;
+  durationType?: 'MONTHS' | 'DAYS';
   maxUses?: number;
   expiresAt?: string;
   studyPackIds?: number[];
