@@ -119,6 +119,31 @@ export function QuestionDisplay() {
     // According to session-doc.md, answers are in questionAnswers array
     const answers = question.questionAnswers || question.answers || [];
 
+    // Helper function to ensure proper image data structure
+    const normalizeImageArray = (images: any[]): Array<{ id: number; imagePath: string; altText?: string }> => {
+      if (!Array.isArray(images)) return [];
+      
+      return images.map((img, index) => {
+        // Handle different possible image data structures from API
+        if (typeof img === 'string') {
+          // If image is just a URL string
+          return {
+            id: index + 1,
+            imagePath: img,
+            altText: `Image ${index + 1}`
+          };
+        } else if (img && typeof img === 'object') {
+          // If image is an object with properties
+          return {
+            id: img.id || index + 1,
+            imagePath: img.imagePath || img.url || img.src || '',
+            altText: img.altText || img.alt || img.description || `Image ${index + 1}`
+          };
+        }
+        return null;
+      }).filter(Boolean);
+    };
+
     return {
       ...question,
       // Ensure content property exists
@@ -129,11 +154,11 @@ export function QuestionDisplay() {
         text: answer.answerText,
         isCorrect: answer.isCorrect,
         explanation: answer.explanation,
-        explanationImages: answer.explanationImages || []
+        explanationImages: normalizeImageArray(answer.explanationImages || [])
       })),
-      // Ensure image arrays are properly passed through
-      questionImages: question.questionImages || [],
-      questionExplanationImages: question.questionExplanationImages || [],
+      // Ensure image arrays are properly passed through with normalization
+      questionImages: normalizeImageArray(question.questionImages || []),
+      questionExplanationImages: normalizeImageArray(question.questionExplanationImages || []),
       // Ensure other required properties exist
       title: question.title || question.questionText || `Question ${question.id}`,
       difficulty: question.difficulty || 'intermediate',
@@ -145,7 +170,6 @@ export function QuestionDisplay() {
       yearLevel: question.yearLevel,
       examYear: question.examYear,
       metadata: question.metadata,
-      questionImages: question.questionImages || [],
       university: question.university,
       course: question.course
     };

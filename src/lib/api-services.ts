@@ -105,11 +105,18 @@ import {
   CurrentYear,
   // Question Sources types
   QuestionSource,
-  QuestionSourcesResponse,
-  QuestionSourceResponse,
   CreateQuestionSourceRequest,
   UpdateQuestionSourceRequest,
+  QuestionSourcesResponse,
+  QuestionSourceResponse,
   QuestionSourceFilters,
+  // Admin Study Pack types
+  CreateStudyPackRequest,
+  UpdateStudyPackRequest,
+  StudyPackResponse,
+  StudyPacksListResponse,
+  STUDY_PACK_TYPES,
+  YEAR_NUMBERS,
 } from '@/types/api';
 
 // Authentication Services
@@ -2454,11 +2461,16 @@ export class AdminService {
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.courseId) queryParams.append('courseId', params.courseId.toString());
+    if (params.moduleId) queryParams.append('moduleId', params.moduleId.toString());
+    if (params.unitId) queryParams.append('unitId', params.unitId.toString());
+    if (params.studyPackId) queryParams.append('studyPackId', params.studyPackId.toString());
     if (params.universityId) queryParams.append('universityId', params.universityId.toString());
     if (params.examId) queryParams.append('examId', params.examId.toString());
     if (params.questionType) queryParams.append('questionType', params.questionType);
     if (params.yearLevel) queryParams.append('yearLevel', params.yearLevel);
     if (params.examYear) queryParams.append('examYear', params.examYear.toString());
+    if (params.rotation) queryParams.append('rotation', params.rotation);
+    if (params.sourceId) queryParams.append('sourceId', params.sourceId.toString());
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
     if (params.search) queryParams.append('search', params.search);
 
@@ -3140,42 +3152,66 @@ export class AdminContentService {
 
   /**
    * Create new study pack
+   * Validates required fields: name, description, type, yearNumber, pricePerMonth, pricePerYear
    */
-  static async createStudyPack(studyPackData: {
-    name: string;
-    description: string;
-    type: 'YEAR' | 'RESIDENCY';
-    yearNumber?: CurrentYear;
-    price: number;
-    isActive: boolean;
-  }): Promise<ApiResponse<{
-    message: string;
-    studyPack: StudyPack & { _count: { subscriptions: number } };
-  }>> {
-    return apiClient.post<{
-      message: string;
-      studyPack: StudyPack & { _count: { subscriptions: number } };
-    }>('/admin/study-packs', studyPackData);
+  static async createStudyPack(studyPackData: CreateStudyPackRequest): Promise<ApiResponse<StudyPackResponse['data']>> {
+    // Validate required fields
+    if (!studyPackData.name || typeof studyPackData.name !== 'string') {
+      throw new Error('Name is required and must be a string');
+    }
+    if (!studyPackData.description || typeof studyPackData.description !== 'string') {
+      throw new Error('Description is required and must be a string');
+    }
+    if (!studyPackData.type || !STUDY_PACK_TYPES.includes(studyPackData.type)) {
+      throw new Error(`Type is required and must be one of: ${STUDY_PACK_TYPES.join(', ')}`);
+    }
+    if (!studyPackData.yearNumber || !YEAR_NUMBERS.includes(studyPackData.yearNumber)) {
+      throw new Error(`YearNumber is required and must be one of: ${YEAR_NUMBERS.join(', ')}`);
+    }
+    if (typeof studyPackData.pricePerMonth !== 'number' || studyPackData.pricePerMonth <= 0) {
+      throw new Error('PricePerMonth is required and must be a positive number');
+    }
+    if (typeof studyPackData.pricePerYear !== 'number' || studyPackData.pricePerYear <= 0) {
+      throw new Error('PricePerYear is required and must be a positive number');
+    }
+
+    return apiClient.post<StudyPackResponse['data']>('/admin/study-packs', studyPackData);
   }
 
   /**
    * Update study pack
+   * Validates field types and enum values when provided
    */
-  static async updateStudyPack(studyPackId: number, studyPackData: Partial<{
-    name: string;
-    description: string;
-    type: 'YEAR' | 'RESIDENCY';
-    yearNumber: CurrentYear;
-    price: number;
-    isActive: boolean;
-  }>): Promise<ApiResponse<{
-    message: string;
-    studyPack: StudyPack & { _count: { subscriptions: number } };
-  }>> {
-    return apiClient.put<{
-      message: string;
-      studyPack: StudyPack & { _count: { subscriptions: number } };
-    }>(`/admin/study-packs/${studyPackId}`, studyPackData);
+  static async updateStudyPack(studyPackId: number, studyPackData: UpdateStudyPackRequest): Promise<ApiResponse<StudyPackResponse['data']>> {
+    // Validate studyPackId
+    if (!studyPackId || typeof studyPackId !== 'number') {
+      throw new Error('StudyPack ID is required and must be a number');
+    }
+
+    // Validate optional fields when provided
+    if (studyPackData.name !== undefined && (typeof studyPackData.name !== 'string' || studyPackData.name.trim() === '')) {
+      throw new Error('Name must be a non-empty string when provided');
+    }
+    if (studyPackData.description !== undefined && (typeof studyPackData.description !== 'string' || studyPackData.description.trim() === '')) {
+      throw new Error('Description must be a non-empty string when provided');
+    }
+    if (studyPackData.type !== undefined && !STUDY_PACK_TYPES.includes(studyPackData.type)) {
+      throw new Error(`Type must be one of: ${STUDY_PACK_TYPES.join(', ')} when provided`);
+    }
+    if (studyPackData.yearNumber !== undefined && !YEAR_NUMBERS.includes(studyPackData.yearNumber)) {
+      throw new Error(`YearNumber must be one of: ${YEAR_NUMBERS.join(', ')} when provided`);
+    }
+    if (studyPackData.pricePerMonth !== undefined && (typeof studyPackData.pricePerMonth !== 'number' || studyPackData.pricePerMonth <= 0)) {
+      throw new Error('PricePerMonth must be a positive number when provided');
+    }
+    if (studyPackData.pricePerYear !== undefined && (typeof studyPackData.pricePerYear !== 'number' || studyPackData.pricePerYear <= 0)) {
+      throw new Error('PricePerYear must be a positive number when provided');
+    }
+    if (studyPackData.isActive !== undefined && typeof studyPackData.isActive !== 'boolean') {
+      throw new Error('IsActive must be a boolean when provided');
+    }
+
+    return apiClient.put<StudyPackResponse['data']>(`/admin/study-packs/${studyPackId}`, studyPackData);
   }
 
   /**
@@ -4116,46 +4152,7 @@ export class UniversityService {
   }
 
   // ==================== STUDY PACK MANAGEMENT ====================
-
-  /**
-   * Create new study pack
-   */
-  static async createStudyPack(studyPackData: {
-    name: string;
-    description: string;
-    type: 'YEAR' | 'RESIDENCY';
-    yearNumber?: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
-    price: number;
-    isActive?: boolean;
-  }): Promise<ApiResponse<{
-    message: string;
-    studyPack: {
-      id: number;
-      name: string;
-      description: string;
-      type: string;
-      yearNumber: string | null;
-      price: number;
-      isActive: boolean;
-      createdAt: string;
-      updatedAt: string;
-    };
-  }>> {
-    return apiClient.post<{
-      message: string;
-      studyPack: {
-        id: number;
-        name: string;
-        description: string;
-        type: string;
-        yearNumber: string | null;
-        price: number;
-        isActive: boolean;
-        createdAt: string;
-        updatedAt: string;
-      };
-    }>('/admin/study-packs', studyPackData);
-  }
+  // Note: Study pack creation and update functions are now in AdminStudyPackService
 
   // ==================== QUESTION MANAGEMENT ====================
 

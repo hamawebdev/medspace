@@ -5,17 +5,8 @@ import { useRouter } from 'next/navigation'
 import {
   Search,
   Download,
-  Eye,
   BookOpen,
-  FileText,
-  Video,
-  Image,
-  File,
-  Calendar,
-  Grid3X3,
-  List,
   ExternalLink,
-  Play,
   DollarSign,
   ChevronRight,
   ArrowLeft,
@@ -31,18 +22,13 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+
 import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingSpinner } from '@/components/loading-states'
 import { useStudentAuth } from '@/hooks/use-auth'
@@ -53,7 +39,6 @@ import { CourseResource } from '@/types/api'
 import { UnitModuleGrid } from '@/components/student/shared/unit-module-grid'
 import { UnitModuleItem } from '@/components/student/shared/unit-module-compact-card'
 import { CourseCard } from '@/components/student/course-resources/course-card'
-import { ResourceCard } from '@/components/student/course-resources/resource-card'
 import { BreadcrumbNavigation } from '@/components/student/course-resources/breadcrumb-navigation'
 import { LoadingState } from '@/components/student/course-resources/loading-state'
 import { ErrorState } from '@/components/student/course-resources/error-state'
@@ -61,13 +46,12 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 // Navigation types
-type NavigationLevel = 'units' | 'modules' | 'courses' | 'resources'
+type NavigationLevel = 'units' | 'modules' | 'courses'
 
 interface NavigationState {
   level: NavigationLevel
   selectedUnit?: { id: number; name: string }
   selectedModule?: { id: number; name: string; isIndependent?: boolean }
-  selectedCourse?: { id: number; name: string }
 }
 
 interface BreadcrumbItem {
@@ -89,17 +73,7 @@ interface Course {
   }
 }
 
-interface CourseWithResources extends Course {
-  resources: CourseResource[]
-}
 
-const FILE_TYPE_ICONS = {
-  PDF: FileText,
-  VIDEO: Video,
-  SLIDE: Image,
-  DOCUMENT: File,
-  LINK: ExternalLink
-}
 
 export default function CourseResourcesPage() {
   const router = useRouter()
@@ -113,16 +87,18 @@ export default function CourseResourcesPage() {
 
   // Data states
   const [courses, setCourses] = useState<Course[]>([])
-  const [courseResources, setCourseResources] = useState<CourseResource[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // UI states
-  const [searchQuery, setSearchQuery] = useState('')
   const [courseSearchQuery, setCourseSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState<string>('all')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [sortBy, setSortBy] = useState<'title' | 'type' | 'created'>('title')
+
+  // Resource dialog states
+  const [resourceDialogOpen, setResourceDialogOpen] = useState(false)
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false)
+  const [selectedResources, setSelectedResources] = useState<CourseResource[]>([])
+  const [loadingResources, setLoadingResources] = useState(false)
+  const [currentResourceType, setCurrentResourceType] = useState<'SLIDE' | 'VIDEO' | 'SUMMARY' | null>(null)
 
   // Navigation functions
   const navigateToModules = (unit: { id: number; name: string }) => {
@@ -131,7 +107,6 @@ export default function CourseResourcesPage() {
       selectedUnit: unit
     })
     setCourses([])
-    setCourseResources([])
     setError(null)
   }
 
@@ -141,7 +116,6 @@ export default function CourseResourcesPage() {
       selectedUnit: prev.selectedUnit,
       selectedModule: module
     }))
-    setCourseResources([])
     setError(null)
     fetchCourses(module.id, module.isIndependent)
   }
@@ -157,16 +131,6 @@ export default function CourseResourcesPage() {
         isIndependent: item.isIndependent
       })
     }
-  }
-
-  const navigateToResources = (course: { id: number; name: string }) => {
-    setNavigation(prev => ({
-      ...prev,
-      level: 'resources',
-      selectedCourse: course
-    }))
-    setError(null)
-    fetchCourseResources(course.id)
   }
 
   const navigateBack = () => {
@@ -186,14 +150,6 @@ export default function CourseResourcesPage() {
           }))
         }
         setCourses([])
-        break
-      case 'resources':
-        setNavigation(prev => ({
-          level: 'courses',
-          selectedUnit: prev.selectedUnit,
-          selectedModule: prev.selectedModule
-        }))
-        setCourseResources([])
         break
     }
     setError(null)
@@ -256,31 +212,33 @@ export default function CourseResourcesPage() {
     }
   }, [filters, navigation.selectedUnit])
 
-  const fetchCourseResources = async (courseId: number) => {
+  const fetchCourseResourcesByType = async (courseId: number, type: 'SLIDE' | 'VIDEO' | 'SUMMARY') => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoadingResources(true)
 
       const response = await ContentService.getCourseResources(courseId, {
         page: 1,
-        limit: 100
+        limit: 100,
+        type
       })
 
       if (response.success && response.data) {
         const d: any = response.data
         const inner = d?.data?.data ?? d?.data ?? d
         const resources = Array.isArray(inner?.resources) ? inner.resources : Array.isArray(inner) ? inner : []
-        setCourseResources(Array.isArray(resources) ? resources : [])
+        // Filter by type on client side as well to ensure only matching resources are shown
+        const filteredResources = Array.isArray(resources) ? resources.filter((r: CourseResource) => r.type === type) : []
+        return filteredResources
       } else {
         const errorMessage = typeof response.error === 'string' ? response.error : 'Failed to fetch course resources'
         throw new Error(errorMessage)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch course resources'
-      setError(errorMessage)
       toast.error(errorMessage)
+      return []
     } finally {
-      setLoading(false)
+      setLoadingResources(false)
     }
   }
 
@@ -288,21 +246,18 @@ export default function CourseResourcesPage() {
     if (level === 'units') {
       setNavigation({ level: 'units' })
       setCourses([])
-      setCourseResources([])
     } else if (level === 'modules' && navigation.selectedUnit) {
       setNavigation({
         level: 'modules',
         selectedUnit: navigation.selectedUnit
       })
       setCourses([])
-      setCourseResources([])
     } else if (level === 'courses' && navigation.selectedModule) {
       setNavigation(prev => ({
         level: 'courses',
         selectedUnit: prev.selectedUnit,
         selectedModule: prev.selectedModule
       }))
-      setCourseResources([])
     }
     setError(null)
   }, [navigation.selectedUnit, navigation.selectedModule])
@@ -350,14 +305,6 @@ export default function CourseResourcesPage() {
       }
     }
 
-    if (navigation.selectedCourse) {
-      items.push({
-        label: navigation.selectedCourse.name,
-        level: 'resources',
-        onClick: () => {}
-      })
-    }
-
     return items
   }, [navigation, navigateToLevel])
 
@@ -374,48 +321,41 @@ export default function CourseResourcesPage() {
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [courses, courseSearchQuery])
 
-  // Filter and sort resources
-  const filteredResources = useMemo(() => {
-    if (!courseResources) return []
-
-    return courseResources
-      .filter(resource => {
-        if (searchQuery && !resource.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            !resource.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false
-        if (selectedType !== 'all' && resource.type !== selectedType) return false
-        return true
-      })
-      .sort((a, b) => {
-        switch (sortBy) {
-          case 'title':
-            return a.title.localeCompare(b.title)
-          case 'type':
-            return a.type.localeCompare(b.type)
-          case 'created':
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          default:
-            return a.title.localeCompare(b.title)
-        }
-      })
-  }, [courseResources, searchQuery, selectedType, sortBy])
-
-  // Get unique resource types for filter
-  const availableTypes = useMemo(() => {
-    if (!courseResources) return []
-    return Array.from(new Set(courseResources.map(resource => resource.type)))
-  }, [courseResources])
-
-  const handleViewResource = (resource: CourseResource) => {
-    if (resource.type === 'VIDEO' && resource.youtubeVideoId) {
-      window.open(`https://www.youtube.com/watch?v=${resource.youtubeVideoId}`, '_blank')
-    } else if (resource.type === 'LINK' && resource.externalUrl) {
-      window.open(resource.externalUrl, '_blank')
-    } else if (resource.filePath) {
-      // Handle file viewing/download
-      window.open(resource.filePath, '_blank')
-    } else {
-      toast.info('Resource not available for viewing')
+  const handleOfficialCourse = async (course: Course) => {
+    const resources = await fetchCourseResourcesByType(course.id, 'SLIDE')
+    if (resources.length === 0) {
+      toast.info('No official course resources available')
+      return
     }
+    setSelectedResources(resources)
+    setCurrentResourceType('SLIDE')
+    setResourceDialogOpen(true)
+  }
+
+  const handleVideoCourse = async (course: Course) => {
+    const resources = await fetchCourseResourcesByType(course.id, 'VIDEO')
+    if (resources.length === 0) {
+      toast.info('No video course resources available')
+      return
+    }
+    setSelectedResources(resources)
+    setCurrentResourceType('VIDEO')
+    setVideoDialogOpen(true)
+  }
+
+  const handleSummaryCourse = async (course: Course) => {
+    const resources = await fetchCourseResourcesByType(course.id, 'SUMMARY')
+    if (resources.length === 0) {
+      toast.info('No summary course resources available')
+      return
+    }
+    setSelectedResources(resources)
+    setCurrentResourceType('SUMMARY')
+    setResourceDialogOpen(true)
+  }
+
+  const handleOpenLink = (url: string) => {
+    window.open(url, '_blank')
   }
 
   const handleDownloadResource = (resource: CourseResource) => {
@@ -425,24 +365,16 @@ export default function CourseResourcesPage() {
     }
 
     if (resource.filePath) {
-      // Create download link
       const link = document.createElement('a')
       link.href = resource.filePath
       link.download = resource.title
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+      toast.success('Download started')
     } else {
-      toast.info('Download not available for this resource type')
+      toast.info('Download not available for this resource')
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
   }
 
   // Handle authentication redirect - moved after all hooks
@@ -468,7 +400,7 @@ export default function CourseResourcesPage() {
             <div className="p-2 bg-primary/10 rounded-lg">
               <BookOpen className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-primary" />
             </div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-primary">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight" style={{ background: 'linear-gradient(to right, #18686E, #18686E)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Course Resources
             </h2>
           </div>
@@ -625,7 +557,9 @@ export default function CourseResourcesPage() {
                     <CourseCard
                       key={course.id}
                       course={course}
-                      onClick={() => navigateToResources(course)}
+                      onOfficialCourse={() => handleOfficialCourse(course)}
+                      onVideoCourse={() => handleVideoCourse(course)}
+                      onSummaryCourse={() => handleSummaryCourse(course)}
                     />
                   ))}
                 </div>
@@ -644,111 +578,85 @@ export default function CourseResourcesPage() {
               )}
             </div>
           )}
-
-          {/* Resources Level */}
-          {navigation.level === 'resources' && navigation.selectedCourse && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Resources for {navigation.selectedCourse.name}</h3>
-              </div>
-
-              {/* Search and Filters */}
-              <div className="flex flex-col gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Search resources..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                  <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                    <Select value={selectedType} onValueChange={setSelectedType}>
-                      <SelectTrigger className="w-full sm:w-[160px]">
-                        <SelectValue placeholder="File type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        {availableTypes.map(type => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                      <SelectTrigger className="w-full sm:w-[160px]">
-                        <SelectValue placeholder="Sort by" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="title">Title</SelectItem>
-                        <SelectItem value="type">Type</SelectItem>
-                        <SelectItem value="created">Date Created</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                      className="min-h-[44px] min-w-[44px] px-3"
-                    >
-                      {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-                      <span className="ml-2 hidden sm:inline">
-                        {viewMode === 'grid' ? 'List' : 'Grid'}
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Resources Content */}
-              {loading ? (
-                <LoadingState message="Loading resources..." />
-              ) : error ? (
-                <ErrorState
-                  message={error}
-                  onRetry={() => fetchCourseResources(navigation.selectedCourse!.id)}
-                />
-              ) : filteredResources.length === 0 ? (
-                <EmptyState
-                  icon={FileText}
-                  title="No Resources Found"
-                  description={searchQuery || selectedType !== 'all'
-                    ? "No resources match your current filters. Try adjusting your search or filters."
-                    : "No resources available for this course yet."
-                  }
-                />
-              ) : (
-                <div className={cn(
-                  "gap-3 sm:gap-4 lg:gap-6",
-                  viewMode === 'grid'
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
-                    : "flex flex-col space-y-3 sm:space-y-4"
-                )}>
-                  {filteredResources.map((resource) => (
-                    <ResourceCard
-                      key={resource.id}
-                      resource={resource}
-                      viewMode={viewMode}
-                      onView={handleViewResource}
-                      onDownload={handleDownloadResource}
-                      formatDate={formatDate}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
+
+      {/* Unified Resource Dialog */}
+      <Dialog open={resourceDialogOpen || videoDialogOpen} onOpenChange={(open) => {
+        setResourceDialogOpen(open)
+        setVideoDialogOpen(open)
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {currentResourceType === 'SLIDE' && 'Official Course Resources'}
+              {currentResourceType === 'VIDEO' && 'Video Course Resources'}
+              {currentResourceType === 'SUMMARY' && 'Summary Course Resources'}
+            </DialogTitle>
+            <DialogDescription>
+              {loadingResources ? 'Loading resources...' : `${selectedResources.length} resource(s) available`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingResources ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : selectedResources.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No resources available
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {selectedResources.map((resource) => (
+                <Card key={resource.id} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-base truncate">{resource.title}</h4>
+                      </div>
+                      {resource.isPaid && (
+                        <Badge variant="outline" className="flex-shrink-0">
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          {resource.price ? `$${resource.price}` : 'Paid'}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {resource.externalUrl && (
+                        <Button
+                          onClick={() => handleOpenLink(resource.externalUrl!)}
+                          variant="default"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Open Link
+                        </Button>
+                      )}
+                      {resource.filePath && (
+                        <Button
+                          onClick={() => handleDownloadResource(resource)}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download Resource
+                        </Button>
+                      )}
+                      {!resource.externalUrl && !resource.filePath && (
+                        <p className="text-sm text-muted-foreground">No resource link available</p>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

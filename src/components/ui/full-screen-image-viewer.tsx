@@ -3,7 +3,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -17,6 +16,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CorsSafeImage } from '@/components/ui/cors-safe-image';
 
 import {
   Select,
@@ -66,7 +66,6 @@ export function FullScreenImageViewer({
 }: FullScreenImageViewerProps) {
   const [zoom, setZoom] = useState<number | 'fit'>('fit');
   const [imageError, setImageError] = useState(false);
-  const [nextImageError, setNextImageError] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
@@ -89,9 +88,8 @@ export function FullScreenImageViewer({
     setZoom('fit');
     setImagePosition({ x: 0, y: 0 });
     setImageError(false);
-    setNextImageError(false);
     setIsImageLoading(true);
-  }, [image.id]);
+  }, [image.id, image.imagePath]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -242,12 +240,6 @@ export function FullScreenImageViewer({
     setIsImageLoading(false);
   }, []);
 
-  const handleNextImageError = useCallback(() => {
-    console.warn(`Next.js Image failed to load (likely CORP issue) - Path: ${image.imagePath}`);
-    setNextImageError(true);
-    setIsImageLoading(false);
-  }, [image.imagePath]);
-
   if (!isOpen || !isMounted) return null;
 
   const zoomValue = zoom === 'fit' ? 'fit' : zoom.toString();
@@ -378,50 +370,15 @@ export function FullScreenImageViewer({
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/30 border-t-white"></div>
                 </div>
               )}
-              {nextImageError ? (
-                // Fallback to regular img tag with CORS handling for CORP issues
+              <div className="relative w-full h-full flex items-center justify-center">
                 <img
-                  src={image.imagePath}
+                  src={`/api/proxy-image?url=${encodeURIComponent(image.imagePath)}`}
                   alt={image.altText || `Image ${currentIndex + 1}`}
-                  className={cn(
-                    "object-contain transition-opacity duration-300",
-                    zoom === 'fit' ? "max-w-[100vw] max-h-[calc(100vh-4rem)]" : "w-auto h-auto",
-                    isImageLoading ? "opacity-0" : "opacity-100"
-                  )}
+                  className="max-w-full max-h-full object-contain"
                   onError={handleImageError}
                   onLoad={handleImageLoad}
-                  loading="eager"
-                  crossOrigin="anonymous"
-                  referrerPolicy="no-referrer"
-                  style={{
-                    maxWidth: zoom === 'fit' ? '100vw' : 'none',
-                    maxHeight: zoom === 'fit' ? 'calc(100vh - 4rem)' : 'none',
-                  }}
                 />
-              ) : (
-                // Try Next.js Image first for optimization
-                <div className="relative w-full h-full">
-                  <Image
-                    src={image.imagePath}
-                    alt={image.altText || `Image ${currentIndex + 1}`}
-                    fill
-                    className={cn(
-                      "object-contain transition-opacity duration-300",
-                      isImageLoading ? "opacity-0" : "opacity-100"
-                    )}
-                    onError={handleNextImageError}
-                    onLoad={handleImageLoad}
-                    unoptimized
-                    priority
-                    sizes="100vw"
-                    style={{
-                      objectFit: 'contain',
-                      maxWidth: zoom === 'fit' ? '100vw' : 'none',
-                      maxHeight: zoom === 'fit' ? 'calc(100vh - 4rem)' : 'none',
-                    }}
-                  />
-                </div>
-              )}
+              </div>
             </div>
           )}
         </div>

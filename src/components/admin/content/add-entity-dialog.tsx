@@ -50,15 +50,21 @@ const courseSchema = z.object({
   description: z.string().min(1, 'Description is required'),
 });
 
+const independentModuleSchema = z.object({
+  name: z.string().min(1, 'Module name is required'),
+  description: z.string().min(1, 'Description is required'),
+});
+
 const studyPackSchema = z.object({
   name: z.string().min(1, 'Study pack name is required'),
   description: z.string().min(1, 'Description is required'),
-  type: z.enum(['YEAR', 'RESIDENCY']),
-  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']).optional(),
-  price: z.number().min(0, 'Price must be positive'),
+  type: z.enum(['YEAR', 'MODULE', 'COURSE']),
+  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']),
+  pricePerMonth: z.number().min(0, 'Monthly price must be positive'),
+  pricePerYear: z.number().min(0, 'Yearly price must be positive'),
 });
 
-type EntityType = 'university' | 'studyPack' | 'unit' | 'module' | 'course';
+type EntityType = 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'independentModule';
 
 interface AddEntityDialogProps {
   isOpen: boolean;
@@ -88,6 +94,8 @@ export function AddEntityDialog({
         return unitSchema;
       case 'module':
         return moduleSchema;
+      case 'independentModule':
+        return independentModuleSchema;
       case 'course':
         return courseSchema;
       default:
@@ -104,7 +112,8 @@ export function AddEntityDialog({
       city: '',
       type: 'YEAR' as const,
       yearNumber: 'ONE' as const,
-      price: 0,
+      pricePerMonth: 0,
+      pricePerYear: 0,
     },
   });
 
@@ -121,7 +130,7 @@ export function AddEntityDialog({
         return {
           title: 'Add Study Pack',
           description: 'Create a new study pack for the selected university',
-          fields: ['name', 'description', 'type', 'yearNumber', 'price']
+          fields: ['name', 'description', 'type', 'yearNumber', 'pricePerMonth', 'pricePerYear']
         };
       case 'unit':
         return {
@@ -133,6 +142,12 @@ export function AddEntityDialog({
         return {
           title: 'Add Module',
           description: 'Create a new module for the selected unit',
+          fields: ['name', 'description']
+        };
+      case 'independentModule':
+        return {
+          title: 'Add Independent Module',
+          description: 'Create a new independent module for the selected study pack',
           fields: ['name', 'description']
         };
       case 'course':
@@ -170,9 +185,9 @@ export function AddEntityDialog({
             name: data.name,
             description: data.description,
             type: data.type,
-            yearNumber: data.type === 'YEAR' ? data.yearNumber : undefined,
-            price: data.price,
-            isActive: true,
+            yearNumber: data.yearNumber,
+            pricePerMonth: data.pricePerMonth,
+            pricePerYear: data.pricePerYear,
           });
           break;
         case 'unit':
@@ -195,6 +210,17 @@ export function AddEntityDialog({
             name: data.name,
             description: data.description,
             uniteId: parentId,
+          });
+          break;
+        case 'independentModule':
+          if (!parentId) {
+            toast.error('Study pack ID is required to create an independent module');
+            return;
+          }
+          result = await AdminContentService.createIndependentModule({
+            name: data.name,
+            description: data.description,
+            studyPackId: parentId,
           });
           break;
         case 'course':
@@ -323,7 +349,8 @@ export function AddEntityDialog({
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="YEAR">Year</option>
-                        <option value="RESIDENCY">Residency</option>
+                        <option value="MODULE">Module</option>
+                        <option value="COURSE">Course</option>
                       </select>
                     </FormControl>
                     <FormMessage />
@@ -359,19 +386,42 @@ export function AddEntityDialog({
               />
             )}
 
-            {entityInfo.fields.includes('price') && (
+            {entityInfo.fields.includes('pricePerMonth') && (
               <FormField
                 control={form.control}
-                name="price"
+                name="pricePerMonth"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price ($)</FormLabel>
+                    <FormLabel>Monthly Price ($)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min="0"
                         step="0.01"
-                        placeholder="Enter price"
+                        placeholder="Enter monthly price"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {entityInfo.fields.includes('pricePerYear') && (
+              <FormField
+                control={form.control}
+                name="pricePerYear"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Yearly Price ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Enter yearly price"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />

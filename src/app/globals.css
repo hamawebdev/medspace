@@ -1,11 +1,21 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Prevent FOUC by hiding content until theme is ready */
+html:not(.theme-ready) {
+  visibility: hidden;
+}
+
+html.theme-ready {
+  visibility: visible;
+}
+
 @layer base {
-:root {
-  --background: hsl(220 10% 95%);
-  --foreground: hsl(0 0% 9.0196%);
-  --card: hsl(0 0% 98.8235%);
+  :root {
+    --background: hsl(220 10% 95%);
+    --foreground: hsl(0 0% 9.0196%);
+    --card: hsl(0 0% 98.8235%);
+    /* ... */
   --card-foreground: hsl(0 0% 9.0196%);
   --popover: hsl(0 0% 98.8235%);
   --popover-foreground: hsl(0 0% 32.1569%);
@@ -43,7 +53,7 @@
   --sidebar-accent-foreground: hsl(0 0% 12.5490%);
   --sidebar-border: hsl(0 0% 87.4510%);
   --sidebar-ring: #18686E;
-  --font-sans: Outfit, ui-sans-serif, sans-serif, system-ui;
+  --font-sans: Arial, ui-sans-serif, sans-serif, system-ui;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: monospace;
   --radius: 0.5rem;
@@ -92,7 +102,7 @@
   --sidebar-accent-foreground: hsl(0 0% 98.0392%);
   --sidebar-border: hsl(0 0% 16.0784%);
   --sidebar-ring:#18686E;
-  --font-sans: Outfit, ui-sans-serif, sans-serif, system-ui;
+  --font-sans: Arial, ui-sans-serif, sans-serif, system-ui;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: monospace;
   --radius: 0.5rem;

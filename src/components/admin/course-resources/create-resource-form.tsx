@@ -45,9 +45,7 @@ interface FileUploadState {
 const RESOURCE_TYPES = [
   { value: 'SLIDE', label: 'Slide', icon: FileText, description: 'Presentation slides and documents' },
   { value: 'VIDEO', label: 'Video', icon: Video, description: 'Video files or YouTube videos' },
-  { value: 'BOOK', label: 'Book', icon: Link, description: 'Books and reading materials' },
-  { value: 'SUMMARY', label: 'Summary', icon: Headphones, description: 'Study summaries and notes' },
-  { value: 'OTHER', label: 'Other', icon: Image, description: 'Other types of resources' }
+  { value: 'SUMMARY', label: 'Summary', icon: Headphones, description: 'Study summaries and notes' }
 ] as const;
 
 export function CreateResourceForm({ course, onSubmit, onCancel, loading = false }: CreateResourceFormProps) {
@@ -76,13 +74,8 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
 
   // Update form fields visibility based on resource type (from test file pattern)
   const updateFormFields = () => {
-    // Clear YouTube video ID if not VIDEO type
-    if (formData.type !== 'VIDEO' && formData.youtubeVideoId) {
-      setFormData(prev => ({ ...prev, youtubeVideoId: '' }));
-    }
-
     // Clear external URL validation errors when type changes
-    if (errors.externalUrl && formData.type !== 'BOOK') {
+    if (errors.externalUrl) {
       setErrors(prev => ({ ...prev, externalUrl: '' }));
     }
   };
@@ -227,9 +220,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
     }
 
     // Type-specific validations (enhanced from test file)
-    if (formData.type === 'BOOK' && !formData.externalUrl?.trim()) {
-      newErrors.externalUrl = 'External URL is required for book resources';
-    }
+    // No type-specific validations needed for remaining types
 
     if (formData.externalUrl && formData.externalUrl.trim()) {
       try {
@@ -239,15 +230,6 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       }
     }
 
-    // YouTube video ID validation (enhanced from test file)
-    if (formData.type === 'VIDEO' && formData.youtubeVideoId && formData.youtubeVideoId.trim()) {
-      const videoId = formData.youtubeVideoId.trim();
-      if (videoId.length !== 11) {
-        newErrors.youtubeVideoId = 'YouTube video ID must be exactly 11 characters';
-      } else if (!/^[a-zA-Z0-9_-]+$/.test(videoId)) {
-        newErrors.youtubeVideoId = 'YouTube video ID contains invalid characters';
-      }
-    }
 
     // File upload validation
     if (fileUpload.uploading) {
@@ -261,10 +243,9 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
     // Ensure at least one content source is provided (from test file logic)
     const hasFile = !!fileUpload.file;
     const hasExternalUrl = !!formData.externalUrl?.trim();
-    const hasYouTubeId = formData.type === 'VIDEO' && !!formData.youtubeVideoId?.trim();
 
-    if (!hasFile && !hasExternalUrl && !hasYouTubeId) {
-      newErrors.content = 'Please provide either a file upload, external URL, or YouTube video ID';
+    if (!hasFile && !hasExternalUrl) {
+      newErrors.content = 'Please provide either a file upload or external URL';
     }
 
     setErrors(newErrors);
@@ -336,7 +317,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
     // Clear content validation error when any content field is updated
-    if (['externalUrl', 'youtubeVideoId'].includes(field) && errors.content) {
+    if (['externalUrl'].includes(field) && errors.content) {
       setErrors(prev => ({ ...prev, content: '' }));
     }
     // Update form fields when type changes (from test file pattern)
@@ -362,55 +343,6 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
     removeFile();
   };
 
-  // Load sample data function (from test file)
-  const loadSampleData = () => {
-    const resourceType = formData.type;
-
-    switch(resourceType) {
-      case 'SLIDE':
-        setFormData(prev => ({
-          ...prev,
-          title: 'Anatomy Slides - Cardiovascular System',
-          description: 'Comprehensive slides covering cardiovascular anatomy and physiology',
-          externalUrl: 'https://example.com/anatomy-slides.pdf'
-        }));
-        break;
-      case 'VIDEO':
-        setFormData(prev => ({
-          ...prev,
-          title: 'Cardiology Lecture Series',
-          description: 'In-depth video lectures on cardiology fundamentals',
-          youtubeVideoId: 'dQw4w9WgXcQ'
-        }));
-        break;
-      case 'BOOK':
-        setFormData(prev => ({
-          ...prev,
-          title: 'Medical Physiology Textbook',
-          description: 'Comprehensive textbook on human physiology',
-          externalUrl: 'https://example.com/physiology-textbook.pdf'
-        }));
-        break;
-      case 'SUMMARY':
-        setFormData(prev => ({
-          ...prev,
-          title: 'Pharmacology Quick Reference',
-          description: 'Quick reference guide for common medications',
-          externalUrl: 'https://example.com/pharmacology-summary.pdf'
-        }));
-        break;
-      case 'OTHER':
-        setFormData(prev => ({
-          ...prev,
-          title: 'Clinical Practice Guidelines',
-          description: 'Official guidelines for clinical practice',
-          externalUrl: 'https://example.com/clinical-guidelines.pdf'
-        }));
-        break;
-    }
-
-    updateFormFields();
-  };
 
   const selectedResourceType = RESOURCE_TYPES.find(type => type.value === formData.type);
 
@@ -571,7 +503,7 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
           {/* External URL */}
           <div className="space-y-2">
             <Label htmlFor="externalUrl">
-              External URL {formData.type === 'BOOK' && '*'}
+              External URL
             </Label>
             <Input
               id="externalUrl"
@@ -588,26 +520,6 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
             )}
           </div>
 
-          {/* YouTube Video ID */}
-          {formData.type === 'VIDEO' && (
-            <div className="space-y-2">
-              <Label htmlFor="youtubeVideoId">YouTube Video ID</Label>
-              <Input
-                id="youtubeVideoId"
-                value={formData.youtubeVideoId}
-                onChange={(e) => updateFormData('youtubeVideoId', e.target.value)}
-                placeholder="dQw4w9WgXcQ"
-                maxLength={11}
-                className={errors.youtubeVideoId ? 'border-destructive' : ''}
-              />
-              {errors.youtubeVideoId && (
-                <div className="text-sm text-destructive flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors.youtubeVideoId}
-                </div>
-              )}
-            </div>
-          )}
 
 
 
@@ -642,15 +554,6 @@ export function CreateResourceForm({ course, onSubmit, onCancel, loading = false
                 disabled={loading || fileUpload.uploading}
               >
                 🗑️ Clear Form
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={loadSampleData}
-                disabled={loading || fileUpload.uploading}
-              >
-                📝 Load Sample Data
               </Button>
             </div>
           </div>

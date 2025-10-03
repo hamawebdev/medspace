@@ -271,7 +271,9 @@ export function SessionWizard({
     const selectedCourseNames = courseIds
       .map(courseId => {
         const course = courseOptions.find((c: any) => c.value === courseId);
-        return course?.label?.split(' (')[0]; // Remove any parenthetical info
+        const courseName = course?.label?.split(' (')[0]; // Remove any parenthetical info
+        // Sanitize course name to contain only alphanumeric characters and spaces
+        return courseName?.replace(/[^A-Za-z0-9\s]/g, '').trim();
       })
       .filter(Boolean)
       .slice(0, 2); // Limit to first 2 courses for readability
@@ -283,7 +285,8 @@ export function SessionWizard({
     
     // Build title based on selections
     if (selectedCourseNames.length > 0) {
-      const coursesPart = selectedCourseNames.join(" & ");
+      // Use "and" instead of "&" to keep only alphabets and numbers
+      const coursesPart = selectedCourseNames.join(" and ");
       // Add random number for uniqueness when same courses selected
       const randomNum = Math.floor(Math.random() * 100) + 1;
       return `${coursesPart} ${randomSessionType} ${randomNum}`;
@@ -1157,7 +1160,24 @@ export function SessionWizard({
                 <div><span className="text-muted-foreground">Unit:</span> {availableUnits.find((u: any) => u.value === unitId)?.label || "—"}</div>
                 <div><span className="text-muted-foreground">Modules:</span> {moduleIds.length ? availableModules.filter((m: any) => moduleIds.includes(m.value)).map((m: any) => m.label).join(', ') : "—"}</div>
                 <div className="md:col-span-2">
-                  <span className="text-muted-foreground">Courses:</span> {courseIds.length ? courseIds.map(c => courseOptions.find((opt: any) => opt.value === c)?.label?.split(' (')[0]).join(", ") : "—"}
+                  <span className="text-muted-foreground">Courses:</span> {courseIds.length ? (() => {
+                    const courseNames = courseIds.map(c => courseOptions.find((opt: any) => opt.value === c)?.label?.split(' (')[0]).filter(Boolean);
+                    if (courseNames.length <= 2) {
+                      return courseNames.join(", ");
+                    }
+                    // On mobile, show only first 2 courses with dots
+                    return (
+                      <>
+                        <span className="md:hidden">
+                          {courseNames.slice(0, 2).join(", ")}
+                          {courseNames.length > 2 && <span className="text-muted-foreground">...</span>}
+                        </span>
+                        <span className="hidden md:inline">
+                          {courseNames.join(", ")}
+                        </span>
+                      </>
+                    );
+                  })() : "—"}
                 </div>
                 <div><span className="text-muted-foreground">Types:</span> {types.length ? types.join(", ") : "—"}</div>
                 <div><span className="text-muted-foreground">Duration:</span> {timeLimit ? `${timeLimit} minutes` : "No limit"}</div>

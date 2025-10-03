@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +15,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CorsSafeImage } from '@/components/ui/cors-safe-image';
 
 import { FullScreenImageViewer } from '@/components/ui/full-screen-image-viewer';
 
@@ -29,7 +29,7 @@ interface ImageGalleryProps {
   images: ImageData[];
   title?: string;
   className?: string;
-  maxHeight?: string;
+  maxHeight?: string; // Default: max-h-96 (384px)
   gridCols?: 'auto' | 1 | 2 | 3;
   showZoom?: boolean;
   compact?: boolean;
@@ -55,46 +55,34 @@ export function ImageGallery({
   images,
   title,
   className,
-  maxHeight = "max-h-64",
+  maxHeight = "max-h-96",
   gridCols = 'auto',
   showZoom = true,
   compact = false
 }: ImageGalleryProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
-  const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
-  const [nextImageErrors, setNextImageErrors] = useState<Set<number>>(new Set());
 
   const handleImageError = useCallback((imageId: number, imagePath: string, error: any) => {
-    console.error(`Image failed to load - ID: ${imageId}, Path: ${imagePath}`, error);
-    setImageErrors(prev => new Set(prev).add(imageId));
-    setLoadingImages(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(imageId);
-      return newSet;
+    console.error(`[ImageGallery] Image failed to load - ID: ${imageId}, Path: ${imagePath}`, error);
+    console.error(`[ImageGallery] Error details:`, {
+      imageId,
+      imagePath,
+      errorType: error?.type || 'unknown',
+      errorMessage: error?.message || 'No error message',
+      timestamp: new Date().toISOString()
     });
+    setImageErrors(prev => new Set(prev).add(imageId));
   }, []);
 
-  const handleNextImageError = useCallback((imageId: number, imagePath: string, error: any) => {
-    console.warn(`Next.js Image failed to load (likely CORP issue) - ID: ${imageId}, Path: ${imagePath}`, error);
-    setNextImageErrors(prev => new Set(prev).add(imageId));
-    setLoadingImages(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(imageId);
-      return newSet;
-    });
-  }, []);
+
 
   const handleImageLoad = useCallback((imageId: number) => {
-    setLoadingImages(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(imageId);
-      return newSet;
-    });
+    console.log(`[ImageGallery] Image ${imageId} loaded successfully`);
   }, []);
 
   const handleImageLoadStart = useCallback((imageId: number) => {
-    setLoadingImages(prev => new Set(prev).add(imageId));
+    console.log(`[ImageGallery] Image ${imageId} started loading`);
   }, []);
 
   const openModal = useCallback((index: number) => {
@@ -123,6 +111,14 @@ export function ImageGallery({
     return null;
   }
 
+  // Debug logging for image data
+  console.log(`[ImageGallery] Rendering ${images.length} images:`, images.map(img => ({
+    id: img.id,
+    imagePath: img.imagePath,
+    altText: img.altText,
+    hasValidPath: !!img.imagePath && img.imagePath.length > 0
+  })));
+
   // Determine grid columns - memoized for performance
   const gridClassName = useMemo(() => {
     if (gridCols !== 'auto') return `grid-cols-${gridCols}`;
@@ -144,9 +140,13 @@ export function ImageGallery({
           gridClassName,
           shouldCenterSingleImage && "justify-center"
         )}>
-          {images.map((image, index) => {
+          {images.filter(image => image.imagePath && image.imagePath.trim().length > 0).map((image, index) => {
             const hasError = imageErrors.has(image.id);
-            const isLoading = loadingImages.has(image.id);
+            
+            console.log(`[ImageGallery] Rendering image ${image.id}:`, {
+              hasError,
+              imagePath: image.imagePath
+            });
 
             return (
               <Card
@@ -155,59 +155,39 @@ export function ImageGallery({
                   "overflow-hidden transition-all duration-200",
                   showZoom && !hasError && "cursor-pointer hover:shadow-md hover:scale-[1.02]",
                   compact && "border-border/50",
-                  shouldCenterSingleImage && "max-w-md mx-auto"
+                  shouldCenterSingleImage && "max-w-2xl mx-auto"
                 )}
-                onClick={() => !hasError && !isLoading && openModal(index)}
+                onClick={() => !hasError && openModal(index)}
               >
                 <CardContent className="p-0">
                   <div className={cn(
-                    "relative bg-muted/30 flex items-center justify-center",
+                    "relative w-full flex items-center justify-center p-4",
                     maxHeight,
-                    compact ? "min-h-[120px]" : "min-h-[160px]",
-                    isLoading && "quiz-image-loading"
+                    compact ? "min-h-[200px]" : "min-h-[240px]"
                   )}>
                     {hasError ? (
-                      <div className="text-center space-y-2 p-4">
+                      <div className="text-center space-y-2">
                         <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto" />
                         <p className="text-xs text-muted-foreground">Image unavailable</p>
                       </div>
                     ) : (
                       <>
-                        {nextImageErrors.has(image.id) ? (
-                          // Fallback to regular img tag with CORS handling for CORP issues
-                          <img
-                            src={image.imagePath}
-                            alt={image.altText || `Image ${index + 1}`}
-                            className={cn(
-                              "w-full h-full object-contain transition-opacity duration-200",
-                              isLoading ? "opacity-0" : "opacity-100"
-                            )}
-                            onError={(e) => handleImageError(image.id, image.imagePath, e)}
-                            onLoad={() => handleImageLoad(image.id)}
-                            onLoadStart={() => handleImageLoadStart(image.id)}
-                            loading="lazy"
-                            decoding="async"
-                            crossOrigin="anonymous"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          // Try Next.js Image first for optimization
-                          <Image
-                            src={image.imagePath}
-                            alt={image.altText || `Image ${index + 1}`}
-                            fill
-                            className={cn(
-                              "object-contain transition-opacity duration-200",
-                              isLoading ? "opacity-0" : "opacity-100"
-                            )}
-                            onError={(e) => handleNextImageError(image.id, image.imagePath, e)}
-                            onLoad={() => handleImageLoad(image.id)}
-                            onLoadStart={() => handleImageLoadStart(image.id)}
-                            unoptimized
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
-                        )}
-                        {showZoom && !isLoading && (
+                        <img
+                          src={`/api/proxy-image?url=${encodeURIComponent(image.imagePath)}`}
+                          alt={image.altText || `Image ${index + 1}`}
+                          className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-200 hover:scale-[1.01]"
+                          style={{ 
+                            maxWidth: '100%', 
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto'
+                          }}
+                          loading="lazy"
+                          onError={(e) => handleImageError(image.id, image.imagePath, e)}
+                          onLoad={() => handleImageLoad(image.id)}
+                          onLoadStart={() => handleImageLoadStart(image.id)}
+                        />
+                        {showZoom && (
                           <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
                             <ZoomIn className="h-6 w-6 text-white drop-shadow-lg" />
                           </div>

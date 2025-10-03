@@ -17,18 +17,20 @@ const nextConfig: NextConfig = {
   // Compression
   compress: true,
 
-  // Image optimization
+  // Image optimization configuration
   images: {
-    formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    unoptimized: true, // Disable all image optimization to avoid issues with API-served images
+    domains: ['med-cortex.com', 'localhost'], // Allow these domains for image optimization
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'med-cortex.com',
-        port: '',
-        pathname: '/api/v1/media/**',
+        pathname: '/api/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        pathname: '/api/**',
       },
     ],
   },

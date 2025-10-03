@@ -28,11 +28,16 @@ export function useQuestionManagement() {
     filters: {
       search: '',
       courseId: undefined,
+      moduleId: undefined,
+      unitId: undefined,
+      studyPackId: undefined,
       universityId: undefined,
       examId: undefined,
       questionType: undefined,
       yearLevel: undefined,
       examYear: undefined,
+      rotation: undefined,
+      sourceId: undefined,
       isActive: undefined,
     },
   });
@@ -104,7 +109,7 @@ export function useQuestionManagement() {
         throw new Error(response.error || 'Failed to fetch questions');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch questions';
+      const errorMessage = error instanceof Error ? error.message : 'Impossible de charger les questions.';
       console.error('❌ Error fetching questions:', error);
       console.error('❌ Error details:', {
         message: error?.message,
@@ -123,7 +128,7 @@ export function useQuestionManagement() {
         error: errorMessage,
       }));
 
-      toast.error('Error', {
+      toast.error('Erreur', {
         description: errorMessage,
       });
     }
@@ -145,11 +150,16 @@ export function useQuestionManagement() {
       filters: {
         search: '',
         courseId: undefined,
+        moduleId: undefined,
+        unitId: undefined,
+        studyPackId: undefined,
         universityId: undefined,
         examId: undefined,
         questionType: undefined,
         yearLevel: undefined,
         examYear: undefined,
+        rotation: undefined,
+        sourceId: undefined,
         isActive: undefined,
       },
       currentPage: 1,

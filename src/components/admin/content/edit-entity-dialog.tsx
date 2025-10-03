@@ -35,9 +35,9 @@ const universitySchema = z.object({
 const studyPackSchema = z.object({
   name: z.string().min(1, 'Study pack name is required'),
   description: z.string().min(1, 'Description is required'),
-  type: z.enum(['YEAR', 'RESIDENCY']),
-  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']).optional(),
-  price: z.number().min(0, 'Price must be positive'),
+  yearNumber: z.enum(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN']),
+  pricePerMonth: z.number().min(0, 'Monthly price must be positive'),
+  pricePerYear: z.number().min(0, 'Yearly price must be positive'),
 });
 
 const unitSchema = z.object({
@@ -69,9 +69,10 @@ interface University extends BaseEntity {
 }
 
 interface StudyPack extends BaseEntity {
-  type: 'YEAR' | 'RESIDENCY';
-  yearNumber?: string;
-  price: number;
+  type: 'YEAR' | 'MODULE' | 'COURSE';
+  yearNumber: string;
+  pricePerMonth: number;
+  pricePerYear: number;
   description: string;
 }
 
@@ -127,17 +128,16 @@ export function EditEntityDialog({
     }
   };
 
-  const form = useForm({
+  const form = useForm<any>({
     resolver: zodResolver(getSchema()),
-    defaultValues: {
-      name: '',
-      description: '',
-      country: '',
-      city: '',
-      type: 'YEAR' as const,
-      yearNumber: 'ONE' as const,
-      price: 0,
-    },
+      defaultValues: {
+        name: '',
+        description: '',
+        country: '',
+        city: '',
+        pricePerMonth: 0,
+        pricePerYear: 0,
+      },
   });
 
   // Reset form when entity changes
@@ -154,9 +154,9 @@ export function EditEntityDialog({
         formData.city = university.city;
       } else if (entityType === 'studyPack') {
         const studyPack = entity as StudyPack;
-        formData.type = studyPack.type;
-        formData.yearNumber = studyPack.yearNumber || 'ONE';
-        formData.price = studyPack.price;
+        formData.yearNumber = studyPack.yearNumber;
+        formData.pricePerMonth = studyPack.pricePerMonth || 0;
+        formData.pricePerYear = studyPack.pricePerYear || 0;
       }
 
       form.reset(formData);
@@ -176,7 +176,7 @@ export function EditEntityDialog({
         return {
           title: 'Edit Study Pack',
           description: 'Update study pack information',
-          fields: ['name', 'description', 'type', 'yearNumber', 'price']
+          fields: ['name', 'description', 'yearNumber', 'pricePerMonth', 'pricePerYear']
         };
       case 'unit':
         return {
@@ -224,9 +224,10 @@ export function EditEntityDialog({
           result = await AdminContentService.updateStudyPack(entity.id, {
             name: data.name,
             description: data.description,
-            type: data.type,
-            yearNumber: data.type === 'YEAR' ? data.yearNumber : undefined,
-            price: data.price,
+            type: 'YEAR',
+            yearNumber: data.yearNumber,
+            pricePerMonth: data.pricePerMonth,
+            pricePerYear: data.pricePerYear,
           });
           break;
         case 'unit':
@@ -349,27 +350,6 @@ export function EditEntityDialog({
               />
             )}
 
-            {entityInfo.fields.includes('type') && (
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="YEAR">Year</option>
-                        <option value="RESIDENCY">Residency</option>
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             {entityInfo.fields.includes('yearNumber') && (
               <FormField
@@ -398,19 +378,42 @@ export function EditEntityDialog({
               />
             )}
 
-            {entityInfo.fields.includes('price') && (
+            {entityInfo.fields.includes('pricePerMonth') && (
               <FormField
                 control={form.control}
-                name="price"
+                name="pricePerMonth"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price ($)</FormLabel>
+                    <FormLabel>Monthly Price ($)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min="0"
                         step="0.01"
-                        placeholder="Enter price"
+                        placeholder="Enter monthly price"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {entityInfo.fields.includes('pricePerYear') && (
+              <FormField
+                control={form.control}
+                name="pricePerYear"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Yearly Price ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Enter yearly price"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />

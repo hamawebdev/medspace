@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { CorsSafeImage } from '@/components/ui/cors-safe-image';
 
 
 interface LogoDisplayProps {
@@ -102,11 +102,10 @@ export function LogoDisplay({
           )} />
         </div>
       )}
-      <Image
+      <CorsSafeImage
         src={logoUrl}
         alt={alt}
         fill
-        sizes={sizesMap[size]}
         className={cn(
           "object-contain transition-opacity duration-200",
           imageLoading ? 'opacity-0' : 'opacity-100'

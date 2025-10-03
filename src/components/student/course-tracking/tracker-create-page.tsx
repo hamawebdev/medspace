@@ -829,8 +829,9 @@ export function TrackerCreatePage({ onSuccess }: TrackerCreatePageProps) {
       {/* Header */}
       <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4">
+            {/* Back button - positioned above everything */}
+            <div className="flex items-center">
               <Button
                 variant="ghost"
                 size="sm"
@@ -840,7 +841,10 @@ export function TrackerCreatePage({ onSuccess }: TrackerCreatePageProps) {
                 <ArrowLeft className="h-4 w-4" />
                 Retour
               </Button>
-              <div className="h-6 w-px bg-border" />
+            </div>
+            
+            {/* Title and step indicator row */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Target className="h-5 w-5 text-primary" />
@@ -850,29 +854,29 @@ export function TrackerCreatePage({ onSuccess }: TrackerCreatePageProps) {
                   <p className="text-sm text-muted-foreground">{stepInfo.description}</p>
                 </div>
               </div>
-            </div>
             
-            {/* Step indicator */}
-            <div className="flex items-center gap-2">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
-                step === 'units' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                1
-              </div>
-              <div className="w-8 h-px bg-border" />
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
-                step === 'modules' || step === 'courses' || step === 'details' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                2
-              </div>
-              <div className="w-8 h-px bg-border" />
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
-                step === 'details' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                3
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 justify-center sm:justify-end">
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
+                  step === 'units' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  1
+                </div>
+                <div className="w-8 h-px bg-border" />
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
+                  step === 'modules' || step === 'courses' || step === 'details' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  2
+                </div>
+                <div className="w-8 h-px bg-border" />
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
+                  step === 'details' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  3
+                </div>
               </div>
             </div>
           </div>

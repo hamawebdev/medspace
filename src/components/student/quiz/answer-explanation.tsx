@@ -15,13 +15,38 @@ interface Props {
 export function AnswerExplanation({ question, userAnswer }: Props) {
   const isCorrect = userAnswer?.isCorrect || false;
 
+  // Helper function to normalize image data structure
+  const normalizeImageArray = (images: any[]): Array<{ id: number; imagePath: string; altText?: string }> => {
+    if (!Array.isArray(images)) return [];
+    
+    return images.map((img, index) => {
+      // Handle different possible image data structures from API
+      if (typeof img === 'string') {
+        // If image is just a URL string
+        return {
+          id: index + 1,
+          imagePath: img,
+          altText: `Explanation Image ${index + 1}`
+        };
+      } else if (img && typeof img === 'object') {
+        // If image is an object with properties
+        return {
+          id: img.id || index + 1,
+          imagePath: img.imagePath || img.url || img.src || '',
+          altText: img.altText || img.alt || img.description || `Explanation Image ${index + 1}`
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  };
+
   // Collect all explanation images from different sources
   const getAllExplanationImages = () => {
     const images: Array<{ id: number; imagePath: string; altText?: string }> = [];
 
     // Question-level explanation images
     if (Array.isArray(question.questionExplanationImages)) {
-      images.push(...question.questionExplanationImages);
+      images.push(...normalizeImageArray(question.questionExplanationImages));
     }
 
     // Answer-level explanation images (from selected answer)
@@ -30,7 +55,7 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
         userAnswer.selectedOptions?.includes(opt.id)
       );
       if (selectedOption && Array.isArray(selectedOption.explanationImages)) {
-        images.push(...selectedOption.explanationImages);
+        images.push(...normalizeImageArray(selectedOption.explanationImages));
       }
     }
 
@@ -38,12 +63,17 @@ export function AnswerExplanation({ question, userAnswer }: Props) {
     if (Array.isArray((question as any).questionAnswers)) {
       (question as any).questionAnswers.forEach((answer: any) => {
         if (Array.isArray(answer.explanationImages)) {
-          images.push(...answer.explanationImages);
+          images.push(...normalizeImageArray(answer.explanationImages));
         }
       });
     }
 
-    return images;
+    // Remove duplicates based on imagePath
+    const uniqueImages = images.filter((img, index, self) => 
+      index === self.findIndex(i => i.imagePath === img.imagePath)
+    );
+
+    return uniqueImages;
   };
 
   const explanationImages = getAllExplanationImages();

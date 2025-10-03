@@ -74,10 +74,23 @@ import { ThemeProvider } from "@/components/theme-provider";
                 var system = mql.matches ? 'dark' : 'light';
                 var theme = (!stored || stored === 'system') ? system : stored;
                 var root = document.documentElement;
+                
+                // Ensure we always have a theme class applied
                 root.classList.remove('light','dark');
                 root.classList.add(theme);
                 root.setAttribute('data-theme', theme);
-              } catch (e) {}
+                
+                // Force a style recalculation to ensure CSS variables are available
+                root.style.setProperty('--theme-initialized', '1');
+                
+                // Add a temporary class to prevent FOUC (Flash of Unstyled Content)
+                root.classList.add('theme-ready');
+              } catch (e) {
+                // Fallback to light theme if anything fails
+                document.documentElement.classList.add('light');
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.classList.add('theme-ready');
+              }
             })();`}
           </Script>
           <Providers>

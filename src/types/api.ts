@@ -305,11 +305,11 @@ export interface StudyPack {
   id: number;
   name: string;
   description: string;
-  type: 'YEAR' | 'RESIDENCY';
+  type: 'YEAR' |'RESIDENCY';
   yearNumber: CurrentYear | null;
-  price: number;
-  pricePerMonth?: number;
-  pricePerYear?: number;
+  price: number; // Legacy field for backward compatibility
+  pricePerMonth: number;
+  pricePerYear: number;
   isActive: boolean;
   totalQuestions: number;
   subjects: string[];
@@ -1899,11 +1899,14 @@ export interface AdminQuestionFilters {
   courseId?: number;
   moduleId?: number;
   unitId?: number;
+  studyPackId?: number;
   universityId?: number;
   examId?: number;
   questionType?: 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
-  yearLevel?: string;
+  yearLevel?: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
   examYear?: number;
+  rotation?: 'R1' | 'R2' | 'R3' | 'R4';
+  sourceId?: number;
   isActive?: boolean;
   search?: string;
 }
@@ -2103,4 +2106,60 @@ export interface QuestionSourceResponse {
 
 export interface QuestionSourceFilters {
   search?: string;
+}
+
+// Admin Study Pack Management Types
+export interface CreateStudyPackRequest {
+  name: string;
+  description: string;
+  type: 'YEAR';
+  yearNumber: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
+  pricePerMonth: number;
+  pricePerYear: number;
+}
+
+export interface UpdateStudyPackRequest {
+  name?: string;
+  description?: string;
+  type?: 'YEAR' | 'MODULE' | 'COURSE';
+  yearNumber?: 'ONE' | 'TWO' | 'THREE' | 'FOUR' | 'FIVE' | 'SIX' | 'SEVEN';
+  pricePerMonth?: number;
+  pricePerYear?: number;
+  isActive?: boolean;
+}
+
+// Study Pack validation helpers
+export const STUDY_PACK_TYPES = ['YEAR', 'MODULE', 'COURSE'] as const;
+export const YEAR_NUMBERS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN'] as const;
+
+export type StudyPackType = typeof STUDY_PACK_TYPES[number];
+export type YearNumber = typeof YEAR_NUMBERS[number];
+
+export interface StudyPackResponse {
+  success: boolean;
+  data: {
+    message: string;
+    studyPack: StudyPack & {
+      _count?: {
+        subscriptions: number;
+      };
+    };
+  };
+}
+
+export interface StudyPacksListResponse {
+  success: boolean;
+  data: {
+    studyPacks: (StudyPack & {
+      _count?: {
+        subscriptions: number;
+      };
+    })[];
+    pagination?: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  };
 }

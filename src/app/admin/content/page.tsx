@@ -51,7 +51,7 @@ export default function AdminContentPage() {
   const [parsedQuestions, setParsedQuestions] = useState<ImportQuestion[]>([]);
   const [importing, setImporting] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [addEntityType, setAddEntityType] = useState<'university' | 'studyPack' | 'unit' | 'module' | 'course'>('university');
+  const [addEntityType, setAddEntityType] = useState<'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'independentModule'>('university');
   const [selectedExamYear, setSelectedExamYear] = useState<number | undefined>(undefined);
   const [selectedSourceId, setSelectedSourceId] = useState<number | undefined>(undefined);
   const [selectedRotation, setSelectedRotation] = useState<string | undefined>(undefined);
@@ -209,7 +209,7 @@ export default function AdminContentPage() {
   };
 
   // Handle add entity
-  const handleAddEntity = (entityType: 'university' | 'studyPack' | 'unit' | 'module' | 'course') => {
+  const handleAddEntity = (entityType: 'university' | 'studyPack' | 'unit' | 'module' | 'course' | 'independentModule') => {
     setAddEntityType(entityType);
     setShowAddDialog(true);
   };
@@ -279,8 +279,11 @@ export default function AdminContentPage() {
         return selection.studyPack?.id;
       case 'module':
         return selection.unit?.id;
+      case 'independentModule':
+        return selection.studyPack?.id;
       case 'course':
-        return selection.module?.id;
+        // Handle both regular modules and independent modules
+        return selection.module?.id || selection.independentModule?.id;
       default:
         return undefined;
     }
@@ -560,10 +563,19 @@ export default function AdminContentPage() {
                 {/* Units Section */}
                 {availableOptions.units.length > 0 && (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Layers className="h-5 w-5" />
-                      <h3 className="text-lg font-semibold">Units</h3>
-                      <Badge variant="outline">{availableOptions.units.length}</Badge>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">Units</h3>
+                        <Badge variant="outline">{availableOptions.units.length}</Badge>
+                      </div>
+                      <Button
+                        onClick={() => handleAddEntity('unit')}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Unit
+                      </Button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {availableOptions.units.map((unit) => (
@@ -583,10 +595,19 @@ export default function AdminContentPage() {
                 {/* Independent Modules Section */}
                 {availableOptions.independentModules && availableOptions.independentModules.length > 0 && (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="h-5 w-5" />
-                      <h3 className="text-lg font-semibold">Independent Modules</h3>
-                      <Badge variant="outline">{availableOptions.independentModules.length}</Badge>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">Independent Modules</h3>
+                        <Badge variant="outline">{availableOptions.independentModules.length}</Badge>
+                      </div>
+                      <Button
+                        onClick={() => handleAddEntity('independentModule')}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Independent Module
+                      </Button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {availableOptions.independentModules.map((module) => (
@@ -611,6 +632,23 @@ export default function AdminContentPage() {
                     <p className="text-muted-foreground mb-4">
                       No units or independent modules are available for the selected study pack.
                     </p>
+                    <div className="flex gap-2 justify-center mb-4">
+                      <Button
+                        onClick={() => handleAddEntity('unit')}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Unit
+                      </Button>
+                      <Button
+                        onClick={() => handleAddEntity('independentModule')}
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Independent Module
+                      </Button>
+                    </div>
                     <Alert>
                       <AlertDescription>
                         If you expected to see content here, please check if the API endpoint is returning the correct data structure or contact support.
@@ -638,12 +676,21 @@ export default function AdminContentPage() {
 
                 {availableOptions.modules.length > 0 ? (
                   <>
-                    <div className="flex items-center gap-2">
-                      <Layers className="h-5 w-5" />
-                      <h3 className="text-lg font-semibold">
-                        Modules in {selection.unit?.name}
-                      </h3>
-                      <Badge variant="outline">{availableOptions.modules.length}</Badge>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Layers className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">
+                          Modules in {selection.unit?.name}
+                        </h3>
+                        <Badge variant="outline">{availableOptions.modules.length}</Badge>
+                      </div>
+                      <Button
+                        onClick={() => handleAddEntity('module')}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Module
+                      </Button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {availableOptions.modules.map((module) => (
@@ -663,14 +710,21 @@ export default function AdminContentPage() {
                     <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No Modules Available</h3>
                     <p className="text-muted-foreground mb-4">
-                      No modules are available for the selected unit "{selection.unit?.name}".
+                      No modules are available for the selected unit &quot;{selection.unit?.name}&quot;.
                     </p>
+                    <Button
+                      onClick={() => handleAddEntity('module')}
+                      className="flex items-center gap-2 mb-4"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Module
+                    </Button>
                     <Alert>
                       <AlertDescription>
                         This could mean:
                         <ul className="list-disc list-inside mt-2 text-left">
                           <li>The unit has no modules assigned to it</li>
-                          <li>There's an issue with the data structure</li>
+                          <li>There&apos;s an issue with the data structure</li>
                           <li>The filtering logic needs to be checked</li>
                         </ul>
                       </AlertDescription>
@@ -697,21 +751,46 @@ export default function AdminContentPage() {
 
                 {availableOptions.courses.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">No courses available for the selected module.</p>
+                    <p className="text-muted-foreground mb-4">No courses available for the selected module.</p>
+                    <Button
+                      onClick={() => handleAddEntity('course')}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Course
+                    </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {availableOptions.courses.map((course) => (
-                      <EntityCard
-                        key={course.id}
-                        entity={course}
-                        entityType="course"
-                        onSelect={() => handleCardSelection('course', course)}
-                        onEdit={(entity) => handleEditEntity(entity, 'course')}
-                        onDelete={handleDeleteEntity}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Database className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">
+                          Courses in {selection.module?.name || selection.independentModule?.name}
+                        </h3>
+                        <Badge variant="outline">{availableOptions.courses.length}</Badge>
+                      </div>
+                      <Button
+                        onClick={() => handleAddEntity('course')}
+                        className="flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Course
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableOptions.courses.map((course) => (
+                        <EntityCard
+                          key={course.id}
+                          entity={course}
+                          entityType="course"
+                          onSelect={() => handleCardSelection('course', course)}
+                          onEdit={(entity) => handleEditEntity(entity, 'course')}
+                          onDelete={handleDeleteEntity}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             )}

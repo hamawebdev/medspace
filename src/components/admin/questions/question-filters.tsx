@@ -12,9 +12,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Search } from 'lucide-react';
-import { AdminQuestionFilters, QuestionCreationUnit, QuestionCreationModule, QuestionCreationCourse } from '@/types/api';
+import { X, Search, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AdminQuestionFilters } from '@/types/api';
 import { AdminService } from '@/lib/api-services';
+import { toast } from 'sonner';
 
 interface QuestionFiltersProps {
   filters: AdminQuestionFilters;
@@ -36,57 +38,121 @@ interface StudyPack {
   type: 'YEAR' | 'RESIDENCY';
 }
 
+interface Unit {
+  id: number;
+  name: string;
+  studyPack: {
+    id: number;
+    name: string;
+    yearNumber: string;
+    type: string;
+  };
+  modules: Module[];
+}
+
+interface Module {
+  id: number;
+  name: string;
+  unitId?: number;
+  studyPack?: {
+    id: number;
+    name: string;
+    yearNumber: string;
+    type: string;
+  };
+  courses: Course[];
+}
+
+interface Course {
+  id: number;
+  name: string;
+  description: string;
+  moduleId?: number;
+}
+
+interface Source {
+  id: number;
+  name: string;
+}
+
 export default function QuestionFilters({
   filters,
   onFiltersChange,
   onClearFilters,
   hasFilters,
 }: QuestionFiltersProps) {
+  // State for filter options
   const [universities, setUniversities] = useState<University[]>([]);
   const [studyPacks, setStudyPacks] = useState<StudyPack[]>([]);
-  const [units, setUnits] = useState<QuestionCreationUnit[]>([]);
-  const [independentModules, setIndependentModules] = useState<QuestionCreationModule[]>([]);
-  const [availableModules, setAvailableModules] = useState<QuestionCreationModule[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<QuestionCreationCourse[]>([]);
-  const [examYears, setExamYears] = useState<number[]>([]);
-  const [questionTypes, setQuestionTypes] = useState<string[]>([]);
-  const [loadingData, setLoadingData] = useState(false);
-  const [loadingModules, setLoadingModules] = useState(false);
-  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [independentModules, setIndependentModules] = useState<Module[]>([]);
+  const [sources, setSources] = useState<Source[]>([]);
 
-  // Load filter data
+  // State for cascading selections
+  const [availableUnits, setAvailableUnits] = useState<Unit[]>([]);
+  const [availableModules, setAvailableModules] = useState<Module[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+
+  // Loading and error states
+  const [loadingData, setLoadingData] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load filter data on mount
   useEffect(() => {
     const loadFilterData = async () => {
       try {
         setLoadingData(true);
+        setError(null);
 
-        // Load universities
-        const universitiesResponse = await AdminService.getUniversitiesForQuestions();
+        // Load all filter data in parallel
+        const [
+          universitiesResponse,
+          studyPacksResponse,
+          contentResponse,
+          filtersResponse,
+          sourcesResponse
+        ] = await Promise.all([
+          AdminService.getUniversitiesForQuestions(),
+          AdminService.getStudyPacksForQuestions(),
+          AdminService.getQuestionContentFilters(),
+          AdminService.getQuestionFilters(),
+          AdminService.getQuestionSources({ page: 1, limit: 100 })
+        ]);
+
+        // Set universities
         if (universitiesResponse.success && universitiesResponse.data?.universities) {
           setUniversities(universitiesResponse.data.universities);
         }
 
-        // Load study packs for years
-        const studyPacksResponse = await AdminService.getStudyPacksForQuestions();
+        // Set study packs
         if (studyPacksResponse.success && studyPacksResponse.data?.studyPacks) {
           setStudyPacks(studyPacksResponse.data.studyPacks);
         }
 
-        // Load hierarchical content filters
-        const contentResponse = await AdminService.getQuestionContentFilters();
+        // Set hierarchical content (units and independent modules)
         if (contentResponse.success && contentResponse.data) {
-          setUnits(contentResponse.data.units || []);
-          setIndependentModules(contentResponse.data.independentModules || []);
+          const unitsData = contentResponse.data.unites || [];
+          const independentModulesData = contentResponse.data.independentModules || [];
+
+          setUnits(unitsData);
+          setIndependentModules(independentModulesData);
+        } else {
+          throw new Error('Impossible de charger les filtres.');
         }
 
-        // Load exam years and question types
-        const filtersResponse = await AdminService.getQuestionFilters();
-        if (filtersResponse.success && filtersResponse.data?.filters) {
-          setExamYears(filtersResponse.data.filters.examYears || []);
-          setQuestionTypes(filtersResponse.data.filters.questionTypes || []);
+
+        // Set sources (if available)
+        if (sourcesResponse.success && sourcesResponse.data?.questionSources) {
+          setSources(sourcesResponse.data.questionSources);
         }
+
       } catch (error) {
         console.error('Failed to load filter data:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Impossible de charger les filtres.';
+        setError(errorMessage);
+        toast.error('Erreur', {
+          description: errorMessage,
+        });
       } finally {
         setLoadingData(false);
       }
@@ -95,24 +161,74 @@ export default function QuestionFilters({
     loadFilterData();
   }, []);
 
-  // Handle cascading updates when unit filter changes
+  // Map Year Level to Study Pack ID
+  const getStudyPackIdFromYearLevel = (yearLevel: string | undefined): number | undefined => {
+    if (!yearLevel) return undefined;
+    const yearMap: Record<string, number> = {
+      'ONE': 1,
+      'TWO': 2,
+      'THREE': 3,
+      'FOUR': 4,
+      'FIVE': 5,
+      'SIX': 6,
+      'SEVEN': 7
+    };
+    return yearMap[yearLevel];
+  };
+
+  // Update available units and independent modules when year level changes
   useEffect(() => {
-    if (filters.unitId) {
-      const selectedUnit = units.find(u => u.id === filters.unitId);
-      setAvailableModules(selectedUnit?.modules || []);
+    if (filters.yearLevel) {
+      const studyPackId = getStudyPackIdFromYearLevel(filters.yearLevel);
+
+      if (studyPackId) {
+        // Filter units for this year
+        const filteredUnits = units.filter(u => u.studyPack.id === studyPackId);
+        setAvailableUnits(filteredUnits);
+
+        // Filter independent modules for this year
+        const filteredIndependentModules = independentModules.filter(m => m.studyPackId === studyPackId);
+        setAvailableModules(filteredIndependentModules);
+      } else {
+        setAvailableUnits([]);
+        setAvailableModules([]);
+      }
+
       setAvailableCourses([]);
     } else {
+      setAvailableUnits([]);
       setAvailableModules([]);
       setAvailableCourses([]);
     }
-  }, [filters.unitId, units]);
+  }, [filters.yearLevel, units, independentModules]);
 
-  // Handle cascading updates when module filter changes
+  // Update available modules when unit changes (modules within a unit)
+  useEffect(() => {
+    if (filters.unitId) {
+      const selectedUnit = units.find(u => u.id === filters.unitId);
+      if (selectedUnit) {
+        // Show modules from the selected unit
+        setAvailableModules(selectedUnit.modules);
+      } else {
+        setAvailableModules([]);
+      }
+      setAvailableCourses([]);
+    } else if (filters.yearLevel && !filters.unitId) {
+      // If year is selected but no unit, show independent modules for that year
+      const studyPackId = getStudyPackIdFromYearLevel(filters.yearLevel);
+      if (studyPackId) {
+        const filteredIndependentModules = independentModules.filter(m => m.studyPackId === studyPackId);
+        setAvailableModules(filteredIndependentModules);
+      }
+    }
+  }, [filters.unitId, filters.yearLevel, units, independentModules]);
+
+  // Update available courses when module changes
   useEffect(() => {
     if (filters.moduleId) {
-      let selectedModule: QuestionCreationModule | undefined;
+      let selectedModule: Module | undefined;
 
-      // Find module in units or independent modules
+      // Find module in units
       for (const unit of units) {
         const module = unit.modules.find(m => m.id === filters.moduleId);
         if (module) {
@@ -121,6 +237,7 @@ export default function QuestionFilters({
         }
       }
 
+      // If not found in units, check independent modules
       if (!selectedModule) {
         selectedModule = independentModules.find(m => m.id === filters.moduleId);
       }
@@ -131,48 +248,36 @@ export default function QuestionFilters({
     }
   }, [filters.moduleId, units, independentModules]);
 
+  // Filter change handlers
   const handleSearchChange = (value: string) => {
     onFiltersChange({ search: value });
   };
 
-  // Hierarchical selection handlers
-  const handleUnitChange = (value: string) => {
-    const unitId = value === 'all' ? undefined : parseInt(value);
-    const selectedUnit = units.find(u => u.id === unitId);
-
+  const handleYearLevelChange = (value: string) => {
+    // When year changes, reset all hierarchy filters
     onFiltersChange({
-      unitId,
+      yearLevel: value === 'all' ? undefined : (value as AdminQuestionFilters['yearLevel']),
+      unitId: undefined,
       moduleId: undefined,
       courseId: undefined
     });
+  };
 
-    setAvailableModules(selectedUnit?.modules || []);
-    setAvailableCourses([]);
+  const handleUnitChange = (value: string) => {
+    // When unit changes, reset module and course
+    onFiltersChange({
+      unitId: value === 'all' ? undefined : parseInt(value),
+      moduleId: undefined,
+      courseId: undefined
+    });
   };
 
   const handleModuleChange = (value: string) => {
-    const moduleId = value === 'all' ? undefined : parseInt(value);
-    let selectedModule: QuestionCreationModule | undefined;
-
-    // Find module in units or independent modules
-    for (const unit of units) {
-      const module = unit.modules.find(m => m.id === moduleId);
-      if (module) {
-        selectedModule = module;
-        break;
-      }
-    }
-
-    if (!selectedModule) {
-      selectedModule = independentModules.find(m => m.id === moduleId);
-    }
-
+    // When module changes, reset course
     onFiltersChange({
-      moduleId,
+      moduleId: value === 'all' ? undefined : parseInt(value),
       courseId: undefined
     });
-
-    setAvailableCourses(selectedModule?.courses || []);
   };
 
   const handleCourseChange = (value: string) => {
@@ -191,29 +296,26 @@ export default function QuestionFilters({
     onFiltersChange({
       questionType: value === 'all'
         ? undefined
-        : (value === 'SINGLE_CHOICE' ? 'SINGLE_CHOICE' : 'MULTIPLE_CHOICE')
-    });
-  };
-
-  const handleYearLevelChange = (value: string) => {
-    onFiltersChange({
-      yearLevel: value === 'all' ? undefined : value
+        : (value as 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE')
     });
   };
 
   const handleExamYearChange = (value: string) => {
     onFiltersChange({
-      examYear: value === 'all' ? undefined : parseInt(value)
+      examYear: value === '' ? undefined : parseInt(value)
     });
   };
 
-  // Handle direct module dropdown click (show independent modules)
-  const handleModuleDropdownClick = () => {
-    if (!filters.unitId) {
-      setLoadingModules(true);
-      setAvailableModules(independentModules);
-      setLoadingModules(false);
-    }
+  const handleRotationChange = (value: string) => {
+    onFiltersChange({
+      rotation: value === 'all' ? undefined : (value as 'R1' | 'R2' | 'R3' | 'R4')
+    });
+  };
+
+  const handleSourceChange = (value: string) => {
+    onFiltersChange({
+      sourceId: value === 'all' ? undefined : parseInt(value)
+    });
   };
 
   const handleStatusChange = (value: string) => {
@@ -232,6 +334,8 @@ export default function QuestionFilters({
     if (filters.questionType) count++;
     if (filters.yearLevel) count++;
     if (filters.examYear) count++;
+    if (filters.rotation) count++;
+    if (filters.sourceId) count++;
     if (filters.isActive !== undefined) count++;
     return count;
   };
@@ -239,97 +343,132 @@ export default function QuestionFilters({
   const activeFiltersCount = getActiveFiltersCount();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Search */}
       <div className="space-y-2">
-        <Label htmlFor="search">Search Questions</Label>
+        <Label htmlFor="search">Rechercher</Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             id="search"
-            placeholder="Search by question text..."
+            placeholder="Rechercher dans le texte de la question ou l'explication..."
             value={filters.search || ''}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
+            disabled={loadingData}
           />
         </div>
       </div>
 
-      {/* Hierarchical Filter Controls */}
-      <div className="space-y-4">
-        {/* Content Hierarchy Filters */}
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Unit Filter */}
+      {/* Content Hierarchy Filters: Year → Unit/Independent Module → Module → Course */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-muted-foreground">Hiérarchie de Contenu</h3>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+
+          {/* Year Level Filter - First in hierarchy */}
           <div className="space-y-2">
-            <Label>Unit</Label>
+            <Label>Année</Label>
             <Select
-              value={filters.unitId?.toString() || 'all'}
-              onValueChange={handleUnitChange}
+              value={filters.yearLevel || 'all'}
+              onValueChange={handleYearLevelChange}
               disabled={loadingData}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "All units"} />
+                <SelectValue placeholder={loadingData ? "Chargement..." : "Toutes les années"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Units</SelectItem>
-                {units.map((unit) => (
+                <SelectItem value="all">Toutes les Années</SelectItem>
+                <SelectItem value="ONE">Première Année</SelectItem>
+                <SelectItem value="TWO">Deuxième Année</SelectItem>
+                <SelectItem value="THREE">Troisième Année</SelectItem>
+                <SelectItem value="FOUR">Quatrième Année</SelectItem>
+                <SelectItem value="FIVE">Cinquième Année</SelectItem>
+                <SelectItem value="SIX">Sixième Année</SelectItem>
+                <SelectItem value="SEVEN">Septième Année</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Unit Filter - Shows units for selected year */}
+          <div className="space-y-2">
+            <Label>Unité</Label>
+            <Select
+              value={filters.unitId?.toString() || 'all'}
+              onValueChange={handleUnitChange}
+              disabled={loadingData || !filters.yearLevel || availableUnits.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={
+                  loadingData ? "Chargement..." :
+                  !filters.yearLevel ? "Sélectionner une année d'abord" :
+                  availableUnits.length === 0 ? "Aucune unité disponible" :
+                  "Toutes les unités"
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les Unités</SelectItem>
+                {availableUnits.map((unit) => (
                   <SelectItem key={unit.id} value={unit.id.toString()}>
-                    {unit.name} ({unit.studyPack.name})
+                    {unit.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Module Filter */}
+          {/* Module Filter - Shows modules from unit OR independent modules */}
           <div className="space-y-2">
-            <Label>Module</Label>
+            <Label>Module {filters.unitId ? '(de l\'unité)' : '(indépendant)'}</Label>
             <Select
               value={filters.moduleId?.toString() || 'all'}
               onValueChange={handleModuleChange}
-              disabled={loadingData || loadingModules}
-              onOpenChange={(open) => {
-                if (open && !filters.unitId) {
-                  handleModuleDropdownClick();
-                }
-              }}
+              disabled={loadingData || !filters.yearLevel || availableModules.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder={
-                  loadingData || loadingModules ? "Loading..." :
-                  availableModules.length === 0 ? "Select unit first or click to see independent modules" :
-                  "All modules"
+                  loadingData ? "Chargement..." :
+                  !filters.yearLevel ? "Sélectionner une année d'abord" :
+                  availableModules.length === 0 ? "Aucun module disponible" :
+                  "Tous les modules"
                 } />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Modules</SelectItem>
+                <SelectItem value="all">Tous les Modules</SelectItem>
                 {availableModules.map((module) => (
                   <SelectItem key={module.id} value={module.id.toString()}>
                     {module.name}
-                    {module.studyPack ? ' (' + module.studyPack.name + ')' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Course Filter */}
+          {/* Course Filter - Shows courses from selected module */}
           <div className="space-y-2">
-            <Label>Course</Label>
+            <Label>Cours</Label>
             <Select
               value={filters.courseId?.toString() || 'all'}
               onValueChange={handleCourseChange}
-              disabled={loadingData || loadingCourses || availableCourses.length === 0}
+              disabled={loadingData || !filters.moduleId || availableCourses.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder={
-                  loadingData || loadingCourses ? "Loading..." :
-                  availableCourses.length === 0 ? "Select module first" :
-                  "All courses"
+                  loadingData ? "Chargement..." :
+                  !filters.moduleId ? "Sélectionner un module d'abord" :
+                  availableCourses.length === 0 ? "Aucun cours disponible" :
+                  "Tous les cours"
                 } />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Courses</SelectItem>
+                <SelectItem value="all">Tous les Cours</SelectItem>
                 {availableCourses.map((course) => (
                   <SelectItem key={course.id} value={course.id.toString()}>
                     {course.name}
@@ -339,22 +478,40 @@ export default function QuestionFilters({
             </Select>
           </div>
         </div>
+      </div>
 
-        {/* Other Filters */}
-        <div className="grid gap-4 md:grid-cols-4">
+      {/* Other Filters */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-muted-foreground">Autres Filtres</h3>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Exam Year Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="examYear">Année d'Examen</Label>
+            <Input
+              id="examYear"
+              type="number"
+              placeholder="Ex: 2024"
+              value={filters.examYear?.toString() || ''}
+              onChange={(e) => handleExamYearChange(e.target.value)}
+              disabled={loadingData}
+              min="1900"
+              max="2100"
+            />
+          </div>
+
           {/* University Filter */}
           <div className="space-y-2">
-            <Label>University</Label>
+            <Label>Université</Label>
             <Select
               value={filters.universityId?.toString() || 'all'}
               onValueChange={handleUniversityChange}
               disabled={loadingData}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "All universities"} />
+                <SelectValue placeholder={loadingData ? "Chargement..." : "Toutes les universités"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Universities</SelectItem>
+                <SelectItem value="all">Toutes les Universités</SelectItem>
                 {universities.map((university) => (
                   <SelectItem key={university.id} value={university.id.toString()}>
                     {university.name}
@@ -366,73 +523,69 @@ export default function QuestionFilters({
 
           {/* Question Type Filter */}
           <div className="space-y-2">
-            <Label>Question Type</Label>
+            <Label>Type de Question</Label>
             <Select
               value={filters.questionType || 'all'}
               onValueChange={handleQuestionTypeChange}
               disabled={loadingData}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "All types"} />
+                <SelectValue placeholder={loadingData ? "Chargement..." : "Tous les types"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {questionTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type === 'SINGLE_CHOICE' ? 'Single Choice' : 'Multiple Choice'}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">Tous les Types</SelectItem>
+                <SelectItem value="SINGLE_CHOICE">Choix Unique</SelectItem>
+                <SelectItem value="MULTIPLE_CHOICE">Choix Multiple</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Year Level Filter */}
+          {/* Rotation Filter */}
           <div className="space-y-2">
-            <Label>Year Level</Label>
+            <Label>Rotation</Label>
             <Select
-              value={filters.yearLevel || 'all'}
-              onValueChange={handleYearLevelChange}
+              value={filters.rotation || 'all'}
+              onValueChange={handleRotationChange}
               disabled={loadingData}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "All years"} />
+                <SelectValue placeholder={loadingData ? "Chargement..." : "Toutes les rotations"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
-                {studyPacks.map((pack) => (
-                  <SelectItem key={pack.id} value={pack.yearNumber}>
-                    {pack.name} ({pack.yearNumber})
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">Toutes les Rotations</SelectItem>
+                <SelectItem value="R1">R1</SelectItem>
+                <SelectItem value="R2">R2</SelectItem>
+                <SelectItem value="R3">R3</SelectItem>
+                <SelectItem value="R4">R4</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Exam Year Filter */}
+          {/* Source Filter */}
           <div className="space-y-2">
-            <Label>Exam Year</Label>
+            <Label>Source</Label>
             <Select
-              value={filters.examYear?.toString() || 'all'}
-              onValueChange={handleExamYearChange}
+              value={filters.sourceId?.toString() || 'all'}
+              onValueChange={handleSourceChange}
               disabled={loadingData}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingData ? "Loading..." : "All exam years"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Exam Years</SelectItem>
-              {examYears.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                <SelectValue placeholder={loadingData ? "Chargement..." : "Toutes les sources"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les Sources</SelectItem>
+                {sources.map((source) => (
+                  <SelectItem key={source.id} value={source.id.toString()}>
+                    {source.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status Filter */}
           <div className="space-y-2">
-            <Label>Status</Label>
+            <Label>Statut</Label>
             <Select
               value={
                 filters.isActive === undefined
@@ -444,12 +597,12 @@ export default function QuestionFilters({
               onValueChange={handleStatusChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All statuses" />
+                <SelectValue placeholder="Tous les statuts" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">Tous les Statuts</SelectItem>
+                <SelectItem value="active">Actif</SelectItem>
+                <SelectItem value="inactive">Inactif</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -460,11 +613,11 @@ export default function QuestionFilters({
       {/* Active Filters Display */}
       {hasFilters && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium">Active filters:</span>
+          <span className="text-sm font-medium">Filtres actifs:</span>
 
           {filters.search && (
             <Badge variant="secondary" className="gap-1">
-              Search: {filters.search}
+              Recherche: {filters.search}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ search: '' })}
@@ -474,7 +627,7 @@ export default function QuestionFilters({
 
           {filters.unitId && (
             <Badge variant="secondary" className="gap-1">
-              Unit: {units.find(u => u.id === filters.unitId)?.name || 'Unknown'}
+              Unité: {units.find(u => u.id === filters.unitId)?.name || 'Inconnu'}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ unitId: undefined })}
@@ -492,7 +645,7 @@ export default function QuestionFilters({
                     if (module) return module.name;
                   }
                   const independentModule = independentModules.find(m => m.id === filters.moduleId);
-                  return independentModule?.name || 'Unknown';
+                  return independentModule?.name || 'Inconnu';
                 })()
               }
               <X
@@ -504,7 +657,7 @@ export default function QuestionFilters({
 
           {filters.courseId && (
             <Badge variant="secondary" className="gap-1">
-              Course: {availableCourses.find(c => c.id === filters.courseId)?.name || 'Unknown'}
+              Cours: {availableCourses.find(c => c.id === filters.courseId)?.name || 'Inconnu'}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ courseId: undefined })}
@@ -514,7 +667,7 @@ export default function QuestionFilters({
 
           {filters.universityId && (
             <Badge variant="secondary" className="gap-1">
-              University: {universities.find(u => u.id === filters.universityId)?.name || 'Unknown'}
+              Université: {universities.find(u => u.id === filters.universityId)?.name || 'Inconnu'}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ universityId: undefined })}
@@ -524,7 +677,7 @@ export default function QuestionFilters({
 
           {filters.questionType && (
             <Badge variant="secondary" className="gap-1">
-              Type: {filters.questionType === 'SINGLE_CHOICE' ? 'Single Choice' : 'Multiple Choice'}
+              Type: {filters.questionType === 'SINGLE_CHOICE' ? 'Choix Unique' : 'Choix Multiple'}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ questionType: undefined })}
@@ -534,7 +687,7 @@ export default function QuestionFilters({
 
           {filters.yearLevel && (
             <Badge variant="secondary" className="gap-1">
-              Year: {filters.yearLevel}
+              Année: {filters.yearLevel}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ yearLevel: undefined })}
@@ -544,7 +697,7 @@ export default function QuestionFilters({
 
           {filters.examYear && (
             <Badge variant="secondary" className="gap-1">
-              Exam Year: {filters.examYear}
+              Année d'Examen: {filters.examYear}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ examYear: undefined })}
@@ -552,9 +705,29 @@ export default function QuestionFilters({
             </Badge>
           )}
 
+          {filters.rotation && (
+            <Badge variant="secondary" className="gap-1">
+              Rotation: {filters.rotation}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => onFiltersChange({ rotation: undefined })}
+              />
+            </Badge>
+          )}
+
+          {filters.sourceId && (
+            <Badge variant="secondary" className="gap-1">
+              Source: {sources.find(s => s.id === filters.sourceId)?.name || `ID ${filters.sourceId}`}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => onFiltersChange({ sourceId: undefined })}
+              />
+            </Badge>
+          )}
+
           {filters.isActive !== undefined && (
             <Badge variant="secondary" className="gap-1">
-              Status: {filters.isActive ? 'Active' : 'Inactive'}
+              Statut: {filters.isActive ? 'Actif' : 'Inactif'}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => onFiltersChange({ isActive: undefined })}
@@ -574,7 +747,7 @@ export default function QuestionFilters({
             className="flex items-center gap-2"
           >
             <X className="h-4 w-4" />
-            Clear All Filters ({activeFiltersCount})
+            Effacer Tous les Filtres ({activeFiltersCount})
           </Button>
         </div>
       )}

@@ -609,18 +609,8 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6">
-      {/* Header with back button */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          className="gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Todos
-        </Button>
-        <div className="h-6 w-px bg-border" />
+      {/* Header */}
+      <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
             <BookOpen className="h-5 w-5 text-primary" />
@@ -657,6 +647,17 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
             )}
           </div>
         </div>
+        
+        {/* Back button positioned below the header div */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBack}
+          className="gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Todos
+        </Button>
       </div>
 
       <Separator />
@@ -802,7 +803,7 @@ export function ReadingTodoForm({ onBack, onTodoCreated }: ReadingTodoFormProps)
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <Button
                       variant="outline"
                       onClick={handleBackToCourses}
