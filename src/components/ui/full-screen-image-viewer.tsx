@@ -372,11 +372,13 @@ export function FullScreenImageViewer({
               )}
               <div className="relative w-full h-full flex items-center justify-center">
                 <img
-                  src={`/api/proxy-image?url=${encodeURIComponent(image.imagePath)}`}
+                  src={image.imagePath}
                   alt={image.altText || `Image ${currentIndex + 1}`}
                   className="max-w-full max-h-full object-contain"
                   onError={handleImageError}
                   onLoad={handleImageLoad}
+                  crossOrigin="anonymous"
+                  referrerPolicy="no-referrer"
                 />
               </div>
             </div>

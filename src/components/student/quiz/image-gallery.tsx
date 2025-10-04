@@ -167,25 +167,20 @@ export function ImageGallery({
                   )}>
                     {hasError ? (
                       <div className="text-center space-y-2">
-                        <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto" />
                         <p className="text-xs text-muted-foreground">Image unavailable</p>
                       </div>
                     ) : (
                       <>
                         <img
-                          src={`/api/proxy-image?url=${encodeURIComponent(image.imagePath)}`}
+                          src={image.imagePath}
                           alt={image.altText || `Image ${index + 1}`}
-                          className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-200 hover:scale-[1.01]"
-                          style={{ 
-                            maxWidth: '100%', 
-                            maxHeight: '100%',
-                            width: 'auto',
-                            height: 'auto'
-                          }}
-                          loading="lazy"
+                          className="max-w-full max-h-full object-contain rounded"
                           onError={(e) => handleImageError(image.id, image.imagePath, e)}
                           onLoad={() => handleImageLoad(image.id)}
                           onLoadStart={() => handleImageLoadStart(image.id)}
+                          crossOrigin="anonymous"
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
                         />
                         {showZoom && (
                           <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
